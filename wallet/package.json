@@ -1,0 +1,19 @@
+{
+  "name": "@simplicity-global/wallet-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "packages/wallet-core",
+    "packages/adapters/mock"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test packages/wallet-core/test/*.test.ts packages/adapters/mock/test/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
