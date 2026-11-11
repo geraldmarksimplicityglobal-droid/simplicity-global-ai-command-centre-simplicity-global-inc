@@ -15,8 +15,8 @@ export function groupBalancesByAsset(
 
 /** Sum balances only when their asset and decimal precision match. */
 export function sumBaseUnits(balances: readonly AssetBalance[]): string {
-  if (balances.length === 0) return "0";
-  const [first] = balances;
+  const first = balances[0];
+  if (first === undefined) return "0";
   for (const balance of balances) {
     if (balance.assetId !== first.assetId || balance.decimals !== first.decimals) {
       throw new Error("Cannot aggregate different assets or decimal precisions.");
