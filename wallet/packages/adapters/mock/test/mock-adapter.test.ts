@@ -5,11 +5,12 @@ import { MockWalletAdapter } from "../src/mock-adapter.js";
 test("mock adapter returns deterministic synthetic account and balance", async () => {
   const adapter = new MockWalletAdapter();
   const [account] = await adapter.getAccounts();
+  assert.ok(account);
   assert.equal(account.id, "mock-account-1");
   assert.equal(account.networkId, adapter.network.id);
   const balances = await adapter.getBalances(account.id);
   assert.equal(balances.length, 1);
-  assert.equal(balances[0].amountBaseUnits, "100000000");
+  assert.equal(balances[0]?.amountBaseUnits, "100000000");
 });
 
 test("mock preview never enables signing or broadcasting", async () => {
