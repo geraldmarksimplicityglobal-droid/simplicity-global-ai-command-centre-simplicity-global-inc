@@ -5,3 +5,6 @@ export * from "./custody.js";
 export * from "./transaction-policy.js";
 export * from "./address-format.js";
 export * from "./portfolio.js";
+export * from "./account-policy.js";
+export * from "./adapter-registry.js";
+export * from "./transaction-lifecycle.js";
