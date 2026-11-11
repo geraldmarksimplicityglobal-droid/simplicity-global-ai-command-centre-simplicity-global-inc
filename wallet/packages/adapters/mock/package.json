@@ -4,6 +4,6 @@
   "version": "0.1.0",
   "type": "module",
   "dependencies": {
-    "@simplicity-global/wallet-core": "workspace:*"
+    "@simplicity-global/wallet-core": "0.1.0"
   }
 }
