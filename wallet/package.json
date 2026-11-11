@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test packages/wallet-core/test/*.test.ts packages/adapters/mock/test/*.test.ts"
+    "test": "tsx --test packages/wallet-core/test/validate.test.ts packages/wallet-core/test/account-policy.test.ts packages/wallet-core/test/adapter-registry.test.ts packages/wallet-core/test/transaction-lifecycle.test.ts packages/wallet-core/test/portfolio.test.ts packages/adapters/mock/test/mock-adapter.test.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
