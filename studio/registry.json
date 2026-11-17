@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "project": "SG-DEEPSEEK-HARNESS-001",
+  "mode": "READ_ONLY",
+  "initialConcurrency": 10,
+  "maxLogicalWorkers": 1000,
+  "workstreams": [
+    {
+      "id": "ST-001",
+      "name": "architecture",
+      "dependsOn": []
+    },
+    {
+      "id": "ST-002",
+      "name": "android",
+      "dependsOn": [
+        "ST-001"
+      ]
+    },
+    {
+      "id": "ST-003",
+      "name": "windows",
+      "dependsOn": [
+        "ST-001"
+      ]
+    },
+    {
+      "id": "ST-004",
+      "name": "deepseek-harness",
+      "dependsOn": [
+        "ST-001"
+      ]
+    },
+    {
+      "id": "ST-005",
+      "name": "codex-bridge",
+      "dependsOn": [
+        "ST-001",
+        "ST-004"
+      ]
+    },
+    {
+      "id": "ST-006",
+      "name": "governance",
+      "dependsOn": [
+        "ST-001"
+      ]
+    },
+    {
+      "id": "ST-007",
+      "name": "security",
+      "dependsOn": [
+        "ST-005",
+        "ST-006"
+      ]
+    },
+    {
+      "id": "ST-008",
+      "name": "testing",
+      "dependsOn": [
+        "ST-005",
+        "ST-006",
+        "ST-007"
+      ]
+    },
+    {
+      "id": "ST-009",
+      "name": "build",
+      "dependsOn": [
+        "ST-002",
+        "ST-003",
+        "ST-004",
+        "ST-008"
+      ]
+    },
+    {
+      "id": "ST-010",
+      "name": "documentation",
+      "dependsOn": [
+        "ST-001"
+      ]
+    }
+  ]
+}
