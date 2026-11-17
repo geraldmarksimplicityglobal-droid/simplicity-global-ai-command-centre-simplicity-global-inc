@@ -1,0 +1,41 @@
+name: SG-CODEX Studio Build
+
+on:
+  push:
+    branches:
+      - sg-codex-x1000-studio
+    paths:
+      - "sg-codex-studio/**"
+      - ".github/workflows/sg-codex-studio-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sg-codex-studio
+    steps:
+      - name: Checkout isolated studio branch
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: sg-codex-studio/package-lock.json
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Compile TypeScript
+        run: npm run build
+      - name: Run unit tests
+        run: npm test
+      - name: Upload compiled scheduler
+        uses: actions/upload-artifact@v4
+        with:
+          name: sg-codex-studio-dist
+          path: sg-codex-studio/dist/
+          if-no-files-found: error
