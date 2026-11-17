@@ -1,0 +1,12 @@
+{
+  "name": "sg-codex-x1000-studio-orchestrator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Approval-gated, read-only-first orchestration core for Simplicity Global engineering studios.",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node src/cli.js",
+    "test": "node --test"
+  }
+}
