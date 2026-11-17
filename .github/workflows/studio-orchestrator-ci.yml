@@ -1,0 +1,41 @@
+name: SG-CODEX Studio Orchestrator CI
+
+on:
+  push:
+    branches: [sg-codex-x1000-studio]
+    paths:
+      - "studio-orchestrator/**"
+      - ".github/workflows/studio-orchestrator-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "studio-orchestrator/**"
+      - ".github/workflows/studio-orchestrator-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sg-codex-studio-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: node --check studio-orchestrator/src/orchestrator.js
+      - name: Unit tests
+        working-directory: studio-orchestrator
+        run: npm test
+      - name: Build verification
+        working-directory: studio-orchestrator
+        run: npm run build
