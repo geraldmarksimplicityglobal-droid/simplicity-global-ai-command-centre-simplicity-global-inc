@@ -1,0 +1,12 @@
+{
+  "name": "@simplicity-global/sg-codex-x1000-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Policy-first, planning-only orchestration core for GEN SYSTEM studio workstreams.",
+  "scripts": {
+    "plan": "node src/cli.mjs plan",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" }
+}
