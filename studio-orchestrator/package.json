@@ -1,0 +1,15 @@
+{
+  "name": "sg-codex-x1000-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "GEN SYSTEM controlled parallel studio task orchestrator",
+  "scripts": {
+    "check": "node --check src/orchestrator.js",
+    "test": "node --test",
+    "build": "npm run check && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
