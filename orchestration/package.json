@@ -1,0 +1,15 @@
+{
+  "name": "sg-codex-x1000-orchestrator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "GEN SYSTEM bounded parallel studio task scheduler",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/scheduler.mjs && node --check test/scheduler.test.mjs",
+    "verify": "npm run check && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
