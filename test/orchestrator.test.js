@@ -4,8 +4,9 @@ import { studioTasks, validateRegistry } from "../src/registry.js";
 import { DEFAULT_POLICY, mayExecute, validatePolicy } from "../src/policy.js";
 import { buildTaskStates, createPlan, getReadyTasks, planConcurrency } from "../src/scheduler.js";
 
-test("initial registry contains ten unique, acyclic workstreams", () => {
+test("initial registry contains ten independent, unique workstreams", () => {
   assert.equal(studioTasks.length, 10);
+  assert.equal(studioTasks.every(task => task.dependencies.length === 0), true);
   assert.equal(validateRegistry(), true);
 });
 
@@ -22,15 +23,15 @@ test("scheduler creates a plan without launching workers", () => {
   assert.equal(plan.mode, "READ_ONLY");
   assert.equal(plan.workersLaunched, 0);
   assert.equal(plan.tasks.length, 10);
-  assert.equal(plan.ready.length, 1);
-  assert.equal(plan.ready[0].id, "ST-001");
+  assert.equal(plan.ready.length, 10);
 });
 
-test("dependent tasks become ready only after prerequisites pass", () => {
+test("independent discovery tasks remain schedulable in parallel", () => {
   const tasks = buildTaskStates();
   tasks[0].state = "PASSED";
   const ready = getReadyTasks(tasks, 10);
-  assert.deepEqual(ready.map(task => task.id), ["ST-002", "ST-003", "ST-004", "ST-006", "ST-010"]);
+  assert.equal(ready.length, 9);
+  assert.equal(ready.some(task => task.id === "ST-001"), false);
 });
 
 test("concurrency is bounded by available capacity and policy", () => {
