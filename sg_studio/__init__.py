@@ -1,1 +1,1 @@
-"""GEN SYSTEM studio orchestration package."""\n
+"""GEN SYSTEM studio orchestration package."""
