@@ -54,6 +54,10 @@ test("requires a current task- and operation-scoped approval for protected opera
     operation: "commit",
     approval: { status: "approved", taskId: "other-task", operations: ["commit"], expiresAt: Date.now() + 60000 }
   }), policy), /approval is required/);
+  assert.throws(() => validateInvocation(request({
+    operation: "commit",
+    approval: { status: "approved", taskId: "task-1", operations: ["commit"] }
+  }), policy), /approval is required/);
 });
 
 test("rejects unsafe environment variables and malformed arguments", () => {
