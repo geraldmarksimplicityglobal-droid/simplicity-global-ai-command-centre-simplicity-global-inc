@@ -4,7 +4,7 @@
 **Runtime:** Node.js 22+, Fastify, PostgreSQL, OIDC JWT verification.
 
 ## Implemented in this scaffold
-- OIDC bearer-token verification against configured issuer/JWKS and audience.
+- OIDC bearer-token verification against configured issuer, explicit JWKS URL and audience.
 - Server-side user provisioning lookup; unknown identities are denied.
 - Organisation membership and permission checks before domain access.
 - Organisation context set inside each transaction for database RLS.
