@@ -1,3 +1,5 @@
+import path from "node:path";
+
 const DEFAULT_LIMITS = Object.freeze({
   maxArgs: 64,
   maxArgLength: 4096,
@@ -18,10 +20,11 @@ function nonEmpty(value, field) {
 }
 
 function isWithin(root, candidate) {
-  const normalizedRoot = root.replace(/\\/g, "/").replace(/\/$/, "");
-  const normalizedCandidate = candidate.replace(/\\/g, "/");
-  return normalizedCandidate === normalizedRoot ||
-    normalizedCandidate.startsWith(normalizedRoot + "/");
+  const api = /^[A-Za-z]:[\\\\/]|^\\\\\\\\/.test(root) ? path.win32 : path.posix;
+  const base = api.resolve(root);
+  const target = api.resolve(candidate);
+  const relative = api.relative(base, target);
+  return relative === "" || (!relative.startsWith("..") && !api.isAbsolute(relative));
 }
 
 /**
