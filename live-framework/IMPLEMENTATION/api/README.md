@@ -18,7 +18,7 @@
 1. Select and configure a supported OIDC identity provider.
 2. Provision a dedicated PostgreSQL instance only after approved provider, region, cost and data-processing review.
 3. Apply the reviewed base schema, then the security/RLS migration.
-4. Create a non-owner runtime database role with no BYPASSRLS and only required grants.
+4. Review `runtime-grants.template.sql`; create a non-owner runtime login and grant membership in the restricted `sg_live_framework_runtime` group. Verify NOBYPASSRLS and least-privilege grants.
 5. Configure secrets in a secret manager. Never commit real environment files.
 6. Provision users, memberships, roles and permission mappings through a separately controlled administrative process.
 7. Configure the exact production frontend origin in CORS.
@@ -44,5 +44,6 @@ Every scoped request requires a valid UUID in x-organisation-id. Asset routes op
 - No evidence file upload/object storage.
 - No connector adapters or write actions.
 - No update/delete endpoints; additions only for initial safe operations.
-- Audit immutability depends on the separate database security migration and runtime grants.
+- Audit immutability depends on the separate database security migration, runtime grants and owner separation.
+- Asset endpoints support optional legal-entity scoping; other domain tables remain organisation-scoped until entity ownership is added to their schema.
 - Production use is blocked until all release gates are evidenced and explicitly approved.
