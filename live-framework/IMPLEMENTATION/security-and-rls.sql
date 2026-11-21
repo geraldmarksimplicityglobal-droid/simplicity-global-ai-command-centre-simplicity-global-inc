@@ -8,8 +8,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_app_users_oidc_identity
   ON app_users(identity_issuer, identity_subject)
   WHERE identity_issuer IS NOT NULL AND identity_subject IS NOT NULL;
 
--- User context is set from a verified OIDC token by the API for each transaction.
--- Organisation context is set only after a membership lookup.
+-- Verified OIDC identity context is set by the trusted API per transaction.
+-- Membership is independently checked by RLS as defence against scope mistakes.
 ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organisations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE legal_entities ENABLE ROW LEVEL SECURITY;
@@ -25,6 +25,47 @@ ALTER TABLE approval_decisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE incidents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE evidence_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_events ENABLE ROW LEVEL SECURITY;
+
+-- SECURITY INVOKER is intentional: membership reads remain subject to RLS.
+-- Custom GUC values are application context, not a cryptographic identity proof;
+-- the API must remain the trusted boundary and must use parameterised SQL.
+CREATE OR REPLACE FUNCTION public.sg_has_organisation_membership(target_org uuid)
+RETURNS boolean
+LANGUAGE sql STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_memberships m
+    JOIN public.app_users u ON u.id = m.user_id
+    WHERE m.organisation_id = target_org
+      AND u.identity_issuer = current_setting('app.user_issuer', true)
+      AND u.identity_subject = current_setting('app.user_subject', true)
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.sg_has_asset_scope(target_org uuid, target_entity uuid)
+RETURNS boolean
+LANGUAGE sql STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_memberships m
+    JOIN public.app_users u ON u.id = m.user_id
+    WHERE m.organisation_id = target_org
+      AND u.identity_issuer = current_setting('app.user_issuer', true)
+      AND u.identity_subject = current_setting('app.user_subject', true)
+      AND (
+        (current_setting('app.legal_entity_id', true) = '*' AND m.legal_entity_id IS NULL)
+        OR
+        (current_setting('app.legal_entity_id', true) <> '*'
+          AND (m.legal_entity_id IS NULL
+            OR m.legal_entity_id = NULLIF(current_setting('app.legal_entity_id', true),'')::uuid))
+      )
+      AND (target_entity IS NULL
+        OR current_setting('app.legal_entity_id', true) = '*'
+        OR target_entity = NULLIF(current_setting('app.legal_entity_id', true),'')::uuid)
+  );
+$$;
 
 INSERT INTO permissions(permission_key,description) VALUES
   ('assets:read','Read asset inventory'),
@@ -48,18 +89,18 @@ CREATE POLICY memberships_self_read ON user_memberships FOR SELECT
   ));
 
 CREATE POLICY organisations_member_read ON organisations FOR SELECT
-  USING (id IN (SELECT organisation_id FROM user_memberships));
+  USING (public.sg_has_organisation_membership(id));
 
 CREATE POLICY legal_entities_org_scope ON legal_entities
-  USING (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid)
-  WITH CHECK (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid);
+  USING (public.sg_has_organisation_membership(organisation_id))
+  WITH CHECK (public.sg_has_organisation_membership(organisation_id));
 
 CREATE POLICY roles_member_read ON roles FOR SELECT
   USING (id IN (SELECT role_id FROM user_memberships));
 
 CREATE POLICY roles_org_scope ON roles
-  USING (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid)
-  WITH CHECK (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid);
+  USING (public.sg_has_organisation_membership(organisation_id))
+  WITH CHECK (public.sg_has_organisation_membership(organisation_id));
 
 CREATE POLICY role_permissions_member_read ON role_permissions FOR SELECT
   USING (role_id IN (
@@ -68,60 +109,48 @@ CREATE POLICY role_permissions_member_read ON role_permissions FOR SELECT
   ));
 
 CREATE POLICY assets_org_entity_scope ON assets
-  USING (
-    organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid
-    AND (
-      current_setting('app.legal_entity_id', true) = '*'
-      OR legal_entity_id = NULLIF(current_setting('app.legal_entity_id', true),'')::uuid
-    )
-  )
-  WITH CHECK (
-    organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid
-    AND (
-      current_setting('app.legal_entity_id', true) = '*'
-      OR legal_entity_id = NULLIF(current_setting('app.legal_entity_id', true),'')::uuid
-    )
-  );
+  USING (public.sg_has_asset_scope(organisation_id, legal_entity_id))
+  WITH CHECK (public.sg_has_asset_scope(organisation_id, legal_entity_id));
 
 CREATE POLICY compliance_documents_org_scope ON compliance_documents
-  USING (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid)
-  WITH CHECK (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid);
+  USING (public.sg_has_organisation_membership(organisation_id))
+  WITH CHECK (public.sg_has_organisation_membership(organisation_id));
 
 CREATE POLICY compliance_controls_org_scope ON compliance_controls
-  USING (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid)
-  WITH CHECK (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid);
+  USING (public.sg_has_organisation_membership(organisation_id))
+  WITH CHECK (public.sg_has_organisation_membership(organisation_id));
 
 CREATE POLICY integrations_org_scope ON integrations
-  USING (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid)
-  WITH CHECK (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid);
+  USING (public.sg_has_organisation_membership(organisation_id))
+  WITH CHECK (public.sg_has_organisation_membership(organisation_id));
 
 CREATE POLICY change_requests_org_scope ON change_requests
-  USING (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid)
-  WITH CHECK (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid);
+  USING (public.sg_has_organisation_membership(organisation_id))
+  WITH CHECK (public.sg_has_organisation_membership(organisation_id));
 
 CREATE POLICY incidents_org_scope ON incidents
-  USING (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid)
-  WITH CHECK (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid);
+  USING (public.sg_has_organisation_membership(organisation_id))
+  WITH CHECK (public.sg_has_organisation_membership(organisation_id));
 
 CREATE POLICY evidence_records_org_scope ON evidence_records
-  USING (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid)
-  WITH CHECK (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid);
+  USING (public.sg_has_organisation_membership(organisation_id))
+  WITH CHECK (public.sg_has_organisation_membership(organisation_id));
 
 CREATE POLICY audit_events_org_scope ON audit_events
-  USING (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid)
-  WITH CHECK (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid);
+  USING (public.sg_has_organisation_membership(organisation_id))
+  WITH CHECK (public.sg_has_organisation_membership(organisation_id));
 
 CREATE POLICY approval_decisions_org_scope ON approval_decisions
   USING (change_request_id IN (
     SELECT id FROM change_requests
-    WHERE organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid
+    WHERE public.sg_has_organisation_membership(organisation_id)
   ))
   WITH CHECK (change_request_id IN (
     SELECT id FROM change_requests
-    WHERE organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid
+    WHERE public.sg_has_organisation_membership(organisation_id)
   ));
 
--- Database-level protection: audit rows cannot be altered or removed by ordinary SQL.
+-- Audit journal is append-only for application roles.
 CREATE OR REPLACE FUNCTION prevent_audit_event_mutation()
 RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
@@ -141,7 +170,10 @@ COMMIT;
 -- IMPORTANT:
 -- * Apply and test with a non-owner runtime role that has NOBYPASSRLS.
 -- * Table owners and BYPASSRLS roles can bypass RLS; never run the API as owner.
+-- * Custom PostgreSQL settings can be set by a connected role. These policies
+--   provide membership-aware defence-in-depth, not isolation from arbitrary SQL
+--   execution under the runtime credential. Keep parameterised queries, prohibit
+--   untrusted SQL, and consider stronger DB identity binding for higher assurance.
 -- * Provision only narrowly scoped grants to the actual runtime role after role selection.
--- * Review all policies with automated cross-tenant tests before any deployment.
 -- * This migration does not provide identity onboarding, retention, encryption-at-rest,
 --   key management, backup/restore or full privilege administration.
