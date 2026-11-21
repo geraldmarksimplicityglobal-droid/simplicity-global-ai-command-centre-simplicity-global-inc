@@ -6,6 +6,8 @@ on:
       - "live-framework/IMPLEMENTATION/api/**"
       - "live-framework/IMPLEMENTATION/schema.postgresql.sql"
       - "live-framework/IMPLEMENTATION/security-and-rls.sql"
+      - "live-framework/IMPLEMENTATION/runtime-grants.template.sql"
+      - "live-framework/IMPLEMENTATION/database-contract.sql"
       - ".github/workflows/live-framework-api.yml"
   push:
     branches:
@@ -14,6 +16,8 @@ on:
       - "live-framework/IMPLEMENTATION/api/**"
       - "live-framework/IMPLEMENTATION/schema.postgresql.sql"
       - "live-framework/IMPLEMENTATION/security-and-rls.sql"
+      - "live-framework/IMPLEMENTATION/runtime-grants.template.sql"
+      - "live-framework/IMPLEMENTATION/database-contract.sql"
       - ".github/workflows/live-framework-api.yml"
 
 permissions:
@@ -22,6 +26,22 @@ permissions:
 jobs:
   api-contract:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sg_framework_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sg_framework_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sg_framework_test
     defaults:
       run:
         working-directory: live-framework/IMPLEMENTATION/api
@@ -35,3 +55,10 @@ jobs:
       - run: node --check src/scope.js
       - run: node --check ../web/api-client.js
       - run: npm test
+      - name: Apply migrations to ephemeral PostgreSQL
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../schema.postgresql.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../security-and-rls.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../runtime-grants.template.sql
+      - name: Verify tenant isolation and append-only audit controls
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../database-contract.sql
