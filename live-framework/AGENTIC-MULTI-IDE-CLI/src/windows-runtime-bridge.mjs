@@ -152,26 +152,29 @@ export function createWindowsRuntimeBridge({
       if (!taskId) return send(response, 400, { error: "taskId required" });
 
       const approval = await resolveApproval({ taskId, operation: requestBody.operation });
-      const executionGrant = await authorizeExecution({
-        taskId,
-        operation: requestBody.operation,
-        adapterId: requestBody.adapterId,
-        resource: requestBody.workingDirectory
-      });
-      if (!executionGrant || executionGrant.allowed !== true) {
-        await audit({ type: "runtime.execution_denied", taskId, adapterId: requestBody.adapterId ?? null });
-        return send(response, 403, { error: "execution not authorized" });
-      }
-
-      const invocation = validateInvocation({
+      const proposedInvocation = validateInvocation({
         ...untrustedInvocation,
         taskId,
         approval
       }, policy);
-      invocation.workingDirectory = await resolveWorkingDirectory(
-        invocation.workingDirectory,
-        policy.workspaceRoots
-      );
+      const executionGrant = await authorizeExecution({
+        taskId,
+        operation: proposedInvocation.operation,
+        adapterId: proposedInvocation.adapterId,
+        resource: proposedInvocation.workingDirectory
+      });
+      if (!executionGrant || executionGrant.allowed !== true) {
+        await audit({ type: "runtime.execution_denied", taskId, adapterId: proposedInvocation.adapterId });
+        return send(response, 403, { error: "execution not authorized" });
+      }
+
+      const invocation = {
+        ...proposedInvocation,
+        workingDirectory: await resolveWorkingDirectory(
+          proposedInvocation.workingDirectory,
+          policy.workspaceRoots
+        )
+      };
       await audit({
         type: "runtime.execution_started",
         taskId,
