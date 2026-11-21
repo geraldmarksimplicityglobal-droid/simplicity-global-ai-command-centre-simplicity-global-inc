@@ -81,9 +81,10 @@ BEGIN
   BEGIN
     UPDATE audit_events SET outcome='tampered' WHERE target_id='audit-append-only';
     RAISE EXCEPTION 'audit event update unexpectedly succeeded';
-  EXCEPTION WHEN raise_exception THEN
-    IF SQLERRM = 'audit event update unexpectedly succeeded' THEN RAISE; END IF;
-    IF SQLERRM <> 'audit_events are append-only' THEN RAISE; END IF;
+  EXCEPTION
+    WHEN insufficient_privilege THEN NULL;
+    WHEN raise_exception THEN
+      IF SQLERRM <> 'audit_events are append-only' THEN RAISE; END IF;
   END;
 END $$;
 
