@@ -16,7 +16,7 @@ export function selectMembership(memberships, organisationId, legalEntityId, all
   if (legalEntityId) {
     if (!allowEntityScope) return null;
     return candidates.find(m => m.legal_entity_id === legalEntityId) ??
-      candidates.find(m => m.legal_entity_id === null);
+      candidates.find(m => m.legal_entity_id === null) ?? null;
   }
   return candidates.find(m => m.legal_entity_id === null) ?? null;
 }
