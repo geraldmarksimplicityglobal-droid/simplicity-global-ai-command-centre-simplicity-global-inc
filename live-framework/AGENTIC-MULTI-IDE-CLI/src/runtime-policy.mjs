@@ -77,9 +77,11 @@ export function validateInvocation(request, policy) {
   if (requiredApproval.includes(operation)) {
     const approval = request.approval;
     if (!approval || approval.status !== "approved" ||
+        typeof request.taskId !== "string" || request.taskId.trim() === "" ||
         approval.taskId !== request.taskId ||
         !Array.isArray(approval.operations) ||
         !approval.operations.includes(operation) ||
+        !Number.isFinite(approval.expiresAt) ||
         approval.expiresAt <= Date.now()) {
       throw new Error("current, scoped approval is required for this operation");
     }
