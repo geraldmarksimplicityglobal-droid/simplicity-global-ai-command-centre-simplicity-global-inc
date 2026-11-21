@@ -53,7 +53,7 @@ test("permissions are required and wildcard permission is explicit", () => {
 
 test("schema enforces organisation-consistent role, entity and document references", async () => {
   const schema = await readFile(new URL("../../schema.postgresql.sql", import.meta.url), "utf8");
-  assert.match(schema, /FOREIGN KEY \\(organisation_id, role_id\\)/);
-  assert.match(schema, /FOREIGN KEY \\(organisation_id, legal_entity_id\\)/);
-  assert.match(schema, /FOREIGN KEY \\(organisation_id, document_id\\)/);
+  assert.ok(schema.includes("FOREIGN KEY (organisation_id, role_id)"));
+  assert.ok(schema.includes("FOREIGN KEY (organisation_id, legal_entity_id)"));
+  assert.ok(schema.includes("FOREIGN KEY (organisation_id, document_id)"));
 });
