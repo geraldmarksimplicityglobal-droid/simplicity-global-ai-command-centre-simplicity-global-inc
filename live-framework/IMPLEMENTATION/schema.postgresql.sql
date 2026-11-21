@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS roles (
   organisation_id uuid NOT NULL REFERENCES organisations(id),
   role_key text NOT NULL,
   description text,
-  UNIQUE (organisation_id, role_key)
+  UNIQUE (organisation_id, role_key),
+  UNIQUE (organisation_id, id)
 );
 
 CREATE TABLE IF NOT EXISTS permissions (
@@ -62,9 +63,11 @@ CREATE TABLE IF NOT EXISTS user_memberships (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organisation_id uuid NOT NULL REFERENCES organisations(id),
   user_id uuid NOT NULL REFERENCES app_users(id),
-  role_id uuid NOT NULL REFERENCES roles(id),
+  role_id uuid NOT NULL,
   legal_entity_id uuid,
   created_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (organisation_id, role_id)
+    REFERENCES roles(organisation_id, id),
   FOREIGN KEY (organisation_id, legal_entity_id)
     REFERENCES legal_entities(organisation_id, id)
 );
@@ -107,13 +110,14 @@ CREATE TABLE IF NOT EXISTS compliance_documents (
   review_due_at timestamptz,
   evidence_ref text,
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (organisation_id, document_code, version)
+  UNIQUE (organisation_id, document_code, version),
+  UNIQUE (organisation_id, id)
 );
 
 CREATE TABLE IF NOT EXISTS compliance_controls (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organisation_id uuid NOT NULL REFERENCES organisations(id),
-  document_id uuid REFERENCES compliance_documents(id),
+  document_id uuid,
   control_code text NOT NULL,
   title text NOT NULL,
   status text NOT NULL DEFAULT 'not_assessed'
@@ -121,7 +125,9 @@ CREATE TABLE IF NOT EXISTS compliance_controls (
   owner_user_id uuid REFERENCES app_users(id),
   evidence_ref text,
   last_verified_at timestamptz,
-  UNIQUE (organisation_id, control_code)
+  UNIQUE (organisation_id, control_code),
+  FOREIGN KEY (organisation_id, document_id)
+    REFERENCES compliance_documents(organisation_id, id)
 );
 
 CREATE TABLE IF NOT EXISTS integrations (
@@ -221,7 +227,7 @@ COMMIT;
 -- 3. Add database grants so the runtime role cannot UPDATE/DELETE audit_events.
 -- 4. Add immutable audit triggers / external tamper-evident log shipping.
 -- 5. Implement membership/role checks in server-side API middleware.
--- 6. Review the composite membership key if nullable legal_entity_id is used;
---    PostgreSQL uniqueness semantics for NULL require a deliberate design.
+-- 6. Composite foreign keys ensure memberships, roles, legal entities and
+--    compliance-document references cannot cross organisation boundaries.
 -- 7. Add retention, privacy, encryption, backup and restore controls.
 -- 8. Run migrations only in disposable local test environments until approved.
