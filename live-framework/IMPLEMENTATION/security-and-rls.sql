@@ -61,9 +61,11 @@ AS $$
           AND (m.legal_entity_id IS NULL
             OR m.legal_entity_id = NULLIF(current_setting('app.legal_entity_id', true),'')::uuid))
       )
-      AND (target_entity IS NULL
-        OR current_setting('app.legal_entity_id', true) = '*'
-        OR target_entity = NULLIF(current_setting('app.legal_entity_id', true),'')::uuid)
+      AND CASE
+        WHEN target_entity IS NULL THEN m.legal_entity_id IS NULL
+        ELSE current_setting('app.legal_entity_id', true) = '*'
+          OR target_entity = NULLIF(current_setting('app.legal_entity_id', true),'')::uuid
+      END
   );
 $$;
 
