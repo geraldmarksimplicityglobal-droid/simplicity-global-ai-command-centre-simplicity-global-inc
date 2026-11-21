@@ -7,7 +7,7 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import { isUuid, selectMembership, hasPermission } from "./scope.js";
 
 const { Pool } = pg;
-for (const key of ["DATABASE_URL", "OIDC_ISSUER", "OIDC_AUDIENCE"]) {
+for (const key of ["DATABASE_URL", "OIDC_ISSUER", "OIDC_JWKS_URL", "OIDC_AUDIENCE"]) {
   if (!process.env[key]) throw new Error("Missing required environment variable: " + key);
 }
 const issuer = process.env.OIDC_ISSUER.replace(/\/$/, "");
@@ -138,7 +138,7 @@ app.post("/api/assets", async (request, reply) => requireScope(request, reply, "
       typeof body.category !== "string" || !body.category.trim() || body.category.length > 100) {
     return reply.code(400).send({ error: "invalid_asset_payload" });
   }
-  const orgId = request.headers["x-organisation-id"];
+  const orgId = scope.organisationId;
   const { rows } = await client.query(
     "INSERT INTO assets (organisation_id,legal_entity_id,name,category,environment,lifecycle_status,owner_user_id) VALUES ($1,$2,$3,$4,$5,'unverified',$6) RETURNING id,name,category,environment,lifecycle_status,created_at",
     [orgId, scope.legalEntityId, body.name.trim(), body.category.trim(), typeof body.environment === "string" ? body.environment.slice(0,80) : "unknown", user.userId]
