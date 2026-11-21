@@ -33,4 +33,5 @@ jobs:
       - run: npm install --ignore-scripts
       - run: node --check src/server.js
       - run: node --check src/scope.js
+      - run: node --check ../web/api-client.js
       - run: npm test
