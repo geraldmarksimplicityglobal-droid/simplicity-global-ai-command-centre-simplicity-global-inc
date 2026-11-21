@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS legal_entities (
   verification_status text NOT NULL DEFAULT 'unverified'
     CHECK (verification_status IN ('unverified','in_review','verified','rejected')),
   evidence_ref text,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (organisation_id, id)
 );
 
 CREATE TABLE IF NOT EXISTS app_users (
@@ -62,8 +63,10 @@ CREATE TABLE IF NOT EXISTS user_memberships (
   organisation_id uuid NOT NULL REFERENCES organisations(id),
   user_id uuid NOT NULL REFERENCES app_users(id),
   role_id uuid NOT NULL REFERENCES roles(id),
-  legal_entity_id uuid REFERENCES legal_entities(id),
-  created_at timestamptz NOT NULL DEFAULT now()
+  legal_entity_id uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (organisation_id, legal_entity_id)
+    REFERENCES legal_entities(organisation_id, id)
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_membership_org_user_role_entity
@@ -76,7 +79,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_membership_org_user_role_global
 CREATE TABLE IF NOT EXISTS assets (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organisation_id uuid NOT NULL REFERENCES organisations(id),
-  legal_entity_id uuid REFERENCES legal_entities(id),
+  legal_entity_id uuid,
   name text NOT NULL,
   category text NOT NULL,
   environment text NOT NULL DEFAULT 'unknown',
@@ -85,7 +88,9 @@ CREATE TABLE IF NOT EXISTS assets (
   evidence_ref text,
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (organisation_id, legal_entity_id)
+    REFERENCES legal_entities(organisation_id, id)
 );
 
 CREATE TABLE IF NOT EXISTS compliance_documents (
