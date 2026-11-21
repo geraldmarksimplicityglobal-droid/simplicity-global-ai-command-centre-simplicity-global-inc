@@ -44,6 +44,9 @@ CREATE POLICY legal_entities_org_scope ON legal_entities
   USING (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid)
   WITH CHECK (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid);
 
+CREATE POLICY roles_member_read ON roles FOR SELECT
+  USING (id IN (SELECT role_id FROM user_memberships));
+
 CREATE POLICY roles_org_scope ON roles
   USING (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid)
   WITH CHECK (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid);
