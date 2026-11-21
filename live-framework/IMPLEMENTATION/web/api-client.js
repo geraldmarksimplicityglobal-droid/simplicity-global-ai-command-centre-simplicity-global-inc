@@ -28,11 +28,19 @@ export function createFrameworkApi({
 
   const base = new URL(baseUrl);
   const localHost = ["localhost", "127.0.0.1", "[::1]"].includes(base.hostname);
+  if (base.pathname !== "/") {
+    throw new TypeError("API base URL must be the origin root");
+  }
   if (base.protocol !== "https:" && !(base.protocol === "http:" && localHost)) {
     throw new TypeError("API base URL must use HTTPS outside local development");
   }
 
-  async function request(path, { method = "GET", body, assetScope = false } = {}) {
+  async function request(path, {
+    method = "GET",
+    body,
+    assetScope = false,
+    organisationScope = true
+  } = {}) {
     const endpoint = new URL(path, base);
     if (endpoint.origin !== base.origin || !endpoint.pathname.startsWith(base.pathname)) {
       throw new FrameworkApiError("API endpoint is outside the configured base URL", {
@@ -47,18 +55,19 @@ export function createFrameworkApi({
       });
     }
 
-    const organisationId = await getOrganisationId();
-    if (typeof organisationId !== "string" || !organisationId) {
-      throw new FrameworkApiError("Select an authorised organisation first", {
-        code: "organisation_scope_required"
-      });
-    }
-
     const headers = {
       Authorization: `Bearer ${token}`,
-      "x-organisation-id": organisationId,
       Accept: "application/json"
     };
+    if (organisationScope) {
+      const organisationId = await getOrganisationId();
+      if (typeof organisationId !== "string" || !organisationId) {
+        throw new FrameworkApiError("Select an authorised organisation first", {
+          code: "organisation_scope_required"
+        });
+      }
+      headers["x-organisation-id"] = organisationId;
+    }
     if (body !== undefined) headers["Content-Type"] = "application/json";
 
     if (assetScope) {
@@ -111,8 +120,7 @@ export function createFrameworkApi({
   }
 
   return Object.freeze({
-    health: () => request("/health"),
-    me: () => request("/api/me"),
+    me: () => request("/api/me", { organisationScope: false }),
     listAssets: () => request("/api/assets", { assetScope: true }),
     createAsset: asset => request("/api/assets", {
       method: "POST", body: asset, assetScope: true
