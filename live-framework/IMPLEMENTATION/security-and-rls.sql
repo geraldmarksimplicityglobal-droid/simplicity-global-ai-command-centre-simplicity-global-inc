@@ -67,9 +67,21 @@ CREATE POLICY role_permissions_member_read ON role_permissions FOR SELECT
     JOIN user_memberships m ON m.organisation_id = r.organisation_id AND m.role_id = r.id
   ));
 
-CREATE POLICY assets_org_scope ON assets
-  USING (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid)
-  WITH CHECK (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid);
+CREATE POLICY assets_org_entity_scope ON assets
+  USING (
+    organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid
+    AND (
+      current_setting('app.legal_entity_id', true) = '*'
+      OR legal_entity_id = NULLIF(current_setting('app.legal_entity_id', true),'')::uuid
+    )
+  )
+  WITH CHECK (
+    organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid
+    AND (
+      current_setting('app.legal_entity_id', true) = '*'
+      OR legal_entity_id = NULLIF(current_setting('app.legal_entity_id', true),'')::uuid
+    )
+  );
 
 CREATE POLICY compliance_documents_org_scope ON compliance_documents
   USING (organisation_id = NULLIF(current_setting('app.organisation_id', true),'')::uuid)
