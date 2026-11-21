@@ -4,6 +4,7 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import pg from "pg";
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import { isUuid, selectMembership, hasPermission } from "./scope.js";
 
 const { Pool } = pg;
 for (const key of ["DATABASE_URL", "OIDC_ISSUER", "OIDC_AUDIENCE"]) {
@@ -89,19 +90,28 @@ async function withUserContext(principal, work) {
   }
 }
 
-async function requireScope(request, reply, permission, handler) {
+async function requireScope(request, reply, permission, handler, { allowEntityScope = false } = {}) {
   const requestedOrg = request.headers["x-organisation-id"];
-  if (typeof requestedOrg !== "string") return reply.code(400).send({ error: "organisation_scope_required" });
+  const requestedEntity = request.headers["x-legal-entity-id"] || null;
+  if (!isUuid(requestedOrg)) return reply.code(400).send({ error: "valid_organisation_scope_required" });
+  if (requestedEntity && !isUuid(requestedEntity)) return reply.code(400).send({ error: "invalid_legal_entity_scope" });
+  if (requestedEntity && !allowEntityScope) {
+    return reply.code(403).send({ error: "legal_entity_scope_not_supported_for_domain" });
+  }
   const result = await withUserContext(request.principal, async (client, user) => {
-    const membership = user.memberships.find(m => m.organisation_id === requestedOrg);
-    if (!membership || (!membership.permissions.includes(permission) && !membership.permissions.includes("*"))) {
-      return { forbidden: true };
-    }
+    const membership = selectMembership(user.memberships, requestedOrg, requestedEntity, allowEntityScope);
+    if (!hasPermission(membership, permission)) return { forbidden: true };
     await client.query("SELECT set_config('app.organisation_id',$1,true)", [requestedOrg]);
-    return handler(client, user, membership);
+    if (allowEntityScope) {
+      await client.query("SELECT set_config('app.legal_entity_id',$1,true)", [requestedEntity || "*"]);
+    }
+    return handler(client, user, membership, {
+      organisationId: requestedOrg,
+      legalEntityId: requestedEntity
+    });
   });
   if (result?.unauthorized) return reply.code(403).send({ error: "user_not_provisioned" });
-  if (result?.forbidden) return reply.code(403).send({ error: "insufficient_permission" });
+  if (result?.forbidden) return reply.code(403).send({ error: "insufficient_permission_or_scope" });
   return result;
 }
 
@@ -120,9 +130,9 @@ app.get("/api/assets", async (request, reply) => requireScope(request, reply, "a
     "SELECT id,name,category,environment,lifecycle_status,owner_user_id,evidence_ref,created_at,updated_at FROM assets ORDER BY created_at DESC LIMIT 500"
   );
   return { data: rows };
-}));
+}, { allowEntityScope: true }));
 
-app.post("/api/assets", async (request, reply) => requireScope(request, reply, "assets:write", async (client, user) => {
+app.post("/api/assets", async (request, reply) => requireScope(request, reply, "assets:write", async (client, user, _membership, scope) => {
   const body = request.body || {};
   if (typeof body.name !== "string" || !body.name.trim() || body.name.length > 200 ||
       typeof body.category !== "string" || !body.category.trim() || body.category.length > 100) {
@@ -130,8 +140,8 @@ app.post("/api/assets", async (request, reply) => requireScope(request, reply, "
   }
   const orgId = request.headers["x-organisation-id"];
   const { rows } = await client.query(
-    "INSERT INTO assets (organisation_id,name,category,environment,lifecycle_status,owner_user_id) VALUES ($1,$2,$3,$4,'unverified',$5) RETURNING id,name,category,environment,lifecycle_status,created_at",
-    [orgId, body.name.trim(), body.category.trim(), typeof body.environment === "string" ? body.environment.slice(0,80) : "unknown", user.userId]
+    "INSERT INTO assets (organisation_id,legal_entity_id,name,category,environment,lifecycle_status,owner_user_id) VALUES ($1,$2,$3,$4,$5,'unverified',$6) RETURNING id,name,category,environment,lifecycle_status,created_at",
+    [orgId, scope.legalEntityId, body.name.trim(), body.category.trim(), typeof body.environment === "string" ? body.environment.slice(0,80) : "unknown", user.userId]
   );
   await client.query(
     "INSERT INTO audit_events (organisation_id,actor_user_id,action,target_type,target_id,outcome) VALUES ($1,$2,'asset.created','asset',$3,'success')",
@@ -139,7 +149,7 @@ app.post("/api/assets", async (request, reply) => requireScope(request, reply, "
   );
   reply.code(201);
   return { data: rows[0] };
-}));
+}, { allowEntityScope: true }));
 
 app.get("/api/compliance/documents", async (request, reply) => requireScope(request, reply, "compliance:read", async client => {
   const { rows } = await client.query(
