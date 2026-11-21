@@ -58,13 +58,20 @@ CREATE TABLE IF NOT EXISTS role_permissions (
 );
 
 CREATE TABLE IF NOT EXISTS user_memberships (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organisation_id uuid NOT NULL REFERENCES organisations(id),
   user_id uuid NOT NULL REFERENCES app_users(id),
   role_id uuid NOT NULL REFERENCES roles(id),
   legal_entity_id uuid REFERENCES legal_entities(id),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (organisation_id, user_id, role_id, legal_entity_id)
+  created_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_membership_org_user_role_entity
+  ON user_memberships(organisation_id,user_id,role_id,legal_entity_id)
+  WHERE legal_entity_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_membership_org_user_role_global
+  ON user_memberships(organisation_id,user_id,role_id)
+  WHERE legal_entity_id IS NULL;
 
 CREATE TABLE IF NOT EXISTS assets (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
