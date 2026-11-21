@@ -11,8 +11,8 @@ for (const key of ["DATABASE_URL", "OIDC_ISSUER", "OIDC_AUDIENCE"]) {
 }
 const issuer = process.env.OIDC_ISSUER.replace(/\/$/, "");
 const audience = process.env.OIDC_AUDIENCE;
-const issuerUrl = new URL(issuer + "/");
-const jwks = createRemoteJWKSet(new URL(".well-known/jwks.json", issuerUrl));
+new URL(issuer);
+const jwks = createRemoteJWKSet(new URL(process.env.OIDC_JWKS_URL));
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 10,
