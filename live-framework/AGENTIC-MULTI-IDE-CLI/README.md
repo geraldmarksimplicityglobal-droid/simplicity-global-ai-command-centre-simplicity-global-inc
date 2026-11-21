@@ -59,6 +59,10 @@ Approval is not execution authorization. A reviewer approves the proposed change
 
 - `src/workflow.mjs`: deterministic task state machine with reviewer separation for high-risk work.
 - `test/workflow.test.mjs`: Node built-in tests for lifecycle and approval invariants.
+- `src/runtime-policy.mjs`: non-executing policy gate for adapter allowlists, workspace containment, bounded arguments/timeouts/output, environment-variable filtering and expiring task-scoped approvals.
+- `test/runtime-policy.test.mjs`: Node built-in tests for runtime policy and approval boundaries.
+
+The runtime policy module validates a proposed invocation; it does not launch processes. A future runner must use argument arrays with `shell: false`, OS-level sandboxing, cancellation, bounded output capture and a separately authenticated execution authorization service.
 
 This is a source-level foundation only. It is not connected to an identity provider, database, IDE, CLI process, local device or production environment. The workflow event store in this module is in-memory and must be replaced by the existing authenticated API/database audit service before multi-user or production use.
 
