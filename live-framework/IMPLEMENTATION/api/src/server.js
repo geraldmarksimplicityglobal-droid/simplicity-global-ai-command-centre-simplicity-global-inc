@@ -68,14 +68,15 @@ async function withUserContext(principal, work) {
       return { unauthorized: true };
     }
     const memberships = await client.query(
-      `SELECT m.organisation_id, m.legal_entity_id, r.role_key,
-              COALESCE(array_agg(p.permission_key) FILTER (WHERE p.permission_key IS NOT NULL), ARRAY[]::text[]) AS permissions
+      `SELECT m.organisation_id, m.legal_entity_id,
+              array_agg(DISTINCT r.role_key) AS role_keys,
+              COALESCE(array_agg(DISTINCT p.permission_key) FILTER (WHERE p.permission_key IS NOT NULL), ARRAY[]::text[]) AS permissions
        FROM user_memberships m
-       JOIN roles r ON r.id=m.role_id
+       JOIN roles r ON r.id=m.role_id AND r.organisation_id=m.organisation_id
        LEFT JOIN role_permissions rp ON rp.role_id=r.id
        LEFT JOIN permissions p ON p.id=rp.permission_id
        WHERE m.user_id=$1
-       GROUP BY m.organisation_id,m.legal_entity_id,r.role_key
+       GROUP BY m.organisation_id,m.legal_entity_id
        ORDER BY m.organisation_id`,
       [identity.rows[0].id]
     );
