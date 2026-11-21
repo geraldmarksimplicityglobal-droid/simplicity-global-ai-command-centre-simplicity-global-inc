@@ -13,6 +13,7 @@ This checklist is mandatory before the prototype can be considered for productio
 - [ ] Replace localStorage as the authoritative store with authenticated APIs.
 - [ ] Implement server-side authentication and role/entity authorisation.
 - [ ] Test cross-organisation access denial.
+- [ ] Test legal-entity access isolation and prevent entity-only memberships from widening to organisation scope.
 - [ ] Add CSRF protections where relevant, input validation and output encoding.
 - [ ] Add rate limits, secure headers and dependency scanning.
 - [ ] Ensure secrets are held only in a secret manager.
