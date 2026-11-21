@@ -61,6 +61,10 @@ Approval is not execution authorization. A reviewer approves the proposed change
 - `test/workflow.test.mjs`: Node built-in tests for lifecycle and approval invariants.
 - `src/runtime-policy.mjs`: non-executing policy gate for adapter allowlists, workspace containment, bounded arguments/timeouts/output, environment-variable filtering and expiring task-scoped approvals.
 - `test/runtime-policy.test.mjs`: Node built-in tests for runtime policy and approval boundaries.
+- `src/windows-runtime-bridge.mjs`: loopback-only HTTP bridge with bearer authentication, server-side approval resolution, separate execution authorization, workspace realpath containment, bounded request bodies, and process invocation using argument arrays with `shell: false`.
+- `test/windows-runtime-bridge.test.mjs`: Node built-in contract tests for loopback binding, authentication, untrusted client approvals and denied execution.
+
+The Windows bridge requires injected trusted approval, execution-authorization and durable audit services and refuses to start without them. It binds only to loopback by default. Its process launcher is not an OS sandbox; before any live activation, run it under a restricted OS identity with filesystem ACLs, process limits and network egress controls.
 
 The runtime policy module validates a proposed invocation; it does not launch processes. A future runner must use argument arrays with `shell: false`, OS-level sandboxing, cancellation, bounded output capture and a separately authenticated execution authorization service.
 
