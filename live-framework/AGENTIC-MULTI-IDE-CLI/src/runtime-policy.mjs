@@ -20,7 +20,7 @@ function nonEmpty(value, field) {
 }
 
 function isWithin(root, candidate) {
-  const api = /^[A-Za-z]:[\\\\/]|^\\\\\\\\/.test(root) ? path.win32 : path.posix;
+  const api = /^[A-Za-z]:/.test(root) || root.startsWith("\\\\") ? path.win32 : path.posix;
   const base = api.resolve(root);
   const target = api.resolve(candidate);
   const relative = api.relative(base, target);
