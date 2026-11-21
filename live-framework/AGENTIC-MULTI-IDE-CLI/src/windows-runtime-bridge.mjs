@@ -197,8 +197,9 @@ export function createWindowsRuntimeBridge({
       });
       return send(response, 200, result);
     } catch (error) {
-      const status = Number.isInteger(error.statusCode) ? error.statusCode : 400;
-      return send(response, status, { error: status === 400 ? error.message : "runtime request failed" });
+      const status = Number.isInteger(error.statusCode) ? error.statusCode : 500;
+      const message = status < 500 ? error.message : "runtime service unavailable";
+      return send(response, status, { error: message });
     }
   });
 
