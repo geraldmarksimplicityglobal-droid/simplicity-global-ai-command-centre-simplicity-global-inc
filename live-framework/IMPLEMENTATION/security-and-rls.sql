@@ -26,6 +26,16 @@ ALTER TABLE incidents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE evidence_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_events ENABLE ROW LEVEL SECURITY;
 
+INSERT INTO permissions(permission_key,description) VALUES
+  ('assets:read','Read asset inventory'),
+  ('assets:write','Create asset records'),
+  ('compliance:read','Read compliance documents and controls'),
+  ('changes:read','Read change requests'),
+  ('changes:request','Submit change requests'),
+  ('incidents:read','Read incident records'),
+  ('audit:read','Read audit events')
+ON CONFLICT (permission_key) DO NOTHING;
+
 CREATE POLICY app_users_self_read ON app_users FOR SELECT
   USING (identity_issuer = current_setting('app.user_issuer', true)
      AND identity_subject = current_setting('app.user_subject', true));
