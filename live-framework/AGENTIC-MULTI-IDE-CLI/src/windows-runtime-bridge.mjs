@@ -43,11 +43,14 @@ async function readJson(request) {
 function collectOutput(child, limit) {
   let stdout = Buffer.alloc(0);
   let stderr = Buffer.alloc(0);
+  let captured = 0;
   let overflow = false;
   const append = (current, chunk) => {
-    const remaining = Math.max(0, limit - current.length);
-    if (chunk.length > remaining) overflow = true;
-    return Buffer.concat([current, chunk.subarray(0, remaining)]);
+    const remaining = Math.max(0, limit - captured);
+    const accepted = chunk.subarray(0, remaining);
+    captured += accepted.length;
+    if (accepted.length < chunk.length) overflow = true;
+    return Buffer.concat([current, accepted]);
   };
   child.stdout?.on("data", chunk => { stdout = append(stdout, chunk); if (overflow) child.kill(); });
   child.stderr?.on("data", chunk => { stderr = append(stderr, chunk); if (overflow) child.kill(); });
