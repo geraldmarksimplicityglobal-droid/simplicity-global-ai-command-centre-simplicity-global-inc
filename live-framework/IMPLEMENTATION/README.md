@@ -68,6 +68,13 @@ All writes require authenticated actor identity, server-side permission checks, 
 8. Verify backups, restore, monitoring and incident response.
 9. Production release requires separate explicit approval.
 
+## Verification completed in CI
+
+- Node syntax and API contract tests pass in GitHub Actions.
+- PostgreSQL 16 ephemeral CI migration test applies the schema, RLS migration and runtime-grants template.
+- Database contract checks verify OIDC user visibility, entity-only isolation, organisation-wide access, cross-organisation denial and append-only audit protection.
+- Latest verified run: GitHub Actions run #31 — succeeded. This is disposable CI evidence only, not a live database deployment or independent security certification.
+
 ## Known gaps
 
-The current `index.html` is a browser-local prototype using localStorage and seeded demo data. It is not multi-user, does not have a server-side identity boundary, and is not a source of verified live telemetry. This document does not claim those capabilities are implemented.
+The current `index.html` is a browser-local prototype using localStorage and seeded demo data. It is not multi-user, does not have a server-side identity boundary, and is not a source of verified live telemetry. The API and SQL remain source scaffolding; no live PostgreSQL database or identity provider is connected. The RLS context values are supplied by the trusted API and are not a cryptographic defense against arbitrary SQL execution using the runtime credential. This document does not claim those capabilities are implemented.
