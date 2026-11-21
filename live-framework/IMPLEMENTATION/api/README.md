@@ -7,6 +7,7 @@
 - OIDC bearer-token verification against configured issuer, explicit JWKS URL and audience.
 - Server-side user provisioning lookup; unknown identities are denied.
 - Organisation membership and permission checks before domain access.
+- Explicit legal-entity scope for asset routes; entity-only memberships cannot silently expand to organisation-wide access.
 - Organisation context set inside each transaction for database RLS.
 - Health, identity, assets, compliance documents, change requests, incidents and audit read endpoints.
 - Asset and change-request creation endpoints with validation and audit events.
@@ -35,7 +36,7 @@ Use test-only values in a local ignored environment file. Do not point this scaf
 - GET /api/incidents
 - GET /api/audit-events
 
-Every scoped request requires x-organisation-id. Authorization is enforced server-side. An approval record is never an execution command.
+Every scoped request requires a valid UUID in x-organisation-id. Asset routes optionally accept x-legal-entity-id; entity-only memberships must match that entity, while organisation-wide access requires an organisation-wide membership. Other domains remain organisation-scoped until their records support legal-entity isolation. Authorization is enforced server-side. An approval record is never an execution command.
 
 ## Known limitations
 - No UI integration yet.
