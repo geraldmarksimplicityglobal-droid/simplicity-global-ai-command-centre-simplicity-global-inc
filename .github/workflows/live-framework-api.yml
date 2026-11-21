@@ -1,0 +1,38 @@
+name: Live Framework API checks
+
+on:
+  pull_request:
+    paths:
+      - "live-framework/IMPLEMENTATION/api/**"
+      - "live-framework/IMPLEMENTATION/schema.postgresql.sql"
+      - "live-framework/IMPLEMENTATION/security-and-rls.sql"
+      - ".github/workflows/live-framework-api.yml"
+  push:
+    branches:
+      - "codex/live-enterprise-framework"
+    paths:
+      - "live-framework/IMPLEMENTATION/api/**"
+      - "live-framework/IMPLEMENTATION/schema.postgresql.sql"
+      - "live-framework/IMPLEMENTATION/security-and-rls.sql"
+      - ".github/workflows/live-framework-api.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  api-contract:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: live-framework/IMPLEMENTATION/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: live-framework/IMPLEMENTATION/api/package-lock.json
+      - run: npm install --ignore-scripts
+      - run: node --check src/server.js
+      - run: node --check src/scope.js
+      - run: npm test
