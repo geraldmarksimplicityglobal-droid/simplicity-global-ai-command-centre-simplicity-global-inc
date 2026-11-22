@@ -155,11 +155,16 @@ export function createWindowsRuntimeBridge({
       if (!taskId) return send(response, 400, { error: "taskId required" });
 
       const approval = await resolveApproval({ taskId, operation: requestBody.operation });
-      const proposedInvocation = validateInvocation({
-        ...untrustedInvocation,
-        taskId,
-        approval
-      }, policy);
+      let proposedInvocation;
+      try {
+        proposedInvocation = validateInvocation({
+          ...untrustedInvocation,
+          taskId,
+          approval
+        }, policy);
+      } catch (error) {
+        return send(response, 400, { error: error.message });
+      }
       const executionGrant = await authorizeExecution({
         taskId,
         operation: proposedInvocation.operation,
