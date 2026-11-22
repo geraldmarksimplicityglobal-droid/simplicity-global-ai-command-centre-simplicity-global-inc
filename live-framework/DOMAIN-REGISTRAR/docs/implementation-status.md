@@ -28,7 +28,7 @@ These workstreams are added to the ongoing implementation queue. â€œIn progressâ
 
 | ID | Workstream | Next implementation steps | Current state |
 |---|---|---|---|
-| SG-INT-001 | Windows Commander / Desktop Commander | Inspect host/device availability, supported command surface, filesystem scope and permissions; prepare a read-only inventory and operator-approved command bridge. | Adapter/preflight boundary to be verified; host connection not established |
+| SG-INT-001 | Windows Commander product (identity to confirm) and Desktop Commander host connector | Inspect host/device availability, supported command surface, filesystem scope and permissions; prepare a read-only inventory and operator-approved command bridge. | Adapter/preflight boundary to be verified; host connection not established |
 | SG-INT-002 | Postman | Inspect workspace, collections, environments and API contracts; map collections to API checks; use mock/sandbox requests first and require approval before any live request with side effects. | Workspace/collection references exist; environments were empty at last inspection; collection requests not executed |
 | SG-INT-003 | GitHub | Continue repository and pull-request integration; verify branch permissions, protection, CI and review gates; keep changes on the feature branch until separately approved. | Repository and feature branch accessible; PR #1 remains open and unmerged |
 | SG-INT-004 | VS Code | Inspect existing workspace and settings before changes; prepare workspace recommendations, task definitions, debug profiles and terminal/extension boundaries; preserve existing user configuration. | Design and integration mapping pending; no local VS Code host session verified |
@@ -60,7 +60,7 @@ These workstreams are added to the ongoing implementation queue. â€œIn progressâ
 | HP Windows 11 / Codex | Adapter specification and read-only preflight script prepared; remote host not connected |
 | Huawei P30 Pro / Termux | Adapter specification and read-only preflight script prepared; remote host not connected |
 | Webstudio | Integration contract prepared; no Webstudio-specific connector or project session available |
-| Windows Commander / Desktop Commander | Localhost device reported offline in prior inventory; live host connection not verified |
+| Windows Commander product (identity to confirm) and Desktop Commander host connector | Localhost device reported offline in prior inventory; live host connection not verified |
 | Postman | Workspace and saved manual-check collection references inspected; no collection execution verified |
 | VS Code | No local IDE session or configuration changes verified |
 | Plugin connectors | Connector inventory and scope registry not yet completed |
@@ -80,7 +80,7 @@ The connected Desktop Commander device inventory previously reported its localho
 - Webstudio project connection.
 - Database migration or persistent domain audit storage.
 - Production deployment.
-- Windows Commander live command execution.
+- Windows Commander product identity and live command execution.
 - Postman collection execution against live services.
 - VS Code host integration or workspace modification.
 - New plugin connector authentication or external authorization.
