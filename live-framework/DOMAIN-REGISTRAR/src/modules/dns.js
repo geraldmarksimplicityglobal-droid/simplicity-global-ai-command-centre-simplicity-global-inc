@@ -11,7 +11,7 @@ export class DnsModule {
   }
   async writeRecord(domain, record, approval) {
     const normalized = normalizeDomain(domain);
-    assertOperationAllowed({ operation: "dns.create", mode: this.mode, approval });
+    assertOperationAllowed({ operation: "dns.create", target: normalized, mode: this.mode, approval });
     throw new Error(`DNS write adapter is not implemented for ${normalized}`);
   }
 }
