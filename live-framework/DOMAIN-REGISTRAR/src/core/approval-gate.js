@@ -9,14 +9,14 @@ export function isMutatingOperation(operation) {
   return MUTATING_OPERATIONS.has(operation);
 }
 
-export function assertOperationAllowed({ operation, mode = "mock", approval, now = Date.now() }) {
+export function assertOperationAllowed({ operation, target, mode = "mock", approval, now = Date.now() }) {
   if (!operation || typeof operation !== "string") throw new TypeError("operation is required");
   if (mode === "mock" && isMutatingOperation(operation)) {
     throw new Error("Mutation blocked: mock mode does not permit external changes");
   }
   if (!isMutatingOperation(operation)) return true;
-  if (!approval || approval.operation !== operation || approval.status !== "approved") {
-    throw new Error("Mutation blocked: matching explicit approval is required");
+  if (!target || !approval || approval.target !== target || approval.operation !== operation || approval.status !== "approved") {
+    throw new Error("Mutation blocked: matching operation- and target-scoped approval is required");
   }
   if (!approval.target || !approval.approver || !approval.expiresAt || Date.parse(approval.expiresAt) <= now) {
     throw new Error("Mutation blocked: approval is incomplete or expired");
