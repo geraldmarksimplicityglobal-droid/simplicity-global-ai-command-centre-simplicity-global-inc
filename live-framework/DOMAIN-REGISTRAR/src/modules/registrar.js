@@ -17,7 +17,7 @@ export class RegistrarModule {
   }
   async register(domain, approval) {
     const normalized = normalizeDomain(domain);
-    assertOperationAllowed({ operation: "domain.register", mode: this.mode, approval });
+    assertOperationAllowed({ operation: "domain.register", target: normalized, mode: this.mode, approval });
     throw new Error("Registration adapter is not implemented; no purchase can be performed");
   }
 }
