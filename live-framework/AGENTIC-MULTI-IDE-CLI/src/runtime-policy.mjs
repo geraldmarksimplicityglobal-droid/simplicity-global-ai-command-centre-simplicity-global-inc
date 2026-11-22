@@ -67,7 +67,7 @@ export function validateInvocation(request, policy) {
     throw new RangeError("timeout is outside the permitted range");
   }
 
-  const maxOutputBytes = request.maxOutputBytes ?? 262144;
+  const maxOutputBytes = request.maxOutputBytes ?? Math.min(262144, policy.maxOutputBytes ?? DEFAULT_LIMITS.maxOutputBytes);
   if (!Number.isInteger(maxOutputBytes) || maxOutputBytes < 1 ||
       maxOutputBytes > (policy.maxOutputBytes ?? DEFAULT_LIMITS.maxOutputBytes)) {
     throw new RangeError("output limit is outside the permitted range");
