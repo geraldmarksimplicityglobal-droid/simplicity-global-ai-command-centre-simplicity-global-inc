@@ -86,3 +86,8 @@ Do not commit secrets, create a GitHub OAuth App, alter organisation SSO, change
 - API independently verifies issuer, audience and token signature.
 - Unprovisioned identities remain denied.
 - No repository or organisation permissions are requested for sign-in.
+
+
+## Activation profile
+
+Use `activation-profile.example.json` as a non-secret template. Complete the exact Cloud/Server identity, broker issuer, callback and API origin only after the owner confirms them. Never add a client secret or token to this file or browser configuration. See `ACTIVATION-BLOCKERS.md`.

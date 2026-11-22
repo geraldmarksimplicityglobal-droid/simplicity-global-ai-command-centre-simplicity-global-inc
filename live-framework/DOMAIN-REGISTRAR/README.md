@@ -52,3 +52,8 @@ The package intentionally has no runtime dependencies. The default provider is a
 ## Domain reference
 
 `simplicityglobal.com` is the configured canonical reference domain. Its registration, ownership, DNS, hosting and operational website status must be independently verified. This package does not assert that the domain is registered or controlled by the project.
+
+
+## Rooted module manifests
+
+The 24-module registry is stored in `config/module-manifests.json`; each module has its own folder under `modules/SG-DOM-001` through `modules/SG-DOM-024`. All manifests are fail-closed with no live write capabilities. See `docs/module-implementation-matrix.md`.

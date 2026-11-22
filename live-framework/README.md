@@ -26,3 +26,11 @@ Open `index.html` in a modern browser or serve this directory using any static f
 
 ## Deployment
 Not deployed. Do not publish until production controls and approvals are complete.
+
+
+## Rooted architecture and runner library
+
+- [Architecture Library](./ARCHITECTURE-LIBRARY/README.md)
+- [Background Runner Bots](./BACKGROUND-RUNNERS/README.md)
+- [Domain Registrar module matrix](./DOMAIN-REGISTRAR/docs/module-implementation-matrix.md)
+- [GitHub Enterprise activation blockers](./IMPLEMENTATION/identity/github-enterprise/ACTIVATION-BLOCKERS.md)

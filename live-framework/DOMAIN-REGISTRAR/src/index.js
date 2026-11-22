@@ -21,3 +21,5 @@ export function createDomainSystem({ mode = "mock", audit = () => {} } = {}) {
     targetStatus
   });
 }
+
+export { listModuleManifests, getModuleManifest, validateModuleManifests } from "./core/module-manifest.js";
