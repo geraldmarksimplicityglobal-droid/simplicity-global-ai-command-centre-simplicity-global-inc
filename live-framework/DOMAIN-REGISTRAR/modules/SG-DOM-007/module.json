@@ -1,0 +1,23 @@
+{
+  "id": "SG-DOM-007",
+  "name": "DNS Manager",
+  "area": "dns",
+  "state": "read-only-mock",
+  "defaultMode": "read-only-mock",
+  "provider": "unconfigured",
+  "liveEnabled": false,
+  "readCapabilities": [
+    "read-dns-records"
+  ],
+  "writeCapabilities": [],
+  "approvalRequiredFor": [
+    "external-write",
+    "account-change",
+    "dns-change",
+    "payment",
+    "registration",
+    "transfer",
+    "deployment"
+  ],
+  "evidenceRequired": true
+}

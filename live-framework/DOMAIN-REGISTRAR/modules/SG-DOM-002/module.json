@@ -1,0 +1,23 @@
+{
+  "id": "SG-DOM-002",
+  "name": "Domain Registry",
+  "area": "domain",
+  "state": "local-model",
+  "defaultMode": "design",
+  "provider": "unconfigured",
+  "liveEnabled": false,
+  "readCapabilities": [
+    "read-local-registry"
+  ],
+  "writeCapabilities": [],
+  "approvalRequiredFor": [
+    "external-write",
+    "account-change",
+    "dns-change",
+    "payment",
+    "registration",
+    "transfer",
+    "deployment"
+  ],
+  "evidenceRequired": true
+}

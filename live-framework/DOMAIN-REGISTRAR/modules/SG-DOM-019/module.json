@@ -1,0 +1,23 @@
+{
+  "id": "SG-DOM-019",
+  "name": "Audit",
+  "area": "governance",
+  "state": "in-memory",
+  "defaultMode": "design",
+  "provider": "unconfigured",
+  "liveEnabled": false,
+  "readCapabilities": [
+    "append-local-event"
+  ],
+  "writeCapabilities": [],
+  "approvalRequiredFor": [
+    "external-write",
+    "account-change",
+    "dns-change",
+    "payment",
+    "registration",
+    "transfer",
+    "deployment"
+  ],
+  "evidenceRequired": true
+}

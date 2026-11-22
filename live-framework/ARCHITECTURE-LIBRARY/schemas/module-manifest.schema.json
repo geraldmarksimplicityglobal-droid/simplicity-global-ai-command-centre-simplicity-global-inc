@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Simplicity Global module manifest",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "area",
+    "state",
+    "defaultMode",
+    "provider",
+    "liveEnabled",
+    "readCapabilities",
+    "writeCapabilities",
+    "approvalRequiredFor",
+    "evidenceRequired"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^SG-[A-Z0-9-]+$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "area": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "defaultMode": {
+      "enum": [
+        "mock",
+        "read-only-mock",
+        "design"
+      ]
+    },
+    "provider": {
+      "type": "string"
+    },
+    "liveEnabled": {
+      "type": "boolean",
+      "const": false
+    },
+    "readCapabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "writeCapabilities": {
+      "type": "array",
+      "maxItems": 0
+    },
+    "approvalRequiredFor": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidenceRequired": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "additionalProperties": false
+}

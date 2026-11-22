@@ -1,0 +1,21 @@
+{
+  "systemId": "SG-ID-001",
+  "providerType": "github-enterprise-cloud-or-server",
+  "githubBaseUrl": "",
+  "organizationSlug": "",
+  "ghesVersion": "",
+  "brokerIssuer": "",
+  "brokerClientId": "simplicity-global-web",
+  "redirectUri": "",
+  "apiBaseUrl": "",
+  "providerAlias": "github-enterprise",
+  "scopes": [
+    "openid",
+    "profile"
+  ],
+  "pkceMethod": "S256",
+  "automaticProvisioning": false,
+  "repositoryScopes": [],
+  "clientSecretLocation": "approved-secret-manager-only",
+  "activationState": "blocked-pending-owner-input"
+}

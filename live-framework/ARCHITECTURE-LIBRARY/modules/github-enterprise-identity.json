@@ -1,0 +1,21 @@
+{
+  "id": "SG-ID-001",
+  "name": "GitHub Enterprise Sign-in",
+  "protocol": "OIDC authorization-code with PKCE S256",
+  "upstream": "GitHub Enterprise via identity broker",
+  "providerAlias": "github-enterprise",
+  "clientType": "public",
+  "clientSecretInBrowser": false,
+  "repositoryScopes": [],
+  "autoProvisioning": false,
+  "brokerConfigured": false,
+  "signInVerified": false,
+  "pendingInputs": [
+    "Cloud or Server",
+    "organisation slug or GHES hostname/version",
+    "broker issuer and realm",
+    "approved callback URL",
+    "API origin"
+  ],
+  "status": "configured-unverified"
+}

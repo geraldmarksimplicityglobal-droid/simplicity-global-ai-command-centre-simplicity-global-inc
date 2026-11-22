@@ -1,0 +1,23 @@
+{
+  "id": "SG-DOM-014",
+  "name": "Postman",
+  "area": "integration",
+  "state": "manual-only",
+  "defaultMode": "design",
+  "provider": "unconfigured",
+  "liveEnabled": false,
+  "readCapabilities": [
+    "read-collection-metadata"
+  ],
+  "writeCapabilities": [],
+  "approvalRequiredFor": [
+    "external-write",
+    "account-change",
+    "dns-change",
+    "payment",
+    "registration",
+    "transfer",
+    "deployment"
+  ],
+  "evidenceRequired": true
+}

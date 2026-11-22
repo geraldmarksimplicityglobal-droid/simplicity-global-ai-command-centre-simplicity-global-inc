@@ -1,0 +1,21 @@
+{
+  "id": "SG-DOM-010",
+  "name": "Hosting",
+  "area": "infrastructure",
+  "state": "unconfigured",
+  "defaultMode": "design",
+  "provider": "unconfigured",
+  "liveEnabled": false,
+  "readCapabilities": [],
+  "writeCapabilities": [],
+  "approvalRequiredFor": [
+    "external-write",
+    "account-change",
+    "dns-change",
+    "payment",
+    "registration",
+    "transfer",
+    "deployment"
+  ],
+  "evidenceRequired": true
+}

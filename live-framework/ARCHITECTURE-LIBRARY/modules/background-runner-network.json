@@ -1,0 +1,33 @@
+{
+  "id": "SG-RUN-001-010",
+  "name": "Background Runner Bot Network",
+  "root": "live-framework/BACKGROUND-RUNNERS",
+  "runnerTypes": [
+    "orchestrator",
+    "builder",
+    "tester",
+    "security-reviewer",
+    "integration-validator",
+    "evidence-collector",
+    "global-mark-validator"
+  ],
+  "executionModes": [
+    "local-mock",
+    "ephemeral-github-hosted-ci"
+  ],
+  "persistentRunnerDeployment": false,
+  "shellExecution": false,
+  "allowedStages": [
+    "build",
+    "tests",
+    "security",
+    "integration",
+    "quality",
+    "evidence"
+  ],
+  "maximumAttempts": 3,
+  "humanApprovalRequiredForGlobalMark": true,
+  "externalMutationEnabled": false,
+  "productionDeploymentEnabled": false,
+  "status": "mock-verified"
+}

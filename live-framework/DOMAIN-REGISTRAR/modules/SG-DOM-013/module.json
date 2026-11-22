@@ -1,0 +1,23 @@
+{
+  "id": "SG-DOM-013",
+  "name": "Sitemap",
+  "area": "seo",
+  "state": "local-validation",
+  "defaultMode": "design",
+  "provider": "unconfigured",
+  "liveEnabled": false,
+  "readCapabilities": [
+    "validate-sitemap"
+  ],
+  "writeCapabilities": [],
+  "approvalRequiredFor": [
+    "external-write",
+    "account-change",
+    "dns-change",
+    "payment",
+    "registration",
+    "transfer",
+    "deployment"
+  ],
+  "evidenceRequired": true
+}

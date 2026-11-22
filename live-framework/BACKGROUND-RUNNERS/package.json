@@ -1,0 +1,14 @@
+{
+  "name": "sg-background-runner-bots",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Simplicity Global bounded mock runner and GLOBAL MARK validator",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/policy.mjs && node --check src/runner.mjs && node --check src/global-mark.mjs && node --check src/index.mjs"
+  }
+}
