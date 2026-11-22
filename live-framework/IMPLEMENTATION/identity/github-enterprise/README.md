@@ -1,93 +1,97 @@
 # SG-IDP-GITHUB-001 — GitHub Enterprise sign-in
 
-**Integration pattern:** GitHub Enterprise OAuth identity brokered through the existing OIDC provider.  
+**Selected upstream identity:** Self-hosted GitHub Enterprise Server (GHES).  
+**Corporate domain reference:** `simplicityglobal.com` (domain ownership, DNS and hosting are not verified by this configuration).  
+**Integration pattern:** GHES OAuth identity brokered through the Simplicity Global OIDC provider.  
 **Application protocol:** OpenID Connect authorization-code flow with PKCE S256.  
-**Default identity provider alias:** `github-enterprise`.  
-**State:** Source integration prepared; provider registration and live sign-in are not configured or verified.
+**Identity-provider alias:** `github-enterprise`.  
+**State:** Source integration and GHES-specific plan prepared; provider registration and live sign-in are not configured or verified.
 
 ## Why the broker pattern is used
 
-The existing SG-LIVE API already validates OIDC access tokens against a configured issuer, JWKS endpoint and audience, then checks the identity against provisioned application users and memberships. GitHub OAuth is not itself the API's OIDC issuer. A broker (for example, the existing organisation's Keycloak realm) keeps the API's trust boundary consistent and prevents GitHub access tokens from being accepted directly by the business API.
+The SG-LIVE API validates OIDC access tokens against a configured issuer, JWKS endpoint and audience, then checks the identity against provisioned application users and memberships. GitHub OAuth is not itself the API's OIDC issuer. A broker keeps the API trust boundary consistent and prevents GitHub OAuth access tokens from being accepted directly by the business API.
 
-The browser login sends the user to the configured OIDC broker with `kc_idp_hint=github-enterprise`. The broker performs upstream GitHub Enterprise authentication and returns an OIDC access token for Simplicity Global. The API independently verifies that token and checks user provisioning and permissions.
+The browser login sends the user to the configured OIDC broker with `kc_idp_hint=github-enterprise`. The broker performs upstream GHES authentication and returns a Simplicity Global OIDC access token. The API independently verifies that token and checks user provisioning and permissions.
 
-## GitHub Enterprise Cloud setup
+## Selected GHES configuration
 
-1. Confirm the organisation's GitHub Enterprise Cloud account and the exact GitHub organisation slug. Do not infer either from repository ownership.
-2. In the broker, create an upstream GitHub identity provider using the GitHub.com OAuth endpoints:
-   - Authorize: `https://github.com/login/oauth/authorize`
-   - Token: `https://github.com/login/oauth/access_token`
-   - User profile: `https://api.github.com/user`
-3. Register a dedicated GitHub OAuth App for the broker. Set its callback URL to the broker's exact identity-provider callback URL shown by the broker. Do not use the Simplicity Global website URL as the GitHub OAuth callback.
-4. Request only the minimum identity scopes needed. `read:user` is the baseline; add `read:org` only if the broker will enforce membership in a named enterprise organisation. Do not request `repo`, `workflow`, `admin:org`, or write scopes for sign-in.
-5. If the GitHub organisation enforces SAML SSO or enterprise SSO, authorize the OAuth App for that organisation under its SSO policy. A successful GitHub sign-in alone is not proof of organisation membership.
-6. Set the broker identity-provider alias to exactly `github-enterprise`. Configure first-login behaviour so sign-in does not silently grant business-system roles or broad tenant membership.
-7. Disable unrestricted self-registration. The API's existing `app_users` provisioning check remains mandatory.
+A GHES deployment uses the instance-specific hostname and OAuth endpoints, not GitHub.com endpoints. The exact GHES hostname and version have not yet been supplied. Do not guess the hostname or endpoint paths.
 
-## GitHub Enterprise Server
+1. Confirm the exact GHES HTTPS base URL and version/build with the GHES administrator.
+2. Confirm the organisation slug if access is restricted to a particular GHES organisation.
+3. Confirm the identity broker product and exact realm issuer.
+4. In the broker's supported GHES adapter, configure the instance-specific endpoints and retrieve the broker-generated upstream callback URL.
+5. Register a dedicated OAuth App in GHES using that exact broker callback URL, after compatibility review and separate approval.
+6. Request only minimum identity scopes. Do not request repository, workflow, organisation-administration or write scopes for sign-in.
+7. Confirm the broker supports authorization-code flow with PKCE S256 for the browser client. If not, stop and assess compatibility; do not bypass the requirement.
+8. Disable unrestricted first-login registration and automatic Simplicity Global application-user provisioning.
 
-A GHES deployment uses the instance-specific hostname and OAuth endpoints, not the GitHub.com endpoints above. Confirm the exact GHES hostname and version first. The current browser integration requires broker discovery to advertise PKCE S256; do not bypass that requirement. Configure a separate broker provider and callback for GHES after version-specific compatibility review. Never substitute a GHES hostname without operator confirmation.
+## Callback distinction
+
+The upstream GHES OAuth callback belongs to the broker's GHES identity-provider configuration. The browser redirect URI belongs to the broker's public OIDC client. They are different URLs and must be copied from the actual broker configuration.
 
 ## OIDC client configuration
 
-Create a public browser client in the broker:
-- Client ID: `simplicity-global-web` (example; confirm availability before use).
-- Client type: public.
-- Standard authorization-code flow: enabled.
-- PKCE method: S256 required.
-- Client secret in browser: none.
-- Redirect URI: exact deployed dashboard origin/path, currently only a proposed reference of `https://simplicityglobal.com/`.
+Create or configure a public browser client in the broker only after deployment origins are confirmed:
+
+- Client ID: `simplicity-global-web` (proposed; check for collision).
+- Client type: public; no browser client secret.
+- Flow: authorization code; PKCE S256 required.
+- Redirect URI: exact deployed dashboard callback.
 - Web origin: exact deployed dashboard origin.
-- Scopes: `openid profile`; add email only if a documented business requirement exists.
+- Scopes: `openid profile`; add email only for a documented requirement.
 - Identity-provider hint: `github-enterprise`.
 - No wildcard redirect URI or wildcard web origin.
 
-The browser configuration is supplied by `web/auth-config.js`, copied from `web/auth-config.example.js` only after the actual broker and API origins are known. It contains public configuration only, never client secrets or tokens.
+The upstream GHES OAuth client secret belongs in an approved server-side secret manager only. It must never be placed in browser configuration or source control.
 
 ## Application access and authorization
 
-- The API continues to verify the OIDC access token's signature, issuer and audience.
-- The broker issuer must exactly match `OIDC_ISSUER`; the broker JWKS endpoint and API audience must be configured server-side.
-- The API's `app_users` record must exist and be active for the broker-issued `issuer + subject` pair.
-- Organisation memberships, legal-entity scope and permissions remain server-side controls.
-- A GitHub username, email address, repository role or enterprise membership does not automatically grant a Simplicity Global role.
-- Unprovisioned identities receive `403 user_not_provisioned`.
-- The browser holds the access token in memory only; it does not persist access or refresh tokens in localStorage or sessionStorage.
-- The PKCE verifier and OIDC state/nonce are temporary sessionStorage transaction values and are removed during callback processing.
-- No GitHub token is sent to the SG-LIVE API.
+- The API trusts broker-issued OIDC access tokens, not GHES OAuth access tokens.
+- The API independently verifies token signature, issuer and audience using server-side configuration.
+- The API's provisioned application-user record must exist and be active for the broker-issued `issuer + subject` pair.
+- Organisation membership, legal-entity scope and permissions remain server-side controls.
+- A GitHub username, email address, GHES organisation membership or repository role does not automatically grant a Simplicity Global application role.
+- Unprovisioned identities remain denied.
+- Browser access tokens remain in memory only; do not persist access or refresh tokens in localStorage or sessionStorage.
+- Never log tokens, client secrets or PKCE verifiers.
 
-## Deployment configuration checklist
+## Required configuration
 
-Required public browser configuration:
-- `issuer`: exact OIDC broker realm issuer.
-- `clientId`: public OIDC client ID.
-- `redirectUri`: exact deployed callback URI.
-- `apiBaseUrl`: exact SG-LIVE API origin.
-- `providerHint`: `github-enterprise`.
-- `scopes`: `openid profile`.
+Public browser configuration:
+- Exact broker issuer.
+- Public OIDC client ID.
+- Exact dashboard callback URI.
+- Exact SG-LIVE API origin.
+- Provider hint `github-enterprise`.
+- Scopes `openid profile`.
 
-Required API configuration remains:
+Server-side API configuration:
 - `OIDC_ISSUER`
 - `OIDC_JWKS_URL`
 - `OIDC_AUDIENCE`
 - `CORS_ORIGINS`
 - `DATABASE_URL`
 
-Do not commit secrets, create a GitHub OAuth App, alter organisation SSO, change broker settings, or connect a live identity provider as part of this source-only increment.
+## Implementation documents
+
+- [GHES integration plan](./GHES-INTEGRATION-PLAN.md)
+- [Configuration record](./CONFIGURATION.md)
+- [Non-secret activation profile](./activation-profile.example.json)
+- [Activation blockers](./ACTIVATION-BLOCKERS.md)
+
+## Activation and change controls
+
+Do not create an OAuth App, alter GHES SSO policy, configure the broker, change production DNS, or connect a live identity provider as part of this source-only implementation. Those are separate external changes requiring exact target details and explicit scoped approval.
 
 ## Acceptance checks
 
 - Missing/placeholder browser config fails closed.
 - Only HTTPS identity, token and API endpoints are accepted outside local development.
-- Discovery issuer and endpoint origins are checked.
+- Broker discovery issuer and endpoint origins are checked.
 - Authorization code flow uses state, nonce and PKCE S256.
 - Callback state must match a recent browser transaction.
 - Browser token memory is cleared on sign-out and expiry.
-- API independently verifies issuer, audience and token signature.
+- API independently verifies broker token issuer, audience and signature.
 - Unprovisioned identities remain denied.
 - No repository or organisation permissions are requested for sign-in.
-
-
-## Activation profile
-
-Use `activation-profile.example.json` as a non-secret template. Complete the exact Cloud/Server identity, broker issuer, callback and API origin only after the owner confirms them. Never add a client secret or token to this file or browser configuration. See `ACTIVATION-BLOCKERS.md`.
