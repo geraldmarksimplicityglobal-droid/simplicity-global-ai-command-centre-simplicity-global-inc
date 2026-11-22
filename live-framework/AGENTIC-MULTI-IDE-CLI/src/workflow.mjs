@@ -57,6 +57,9 @@ export function createTask(input, actor) {
 
 export function transitionTask(task, nextStatus, actor, details = {}) {
   requiredText(actor, "actor");
+  if (nextStatus === "executing" && !task?.executionAuthorization) {
+    throw new Error("execution authorization required");
+  }
   if (!task || !transitions[task.status]?.has(nextStatus)) {
     throw new Error("invalid task transition");
   }
@@ -65,9 +68,6 @@ export function transitionTask(task, nextStatus, actor, details = {}) {
   }
   if (nextStatus === "execution_authorized") {
     throw new Error("use authorizeExecution to record execution scope");
-  }
-  if (nextStatus === "executing" && !task.executionAuthorization) {
-    throw new Error("execution authorization required");
   }
   task.status = nextStatus;
   appendEvent(task, "task." + nextStatus, actor, details);
