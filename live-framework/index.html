@@ -33,7 +33,7 @@
  <div class="sidefoot"><b>CONTROL MODE</b><br>Inspect-first · Read-only external systems<br><span style="color:var(--green)">● Local prototype available</span><br><span style="color:var(--amber)">● Integrations unverified</span></div>
 </aside>
 <main class="main">
-<header class="top"><div class="crumb">Enterprise / <span id="crumb">Overview</span></div><div class="topright"><span class="pill warn">DEMO DATA · NOT LIVE</span><span class="pill">Inspect-first</span><div class="avatar">SG</div></div></header>
+<header class="top"><div class="crumb">Enterprise / <span id="crumb">Overview</span></div><div class="topright"><span class="pill warn">DEMO DATA · NOT LIVE</span><span class="pill">Inspect-first</span><div id="sg-enterprise-auth" aria-live="polite"></div><div class="avatar">SG</div></div></header>
 <div class="content">
 <section class="page active" id="page-overview">
  <div class="heading"><div><div class="eyebrow">Enterprise operations centre</div><h1>Live framework overview</h1><p>One control plane for governance, platforms, infrastructure and operational assurance.</p></div><div class="actions"><button class="btn" onclick="exportData()">Export register</button><button class="btn primary" onclick="openModal('asset')">＋ Add asset</button></div></div>
@@ -162,4 +162,5 @@ function exportData(){let blob=new Blob([JSON.stringify({assets,approvals,events
 function resetDemo(){if(confirm("Reset locally stored demo records to their initial state?")){localStorage.removeItem("sg_assets");localStorage.removeItem("sg_approvals");localStorage.removeItem("sg_events");location.reload()}}
 renderModules();renderAssets();renderLegal();renderInfra();renderIntegrations();renderApprovals();renderFeed();renderSecurity();renderRoadmap();renderGuardrails();
 </script>
+<script type="module" src="./IMPLEMENTATION/web/github-enterprise-login.js"></script>
 </body></html>
