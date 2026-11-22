@@ -17,6 +17,9 @@ on:
       - "codex/live-enterprise-framework"
     paths:
       - "live-framework/IMPLEMENTATION/api/**"
+      - "live-framework/IMPLEMENTATION/web/**"
+      - "live-framework/IMPLEMENTATION/identity/**"
+      - "live-framework/index.html"
       - "live-framework/IMPLEMENTATION/schema.postgresql.sql"
       - "live-framework/IMPLEMENTATION/security-and-rls.sql"
       - "live-framework/IMPLEMENTATION/runtime-grants.template.sql"
