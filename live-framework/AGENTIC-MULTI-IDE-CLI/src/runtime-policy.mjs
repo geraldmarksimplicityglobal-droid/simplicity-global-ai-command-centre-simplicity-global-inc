@@ -61,7 +61,7 @@ export function validateInvocation(request, policy) {
     throw new TypeError("arguments must be a bounded array of strings");
   }
 
-  const timeoutMs = request.timeoutMs ?? 30000;
+  const timeoutMs = request.timeoutMs ?? Math.min(30000, policy.maxTimeoutMs ?? DEFAULT_LIMITS.maxTimeoutMs);
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1 ||
       timeoutMs > (policy.maxTimeoutMs ?? DEFAULT_LIMITS.maxTimeoutMs)) {
     throw new RangeError("timeout is outside the permitted range");
