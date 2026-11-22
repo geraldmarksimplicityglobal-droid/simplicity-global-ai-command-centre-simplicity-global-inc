@@ -18,7 +18,7 @@ Snapshot: 22 November 2026; source branch `codex/live-enterprise-framework`.
 ## Automated verification
 - Domain Registrar Package Checks: **passed** on commit `8ec1e8056741afa5d9312ea5c12899f8fca01deb`.
 - Agentic Multi-IDE CLI workflow checks: **passed** on commit `8ec1e8056741afa5d9312ea5c12899f8fca01deb`.
-- The separate Live Framework API workflow was still running at the time of this status snapshot.
+- Live Framework API checks: **passed** on the same commit.
 - CI success verifies the source checks and unit tests executed by those workflows. It does not establish live device connectivity, registrar ownership, DNS state or production readiness.
 
 ## Target connection status
