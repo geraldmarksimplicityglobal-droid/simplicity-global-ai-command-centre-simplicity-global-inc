@@ -30,6 +30,32 @@ class CensusTests(unittest.TestCase):
  def test_https_allowlist(self):
   with self.assertRaisesRegex(harvest.HarvestError,'allowlisted'): harvest.fetch_json('https://example.org/api')
 
+ def test_factorio_and_steam_workshop_registry_classifications(self):
+  self.assertEqual(BY_ID['factorio']['api_status'],'live')
+  self.assertEqual(BY_ID['steam-workshop']['api_status'],'token')
+  self.assertIn('publisher_key_required',BY_ID['steam-workshop']['verification'])
+  self.assertIn('factorio',harvest.ADAPTERS)
+  self.assertNotIn('steam-workshop',harvest.ADAPTERS)
+
+ def test_factorio_paginates_and_normalizes(self):
+  pages=[
+   {'results':[{'name':'example-mod','title':'Example Mod','owner':'modder','downloads_count':42,'score':0.9,'category':'content','latest_release':{'version':'1.2.3','released_at':'2026-11-01'}}],
+    'pagination':{'page_count':2}},
+   {'results':[{'name':'second-mod','title':'Second Mod','owner':'builder'}],
+    'pagination':{'page_count':2}},
+  ]
+  with patch.object(harvest,'fetch_json',side_effect=pages) as mocked:
+   state={}
+   rows=list(harvest.factorio(state))
+  self.assertEqual([x['plugin_id'] for x in rows],['example-mod','second-mod'])
+  self.assertEqual(rows[0]['version'],'1.2.3')
+  self.assertEqual(rows[0]['downloads'],42)
+  self.assertEqual(mocked.call_count,2)
+
+ def test_factorio_rejects_invalid_pagination(self):
+  with self.assertRaisesRegex(harvest.HarvestError,'page_size'):
+   list(harvest.factorio({'page_size':1000}))
+
  def test_gaming_registry_classifications(self):
   self.assertEqual(BY_ID['xbox-gamepass']['api_status'],'live')
   self.assertEqual(BY_ID['xbox-partner']['api_status'],'token')
