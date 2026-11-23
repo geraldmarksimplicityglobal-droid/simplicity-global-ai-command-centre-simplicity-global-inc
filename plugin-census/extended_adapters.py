@@ -224,6 +224,221 @@ def reportportal_public(state):
             version=plugin.get('version'),
             category=plugin.get('type') or 'reportportal-plugin')
 
+
+def node_red_flow_library(state):
+    try:
+        page = int(state.get('page', 1))
+        per_page = int(state.get('per_page', 100))
+    except (TypeError, ValueError):
+        raise HarvestError('Node-RED page and per_page must be integers')
+    if page < 1 or not 1 <= per_page <= 100:
+        raise HarvestError('Node-RED page must be positive and per_page must be 1..100')
+    for _ in range(MAX_PAGES):
+        params = urllib.parse.urlencode({'type':'node','sort':'downloads','page':page,'per_page':per_page,'view':'full'})
+        data = fetch_json('https://flows.nodered.org/api/v1/search?' + params)
+        if not isinstance(data, dict):
+            raise HarvestError('Unexpected Node-RED Flow Library response')
+        batch = data.get('results') or data.get('data') or []
+        if not isinstance(batch, list):
+            raise HarvestError('Unexpected Node-RED result list')
+        if not batch:
+            return
+        for item in batch:
+            if not isinstance(item, dict):
+                continue
+            pid = item.get('id') or item.get('npm_package') or item.get('name')
+            name = item.get('name') or pid
+            if not pid or not name:
+                continue
+            categories = item.get('categories')
+            category = categories[0] if isinstance(categories, list) and categories else item.get('category')
+            slug = item.get('id') or pid
+            yield record('node-red-flow-library', pid, name, item,
+                author=item.get('npm_username') or item.get('username'),
+                version=item.get('version'), downloads=item.get('downloads'),
+                rating=item.get('rating'), category=category,
+                updated_at=item.get('updated_at') or item.get('modified'),
+                url='https://flows.nodered.org/node/' + urllib.parse.quote(str(slug), safe=''))
+        total_pages = data.get('num_pages') or data.get('pages')
+        if total_pages is not None:
+            try:
+                if page >= int(total_pages):
+                    return
+            except (TypeError, ValueError):
+                raise HarvestError('Invalid Node-RED page count')
+        elif len(batch) < per_page:
+            return
+        page += 1
+        state['page'] = page
+        time.sleep(0.25)
+    raise HarvestError('Node-RED Flow Library pagination safety stop; resume with saved page state')
+
+
+def joplin_plugins(state):
+    manifests = fetch_json('https://raw.githubusercontent.com/joplin/plugins/master/manifests.json', max_bytes=30_000_000)
+    if not isinstance(manifests, list):
+        raise HarvestError('Unexpected Joplin manifests.json shape')
+    try:
+        stats = fetch_json('https://raw.githubusercontent.com/joplin/plugins/master/stats.json', max_bytes=30_000_000)
+        if not isinstance(stats, dict):
+            stats = {}
+    except HarvestError:
+        stats = {}
+    for manifest in manifests:
+        if not isinstance(manifest, dict):
+            continue
+        pid = manifest.get('id')
+        name = manifest.get('name')
+        if not pid or not name:
+            continue
+        version = manifest.get('version')
+        plugin_stats = stats.get(pid) or {}
+        version_stats = plugin_stats.get(version) if isinstance(plugin_stats, dict) and version else {}
+        downloads = version_stats.get('downloadCount') if isinstance(version_stats, dict) else None
+        categories = manifest.get('categories')
+        category = categories[0] if isinstance(categories, list) and categories else None
+        yield record('joplin-plugins', pid, name, manifest,
+            author=manifest.get('author'), version=version, downloads=downloads,
+            category=category, url=manifest.get('repository_url') or manifest.get('homepage_url'))
+
+
+def zotero_plugins(state):
+    # Repository root is the only route supplied. Do not invent a sub-route:
+    # accept only documented list envelopes and fail closed on other shapes.
+    data = fetch_json('https://repo.zotero.org/repo/', max_bytes=10_000_000)
+    if isinstance(data, list):
+        plugins = data
+    elif isinstance(data, dict):
+        plugins = data.get('plugins') or data.get('data') or data.get('results')
+    else:
+        plugins = None
+    if not isinstance(plugins, list):
+        raise HarvestError('Zotero repository root did not return a recognized plugin list; verify the current REST route/schema before harvesting')
+    for plugin in plugins:
+        if not isinstance(plugin, dict):
+            continue
+        pid = plugin.get('id') or plugin.get('slug')
+        name = plugin.get('name') or plugin.get('title')
+        if not pid or not name:
+            continue
+        yield record('zotero-plugins', pid, name, plugin,
+            author=plugin.get('author') or plugin.get('owner'),
+            version=plugin.get('version'), downloads=plugin.get('downloads'),
+            rating=plugin.get('rating'), category=plugin.get('category'),
+            updated_at=plugin.get('updated'),
+            url=plugin.get('homepage') or plugin.get('repository'))
+
+
+def raycast_store(state):
+    try:
+        page = int(state.get('page', 1))
+        per_page = int(state.get('per_page', 100))
+    except (TypeError, ValueError):
+        raise HarvestError('Raycast page and per_page must be integers')
+    if page < 1 or not 1 <= per_page <= 100:
+        raise HarvestError('Raycast page must be positive and per_page must be 1..100')
+    for _ in range(MAX_PAGES):
+        params = urllib.parse.urlencode({'page':page,'per_page':per_page})
+        data = fetch_json('https://www.raycast.com/api/v1/store_listings?' + params)
+        if not isinstance(data, dict):
+            raise HarvestError('Unexpected Raycast Store response')
+        batch = data.get('data') or data.get('listings') or data.get('results') or []
+        if not isinstance(batch, list):
+            raise HarvestError('Unexpected Raycast listing array')
+        if not batch:
+            return
+        for listing in batch:
+            if not isinstance(listing, dict):
+                continue
+            owner = listing.get('owner') or {}
+            if not isinstance(owner, dict):
+                owner = {}
+            slug = listing.get('slug') or listing.get('id')
+            name = listing.get('title') or listing.get('name')
+            if not slug or not name:
+                continue
+            handle = owner.get('handle')
+            url = ('https://www.raycast.com/' + urllib.parse.quote(str(handle), safe='') + '/' + urllib.parse.quote(str(slug), safe='')) if handle else listing.get('url')
+            categories = listing.get('categories')
+            category = categories[0] if isinstance(categories, list) and categories else None
+            yield record('raycast-store', slug, name, listing,
+                author=handle or listing.get('author'),
+                downloads=listing.get('downloadCount'), category=category,
+                updated_at=listing.get('updatedAt'), url=url)
+        total = data.get('total')
+        if total is not None:
+            try:
+                if page * per_page >= int(total):
+                    return
+            except (TypeError, ValueError):
+                raise HarvestError('Invalid Raycast total count')
+        elif len(batch) < per_page:
+            return
+        page += 1
+        state['page'] = page
+        time.sleep(0.25)
+    raise HarvestError('Raycast Store pagination safety stop; resume with saved page state')
+
+
+def rensei_plugins(state):
+    try:
+        offset = int(state.get('offset', 0))
+        limit = int(state.get('limit', 100))
+    except (TypeError, ValueError):
+        raise HarvestError('Rensei offset and limit must be integers')
+    if offset < 0 or not 1 <= limit <= 500:
+        raise HarvestError('Rensei offset must be nonnegative and limit must be 1..500')
+    for _ in range(MAX_PAGES):
+        params = urllib.parse.urlencode({'limit':limit,'offset':offset})
+        data = fetch_json('https://rensei.ai/api/plugins?' + params)
+        if not isinstance(data, dict):
+            raise HarvestError('Unexpected Rensei plugin response')
+        batch = data.get('plugins') or []
+        if not isinstance(batch, list):
+            raise HarvestError('Unexpected Rensei plugins array')
+        if not batch:
+            return
+        for plugin in batch:
+            if not isinstance(plugin, dict):
+                continue
+            pid = plugin.get('id') or plugin.get('name')
+            name = plugin.get('name')
+            if not pid or not name:
+                continue
+            yield record('rensei-plugins', pid, name, plugin,
+                author=plugin.get('provider'), version=plugin.get('version'),
+                category=plugin.get('status') or 'rensei-plugin')
+        offset += len(batch)
+        state['offset'] = offset
+        total = data.get('total')
+        if total is not None:
+            try:
+                if offset >= int(total):
+                    return
+            except (TypeError, ValueError):
+                raise HarvestError('Invalid Rensei total count')
+        elif len(batch) < limit:
+            return
+        time.sleep(0.25)
+    raise HarvestError('Rensei pagination safety stop; resume with saved offset state')
+
+
+def homeassistant_catalog(state):
+    data = fetch_json('https://raw.githubusercontent.com/home-assistant/core/dev/homeassistant/generated/integrations.json', max_bytes=30_000_000)
+    if not isinstance(data, dict):
+        raise HarvestError('Unexpected Home Assistant generated catalog shape')
+    integrations = data.get('integration') or {}
+    if not isinstance(integrations, dict):
+        raise HarvestError('Unexpected Home Assistant integration map')
+    for domain, meta in integrations.items():
+        if not isinstance(meta, dict):
+            continue
+        name = meta.get('name') or domain
+        yield record('homeassistant-catalog', domain, name, meta,
+            category=meta.get('integration_type'),
+            url='https://www.home-assistant.io/integrations/' + urllib.parse.quote(str(domain), safe='') + '/')
+
+
 EXTRA_ADAPTERS = {
     'joomla-vel': joomla_vel,
     'drupal-api': drupal_api,
@@ -231,4 +446,10 @@ EXTRA_ADAPTERS = {
     'grafana-catalog': grafana_catalog,
     'agent-plugins-directory': agent_plugins_directory,
     'reportportal-public': reportportal_public,
+    'node-red-flow-library': node_red_flow_library,
+    'joplin-plugins': joplin_plugins,
+    'zotero-plugins': zotero_plugins,
+    'raycast-store': raycast_store,
+    'rensei-plugins': rensei_plugins,
+    'homeassistant-catalog': homeassistant_catalog,
 }
