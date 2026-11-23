@@ -173,8 +173,8 @@ def agent_plugins_directory(state):
             for row in index:
                 if not isinstance(row, dict):
                     continue
-                owner = row.get('owner') or row.get('p') or row.get('publisher') or ''
-                name = row.get('name') or row.get('n') or ''
+                owner = row.get('owner') or row.get('publisher') or ''
+                name = row.get('name') or ''
                 pid = (str(owner) + '/' + str(name)).strip('/')
                 if not owner or not name:
                     continue
@@ -194,7 +194,7 @@ def agent_plugins_directory(state):
                 updated_at=plugin.get('updatedAt') or plugin.get('commit'),
                 url='https://agent-plugins.directory/' + urllib.parse.quote(str(owner), safe='') + '/' + urllib.parse.quote(str(name), safe=''))
         link = headers.get('Link', '')
-        has_next = bool(re.search(r'<[^>]+>;\\s*rel="?next"?', link, re.I))
+        has_next = bool(re.search(r'<[^>]+>;\s*rel="?next"?', link, re.I))
         if not has_next and len(batch) < 1000:
             return
         page += 1
