@@ -10,6 +10,7 @@ A separate, non-production enterprise operations console foundation.
 - Integration catalogue with verified / unverified / disconnected distinctions.
 - Change approval records, audit timeline, roadmap and control guardrails.
 - JSON export and browser-local persistence.
+- **SG-ANDROID-ENGINEERING-001:** native Android companion, APK inspection, MT Manager handoff, Gradle release controls and policy tests.
 
 ## Safety and limitations
 - This branch does not modify the repository's existing main branch.
@@ -21,15 +22,16 @@ A separate, non-production enterprise operations console foundation.
 - Do not place credentials, personal data, customer records or sensitive business data in this demo.
 - Production rollout requires architecture review, authentication/RBAC, database and secret-vault setup, threat modelling, automated tests, legal review and explicit release approval.
 
+## Android Engineering
+See [SG Android Engineering](./ANDROID-ENGINEERING/README.md) and its [GEN SYSTEM manifest](./ANDROID-ENGINEERING/GEN-SYSTEM-MANIFEST.json). The Android companion currently provides APK metadata/certificate inspection and operator-mediated MT Manager handoff. Android device validation and production release signing remain pending.
+
 ## Run locally
 Open `index.html` in a modern browser or serve this directory using any static file server.
 
 ## Deployment
 Not deployed. Do not publish until production controls and approvals are complete.
 
-
 ## Rooted architecture and runner library
-
 - [Architecture Library](./ARCHITECTURE-LIBRARY/README.md)
 - [Background Runner Bots](./BACKGROUND-RUNNERS/README.md)
 - [Domain Registrar module matrix](./DOMAIN-REGISTRAR/docs/module-implementation-matrix.md)
