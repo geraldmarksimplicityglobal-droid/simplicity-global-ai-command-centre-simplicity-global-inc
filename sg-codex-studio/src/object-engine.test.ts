@@ -1,4 +1,4 @@
-import test from "node:test";
+import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, symlink, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -70,4 +70,20 @@ test("refuses a symlinked store directory", async () => withTempDir(async dir =>
   await symlink(outside, join(dir, ".sg-codex"), "dir");
   const store = new JsonObjectStore(dir);
   await assert.rejects(() => store.create("Text", { value: "x" }), /symlink/i);
+}));
+
+test("serializes concurrent creates without dropping records", async () => withTempDir(async dir => {
+  const store = new JsonObjectStore(dir);
+  await Promise.all(Array.from({ length: 12 }, (_, index) => store.create("Number", { value: index }, `n-${index}`)));
+  assert.equal((await store.list()).length, 12);
+}));
+
+test("refuses a symlinked object store file", async () => withTempDir(async dir => {
+  const dataDir = join(dir, ".sg-codex");
+  const outside = join(dir, "outside.json");
+  await mkdir(dataDir);
+  await writeFile(outside, JSON.stringify({ version: 1, objects: [] }), "utf8");
+  await symlink(outside, join(dataDir, "objects.json"), "file");
+  const store = new JsonObjectStore(dir);
+  await assert.rejects(() => store.list(), /symlink/i);
 }));
