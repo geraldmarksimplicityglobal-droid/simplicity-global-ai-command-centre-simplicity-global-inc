@@ -1,0 +1,28 @@
+name: Plugin Census CI
+on:
+  push:
+    branches: [codex/sg-cli-object-engine-001]
+    paths:
+      - 'plugin-census/**'
+      - '.github/workflows/plugin-census-ci.yml'
+  pull_request:
+    paths:
+      - 'plugin-census/**'
+      - '.github/workflows/plugin-census-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile Python sources
+        working-directory: plugin-census
+        run: python -m py_compile registry.py harvest.py test_harvest.py
+      - name: Run offline unit tests
+        working-directory: plugin-census
+        run: python -m unittest -v
