@@ -88,13 +88,11 @@ val verifyReleaseSigning by tasks.registering {
 }
 
 tasks.configureEach {
-    if (name in setOf(
-            "assembleRelease",
-            "bundleRelease",
-            "packageRelease",
-            "signReleaseApk",
-            "signReleaseBundle",
-        )
+    if (
+        name == "assembleRelease" ||
+        name == "bundleRelease" ||
+        name.startsWith("packageRelease") ||
+        name.startsWith("signRelease")
     ) {
         dependsOn(verifyReleaseSigning)
     }
