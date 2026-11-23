@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ANDROID_TERMUX_ADAPTER, createAgenticAndroidAdapter } from "../src/android-adapter.mjs";
+import { ANDROID_TERMUX_ADAPTER, createAgenticAndroidAdapter, buildAgenticAndroidInvocation } from "../src/android-adapter.mjs";
 
 test("Android Termux adapter advertises bounded capabilities only", () => {
   assert.equal(ANDROID_TERMUX_ADAPTER.id, "android-termux");
@@ -19,4 +19,17 @@ test("agentic registry returns detached capability data", () => {
   const item = registry.get("android-termux");
   assert.equal(item.platform, "android");
   assert.equal(Object.isFrozen(item.operations), true);
+});
+
+test("Android invocations pass through shared GEN SYSTEM bounds", () => {
+  const root = "/data/data/com.termux/files/home/sg-work";
+  const result = buildAgenticAndroidInvocation(
+    { operation: "inspect-apk", inputPath: root + "/app.apk" },
+    { workspaceRoots: [root], tools: { apkanalyzer: "/data/data/com.termux/files/usr/bin/apkanalyzer" } },
+    { maxTimeoutMs: 60000, maxOutputBytes: 500000 }
+  );
+  assert.equal(result.shell, false);
+  assert.equal(result.workingDirectory, root);
+  assert.equal(result.timeoutMs, 30000);
+  assert.equal(result.maxOutputBytes, 262144);
 });
