@@ -1,0 +1,40 @@
+{
+  "system_id": "SG-ANDROID-ENGINEERING-001",
+  "skill_id": "SG-SKILL-BUILD-001",
+  "name": "Android Application Engineering and Release",
+  "version": "0.1.0",
+  "platform": "android",
+  "status": "source-scaffolded-validation-pending",
+  "capabilities": [
+    "android-project-development",
+    "apk-metadata-inspection",
+    "signing-certificate-fingerprint-inspection",
+    "mt-manager-human-mediated-handoff",
+    "gradle-apk-aab-builds",
+    "release-signing-policy-gates",
+    "artifact-signature-verification",
+    "release-evidence-records"
+  ],
+  "permissions": {
+    "default_mode": "read-only",
+    "broad_storage_access": false,
+    "private_key_storage_on_device": false,
+    "production_signing": "explicit-per-release-approval",
+    "third_party_apk_modification": "deny-without-verified-authorization",
+    "deployment": "not-authorized"
+  },
+  "integrations": {
+    "mt_manager": "android-sharesheet-and-document-picker; app selection remains operator-controlled",
+    "gradle": "project-build-pipeline",
+    "apksigner": "apk-signature-and-verification-tooling",
+    "zipalign": "apk-alignment-tooling",
+    "adb": "planned-device-test-adapter"
+  },
+  "verification": {
+    "node_policy_tests": "local",
+    "kotlin_unit_tests": "ci-configured",
+    "android_build": "ci-configured",
+    "device_test": "pending-connected-device",
+    "production_release": "blocked-until-review-and-approval"
+  }
+}
