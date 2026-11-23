@@ -2,7 +2,7 @@
 
 Separate opt-in Python subsystem. It distinguishes plugin marketplaces from telecom product catalogs, seller-scoped commerce APIs and merchant transaction APIs.
 
-- Registry: 31 records (4 South African platforms + 27 additional ecosystems).
+- Registry: 38 records (36 prior entries plus Factorio Mod Portal and Steam Workshop).
 - Access posture: `live`, `token`, or `manual`; verification metadata separately records whether the endpoint is confirmed.
 - Implemented public adapters: ShopGlu (single WordPress.org lookup), n8n (GitHub node directories), Node-RED (npm keyword search).
 - Vodacom, Takealot and PayJustNow credentialed templates fail closed because the supplied exact read endpoints are unverified.
@@ -67,3 +67,20 @@ results may include products beyond Game Pass entitlement; returned records
 must not be interpreted as confirmed Game Pass availability without an
 entitlement-aware source. Both adapters are opt-in network operations and
 offline tests mock all HTTP responses.
+
+## Factorio and Steam Workshop
+
+- `factorio`: public, unauthenticated Factorio Mod Portal JSON listing. The adapter follows the API's pagination envelope, normalizes mod owner, latest release, downloads and score, and stops on the advertised final page or an empty/short final page when page-count metadata is absent.
+- `steam-workshop`: publisher-key-gated discovery entry. The public GetPublishedFileDetails operation can retrieve metadata for known published-file IDs, but does not discover the catalogue. It remains catalog-only until the QueryFiles request method, required parameters, response envelope and publisher-key handling are verified. No Steam key is requested or embedded.
+
+Factorio dry-run:
+```bash
+python harvest.py --db census.db --only factorio
+``
+
+Factorio network execution is opt-in:
+```bash
+python harvest.py --db census.db --only factorio --execute
+``
+
+Steam Workshop is intentionally excluded from unauthenticated harvesting. Its classification describes the discovery credential requirement, not the per-ID metadata endpoint.
