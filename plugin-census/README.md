@@ -2,9 +2,9 @@
 
 Separate opt-in Python subsystem. It distinguishes plugin marketplaces from telecom product catalogs, seller-scoped commerce APIs and merchant transaction APIs.
 
-- Registry: 50 records, including Factorio, Steam Workshop, editor/package registries, AI plugin directories and MCP registries.
+- Registry: 56 records, including CMS, CI/CD, observability, test automation, Factorio, Steam Workshop, editor/package registries, AI plugin directories and MCP registries.
 - Access posture: `live`, `token`, or `manual`; verification metadata separately records whether the endpoint is confirmed.
-- Implemented public adapters: ShopGlu (single WordPress.org lookup), n8n (GitHub node directories), Node-RED (npm keyword search).
+- Implemented adapters include public ShopGlu, n8n, Node-RED, Factorio, Xbox Store, PlayStation Store, editor/package, AI/MCP, CMS, Jenkins, Grafana, Agent Plugins Directory and ReportPortal surfaces; see the extension sections for each adapter's limits.
 - Vodacom, Takealot and PayJustNow credentialed templates fail closed because the supplied exact read endpoints are unverified.
 - Telkom and web-only directories remain catalog/manual.
 
