@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 from registry import BY_ID
 UA='SimplicityGlobal-PluginCensus/0.1'
-PUBLIC_HOSTS={'api.wordpress.org','api.github.com','registry.npmjs.org'}
+PUBLIC_HOSTS={'api.wordpress.org','api.github.com','registry.npmjs.org','displaycatalog.mp.microsoft.com','store.playstation.com'}
 TOKEN_HOSTS={'apipulse.vodacom.co.za','marketplace-api.takealot.com','seller-api.takealot.com','api.payjustnow.com','marketplace.magento.com','huggingface.co','registry.modelcontextprotocol.io','api.crewai.com','api.apify.com','api.vercel.com'}
 MAX_PAGES=100
 class HarvestError(RuntimeError): pass
@@ -62,7 +62,66 @@ def takealot(state):
 def payjustnow(state):
     if not os.environ.get('PAYJUSTNOW_MERCHANT_ID') or not os.environ.get('PAYJUSTNOW_SECRET_KEY'): raise HarvestError('Merchant ID and secret are required')
     raise HarvestError('A transaction-list read endpoint is not established by the supplied source. Confirm a merchant-approved read endpoint; no request was sent.')
-ADAPTERS={'shopglu':shopglu,'n8n':n8n,'nodered':nodered,'vodacom':vodacom,'takealot':takealot,'payjustnow':payjustnow}
+
+def xbox_gamepass(state):
+    """Enumerate Microsoft Store products by market/platform; catalog is not SDK inventory."""
+    markets=state.get('markets',['US'])
+    platforms=state.get('platforms',['console','pc'])
+    if not isinstance(markets,list) or not isinstance(platforms,list):
+        raise HarvestError('markets and platforms must be lists')
+    for market in markets:
+        if not isinstance(market,str) or not market.isalpha() or not 2 <= len(market) <= 3:
+            raise HarvestError('Invalid Xbox market code')
+        for platform in platforms:
+            if platform not in ('console','pc'):
+                raise HarvestError('Xbox platform must be console or pc')
+            query=urllib.parse.urlencode({'market':market,'platform':platform,'actionFilter':'All'})
+            data=fetch_json('https://displaycatalog.mp.microsoft.com/v7.0/products?'+query)
+            if not isinstance(data,dict):
+                raise HarvestError('Unexpected Microsoft Store catalog response')
+            products=data.get('Products') or data.get('products') or []
+            if not isinstance(products,list):
+                raise HarvestError('Unexpected Microsoft Store Products field')
+            for p in products:
+                if not isinstance(p,dict): continue
+                localized=p.get('LocalizedProperties') or p.get('localizedProperties') or []
+                title=None
+                if localized and isinstance(localized[0],dict):
+                    title=localized[0].get('ProductTitle') or localized[0].get('productTitle')
+                title=title or p.get('ProductTitle') or p.get('productTitle')
+                product_id=p.get('ProductId') or p.get('productId')
+                if not product_id or not title: continue
+                yield record('xbox-gamepass',product_id,title,p,
+                    author=p.get('PublisherName') or p.get('publisherName'),
+                    category='game_catalog:'+platform+':'+market,
+                    url='https://www.xbox.com/games/store/'+urllib.parse.quote(str(product_id),safe=''))
+            time.sleep(0.25)
+    state['markets']=markets
+    state['platforms']=platforms
+
+def psn_store(state):
+    """Fetch explicitly seeded PlayStation Store containers via an unofficial endpoint."""
+    seeds=state.get('seed_containers',['UP1477-CUSA07022_00-FORTNITETESTING1'])
+    if not isinstance(seeds,list):
+        raise HarvestError('seed_containers must be a list of product/container IDs')
+    base='https://store.playstation.com/store/api/chihiro/00_09_000/container/US/en/999'
+    for cid in seeds:
+        if not isinstance(cid,str) or not cid or len(cid)>160 or not all(ch.isalnum() or ch in '-_' for ch in cid):
+            raise HarvestError('Invalid PlayStation container ID')
+        data=fetch_json(base+'/'+urllib.parse.quote(cid,safe='-_'))
+        if not isinstance(data,dict):
+            raise HarvestError('Unexpected PlayStation Store response')
+        item_id=data.get('id') or cid
+        name=data.get('name') or data.get('title')
+        if not name:
+            raise HarvestError('PlayStation Store response lacks a product name')
+        yield record('psn-store',item_id,name,data,
+            author=data.get('provider_name') or data.get('providerName'),
+            category=data.get('game_contentType') or data.get('bucket') or 'playstation_store_product',
+            url='https://store.playstation.com/en-us/product/'+urllib.parse.quote(cid,safe='-_'))
+    state['seed_containers']=seeds
+
+ADAPTERS={'xbox-gamepass':xbox_gamepass,'psn-store':psn_store,'shopglu':shopglu,'n8n':n8n,'nodered':nodered,'vodacom':vodacom,'takealot':takealot,'payjustnow':payjustnow}
 def init_db(path):
     with sqlite3.connect(path) as db:
         db.execute('CREATE TABLE IF NOT EXISTS harvested_items (ecosystem TEXT NOT NULL, plugin_id TEXT NOT NULL, name TEXT NOT NULL, author TEXT, version TEXT, downloads INTEGER, rating REAL, category TEXT, updated_at TEXT, url TEXT, raw_json TEXT NOT NULL, harvested_at TEXT NOT NULL, PRIMARY KEY(ecosystem,plugin_id))')
