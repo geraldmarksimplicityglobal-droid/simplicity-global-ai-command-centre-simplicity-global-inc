@@ -184,3 +184,30 @@ python harvest.py --db census.db --only \
   raycast-store rensei-plugins homeassistant-catalog --execute
 ```
 
+## Cross-registry identity and duplicate review
+
+The identity index is a separate derived layer. It does not rewrite, merge or
+delete `harvested_items` source records.
+
+- Stable source-scoped IDs are derived from `ecosystem + plugin_id`; identical
+  IDs in different ecosystems remain different identities.
+- Cross-registry duplicate suggestions require both an exact normalized
+  repository URL (GitHub, GitLab or Bitbucket) and an exact normalized name.
+- Store/product URLs and package-index URLs are not treated as repository
+  evidence. Similar names alone never create a group.
+- Group membership is review metadata, not an automatic merge decision.
+- Each apply operation records an identity run; group membership is rebuilt
+  from the current harvested records while source records remain unchanged.
+
+Report-only dry run:
+```bash
+python identity.py --db census.db
+```
+
+Persist the derived index explicitly:
+```bash
+python identity.py --db census.db --apply
+```
+
+The identity module requires an existing census database. Its tests use a
+temporary SQLite database and do not make network requests.
