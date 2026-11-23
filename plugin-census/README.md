@@ -116,3 +116,40 @@ python harvest.py --db census.db --only steam-workshop --execute
 ```
 
 The user-supplied historical catalogue counts are stored as dated estimates, not verified live totals. All new adapter tests mock HTTP; no live registry harvest was performed.
+
+
+## CMS, CI/CD, observability and agent-plugin expansion
+
+The census now contains 56 ecosystem records. Six new adapters were added:
+
+- `joomla-vel`: Joomla Vulnerable Extensions List JSON feed. This is a security-advisory feed for vulnerable/resolved extensions, not a complete Joomla extension directory. The adapter maps the feed's CVSS 3.0 base score into the generic `rating` field for storage compatibility; interpret it as severity, not a user rating.
+- `drupal-api`: Drupal.org API-D7 `node.json`, filtered to `type=project_module`, with bounded page traversal and taxonomy category normalization.
+- `jenkins-update-center`: reads the static `plugin-versions.json` index (bounded at 40 MB) and emits one record per plugin using the first version entry in the feed's published order. No paging is required.
+- `grafana-catalog`: fetches plugin detail by slug. Grafana does not expose a public global slug listing in the supplied contract, so this adapter requires a seed list. For CLI execution, set `GRAFANA_PLUGIN_SLUGS=slug-one,slug-two`; for direct Python use, pass `{'slugs': [...]}` to the adapter. The tenant-scoped instance plugin route is deliberately not treated as a global catalogue.
+- `agent-plugins-directory`: uses the paged public API at 1,000 items per page and follows a `rel=next` Link header when supplied. If the page API returns an empty/unexpected envelope, it falls back to `/indexes/plugins.json`; the compact one-letter index schema is not guessed, so rows without explicit owner/publisher and name fields are skipped.
+- `reportportal-public`: reads the unauthenticated public plugin list from the ReportPortal demo endpoint.
+
+All six are classified `live` as public unauthenticated surfaces described by their source contracts. That classification does not mean this repository has performed live connectivity verification. Tests mock HTTP; no live harvesting was performed.
+
+Offline tests:
+```bash
+cd plugin-census
+python -m unittest -v
+```
+
+Dry-run:
+```bash
+python harvest.py --db census.db --only \
+  joomla-vel drupal-api jenkins-update-center \
+  grafana-catalog agent-plugins-directory reportportal-public
+```
+
+Execute explicitly (network access):
+```bash
+export GRAFANA_PLUGIN_SLUGS="your-plugin-slug,another-plugin-slug"
+python harvest.py --db census.db --only \
+  joomla-vel drupal-api jenkins-update-center \
+  grafana-catalog agent-plugins-directory reportportal-public --execute
+```
+
+Jenkins' static index and the Agent Plugins Directory's one-fetch index may be substantially larger than the default 5 MB response cap; their adapters use explicit larger caps. All destinations remain HTTPS-host-allowlisted and all network harvesting remains opt-in via `--execute`.
