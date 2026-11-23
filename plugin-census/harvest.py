@@ -253,45 +253,7 @@ def melpa(state):
 
 def pypi_simple(state):
     import re
-    patterns=state.get('patterns',[r'-plugin'xbox-gamepass':xbox_gamepass,'psn-store':psn_store,'shopglu':shopglu,'n8n':n8n,'nodered':nodered,'vodacom':vodacom,'takealot':takealot,'payjustnow':payjustnow}
-# Ensure script-mode execution and module imports share one module instance.\nsys.modules.setdefault('harvest', sys.modules[__name__])\nfrom extended_adapters import EXTRA_ADAPTERS
-ADAPTERS.update(EXTRA_ADAPTERS)
-
-def init_db(path):
-    with sqlite3.connect(path) as db:
-        db.execute('CREATE TABLE IF NOT EXISTS harvested_items (ecosystem TEXT NOT NULL, plugin_id TEXT NOT NULL, name TEXT NOT NULL, author TEXT, version TEXT, downloads INTEGER, rating REAL, category TEXT, updated_at TEXT, url TEXT, raw_json TEXT NOT NULL, harvested_at TEXT NOT NULL, PRIMARY KEY(ecosystem,plugin_id))')
-        db.execute('CREATE TABLE IF NOT EXISTS harvest_runs (id INTEGER PRIMARY KEY AUTOINCREMENT, ecosystem TEXT NOT NULL, started_at TEXT NOT NULL, finished_at TEXT, records INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL, error TEXT)')
-def run_one(ecosystem,db_path):
-    if ecosystem not in BY_ID: raise HarvestError('Unknown ecosystem: '+ecosystem)
-    if ecosystem not in ADAPTERS: raise HarvestError(ecosystem+' is catalog-only')
-    init_db(db_path); count=0; started=datetime.now(timezone.utc).isoformat()
-    with sqlite3.connect(db_path) as db:
-        run_id=db.execute('INSERT INTO harvest_runs(ecosystem,started_at,status) VALUES(?,?,?)',(ecosystem,started,'running')).lastrowid
-        try:
-            for row in ADAPTERS[ecosystem]({}):
-                cols=list(row); marks=','.join('?' for _ in cols); column_sql=','.join(cols)
-                updates=','.join(f'{c}=excluded.{c}' for c in cols if c not in ('ecosystem','plugin_id'))
-                sql=f"INSERT INTO harvested_items ({column_sql}) VALUES ({marks}) ON CONFLICT(ecosystem,plugin_id) DO UPDATE SET {updates}"
-                db.execute(sql,[row[c] for c in cols]); count+=1
-            db.execute('UPDATE harvest_runs SET finished_at=?,records=?,status=? WHERE id=?',(datetime.now(timezone.utc).isoformat(),count,'complete',run_id))
-        except Exception as e:
-            db.execute('UPDATE harvest_runs SET finished_at=?,records=?,status=?,error=? WHERE id=?',(datetime.now(timezone.utc).isoformat(),count,'failed',str(e),run_id)); raise
-    return count
-def main(argv=None):
-    parser=argparse.ArgumentParser(description='SG Plugin Census harvester')
-    parser.add_argument('--db',default='census.db'); parser.add_argument('--only',nargs='+',required=True,choices=sorted(BY_ID)); parser.add_argument('--execute',action='store_true')
-    args=parser.parse_args(argv)
-    if not args.execute:
-        for key in args.only:
-            item=BY_ID[key]; print(f"{key}: {item['api_status']} / {'adapter-ready' if key in ADAPTERS else 'catalog-only'} / {item['verification']}")
-        print('Dry run only. Add --execute to perform network requests.'); return 0
-    failures=0
-    for key in args.only:
-        try: print(f'{key}: stored {run_one(key,args.db)} records')
-        except HarvestError as e: failures+=1; print(f'{key}: BLOCKED — {e}',file=sys.stderr)
-    return 1 if failures else 0
-if __name__=='__main__': raise SystemExit(main())
-,r'^pytest-',r'^flask-',r'^django-'])
+    patterns=state.get('patterns',[r'-plugin',r'^pytest-',r'^flask-',r'^django-'])
     if not isinstance(patterns,list) or len(patterns)>100: raise HarvestError('PyPI patterns must be a list of at most 100 regexes')
     try: regexes=[re.compile(p,re.IGNORECASE) for p in patterns]
     except re.error as e: raise HarvestError('Invalid PyPI filter regex: '+str(e))
@@ -388,6 +350,8 @@ def mcp_casdoor(state):
 
 
 ADAPTERS={'steam-workshop':steam_workshop,'openvsx':openvsx,'sublime-package-control':sublime_package_control,'melpa':melpa,'pypi-simple':pypi_simple,'dsh-plugins':dsh_plugins,'claude-plugins-dev':claude_plugins_dev,'claude-plugin-hub':claude_plugin_hub,'mcp-official':mcp_official,'mcp-casdoor':mcp_casdoor,'factorio':factorio,'xbox-gamepass':xbox_gamepass,'psn-store':psn_store,'shopglu':shopglu,'n8n':n8n,'nodered':nodered,'vodacom':vodacom,'takealot':takealot,'payjustnow':payjustnow}
+from extended_adapters import EXTRA_ADAPTERS
+ADAPTERS.update(EXTRA_ADAPTERS)
 def init_db(path):
     with sqlite3.connect(path) as db:
         db.execute('CREATE TABLE IF NOT EXISTS harvested_items (ecosystem TEXT NOT NULL, plugin_id TEXT NOT NULL, name TEXT NOT NULL, author TEXT, version TEXT, downloads INTEGER, rating REAL, category TEXT, updated_at TEXT, url TEXT, raw_json TEXT NOT NULL, harvested_at TEXT NOT NULL, PRIMARY KEY(ecosystem,plugin_id))')
