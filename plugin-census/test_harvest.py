@@ -4,8 +4,8 @@ import harvest
 import extended_adapters as ext
 from registry import CATALOG,BY_ID
 class CensusTests(unittest.TestCase):
- def test_registry_has_56_unique_entries(self):
-  self.assertEqual(len(CATALOG),56); self.assertEqual(len(BY_ID),56)
+ def test_registry_has_62_unique_entries(self):
+  self.assertEqual(len(CATALOG),62); self.assertEqual(len(BY_ID),62)
   self.assertEqual(BY_ID['telkom']['api_status'],'manual')
  def test_credentialed_templates_fail_closed(self):
   with patch.dict('os.environ',{'VODACOM_API_TOKEN':'test'},clear=True):
