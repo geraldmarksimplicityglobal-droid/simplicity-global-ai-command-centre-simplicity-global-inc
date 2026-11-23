@@ -8,6 +8,12 @@ on:
     paths:
       - "sg-codex-studio/**"
       - ".github/workflows/sg-codex-studio-build.yml"
+  pull_request:
+    branches:
+      - sg-codex-x1000-studio
+    paths:
+      - "sg-codex-studio/**"
+      - ".github/workflows/sg-codex-studio-build.yml"
   workflow_dispatch:
 
 permissions:
