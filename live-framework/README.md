@@ -34,3 +34,10 @@ Not deployed. Do not publish until production controls and approvals are complet
 - [Background Runner Bots](./BACKGROUND-RUNNERS/README.md)
 - [Domain Registrar module matrix](./DOMAIN-REGISTRAR/docs/module-implementation-matrix.md)
 - [GitHub Enterprise activation blockers](./IMPLEMENTATION/identity/github-enterprise/ACTIVATION-BLOCKERS.md)
+
+## Android engineering skill
+
+- [SG Android App Engine](./ANDROID-APP-ENGINE/README.md)
+- [Android skill instructions](./ANDROID-APP-ENGINE/SKILL.md)
+
+The module is source-only and plan-only; no Android device, MT Manager, SDK, signing key or Play Console is connected.
