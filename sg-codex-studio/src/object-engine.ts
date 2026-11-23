@@ -28,6 +28,7 @@ const STORE_FILE = "objects.json";
 const MAX_OBJECT_BYTES = 1024 * 1024;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 interface StoreDocument { version: 1; objects: StoredObject[] }
+const writeQueues = new Map<string, Promise<void>>();
 
 export function isObjectType(value: string): value is ObjectType {
   return (OBJECT_TYPES as readonly string[]).includes(value);
@@ -67,7 +68,6 @@ function validateId(id: string): void {
 
 export class JsonObjectStore implements ObjectStore {
   private readonly rootDir: string;
-  private writeQueue: Promise<void> = Promise.resolve();
 
   constructor(rootDir: string) {
     this.rootDir = resolve(rootDir);
@@ -83,7 +83,10 @@ export class JsonObjectStore implements ObjectStore {
       if (!stat.isDirectory()) throw new Error(".sg-codex store path is not a directory");
     } catch (error) {
       if ((error as { code?: string }).code !== "ENOENT") throw error;
-      await mkdir(this.directory, { recursive: false });
+      try { await mkdir(this.directory, { recursive: false }); }
+      catch (createError) {
+        if ((createError as { code?: string }).code !== "EEXIST") throw createError;
+      }
     }
     const stat = await lstat(this.directory);
     if (stat.isSymbolicLink()) throw new Error("Refusing symlinked .sg-codex store directory");
@@ -121,11 +124,17 @@ export class JsonObjectStore implements ObjectStore {
   }
 
   private async serializeWrite<T>(operation: () => Promise<T>): Promise<T> {
-    const previous = this.writeQueue;
+    const key = this.rootDir;
+    const previous = writeQueues.get(key) ?? Promise.resolve();
     let release!: () => void;
-    this.writeQueue = new Promise<void>(resolveQueue => { release = resolveQueue; });
+    const current = new Promise<void>(resolveQueue => { release = resolveQueue; });
+    writeQueues.set(key, current);
     await previous;
-    try { return await operation(); } finally { release(); }
+    try { return await operation(); }
+    finally {
+      release();
+      if (writeQueues.get(key) === current) writeQueues.delete(key);
+    }
   }
 
   async create(type: ObjectType, data: Record<string, unknown>, id: string = randomUUID()): Promise<StoredObject> {

@@ -87,3 +87,11 @@ test("refuses a symlinked object store file", async () => withTempDir(async dir 
   const store = new JsonObjectStore(dir);
   await assert.rejects(() => store.list(), /symlink/i);
 }));
+
+
+test("serializes concurrent creates across store instances", async () => withTempDir(async dir => {
+  const stores = [new JsonObjectStore(dir), new JsonObjectStore(dir)];
+  const results = await Promise.allSettled(Array.from({ length: 12 }, (_, index) => stores[index % 2]!.create("Number", { value: index }, `shared-${index}`)));
+  assert.ok(results.every(result => result.status === "fulfilled"));
+  assert.equal((await stores[0]!.list()).length, 12);
+}));
