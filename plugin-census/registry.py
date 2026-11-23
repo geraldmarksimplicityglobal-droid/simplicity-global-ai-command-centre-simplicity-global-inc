@@ -36,6 +36,8 @@ CATALOG = [
     {"id": "psn-store", "name": "PlayStation Store (unofficial API)", "category": "gaming_catalog", "api_status": "live", "endpoint": "https://store.playstation.com/store/api/chihiro", "url": "https://store.playstation.com", "count_estimate": None, "count_source": None, "verification": "unofficial_public_endpoint_seeded_products"},
     {"id": "psn-partners", "name": "PlayStation Partners API", "category": "gaming_partner_api", "api_status": "token", "endpoint": "https://partners.playstation.net", "url": "https://partners.playstation.net", "count_estimate": None, "count_source": None, "verification": "partner_oauth_scoped_sales_and_directory"},
     {"id": "linear", "name": "Linear Integrations", "category": "productivity", "api_status": "manual", "endpoint": None, "url": "https://linear.app/integrations", "count_estimate": None, "count_source": None, "verification": "web_directory"},
+    {"id": "factorio", "name": "Factorio Mod Portal", "category": "gaming", "api_status": "live", "endpoint": "https://mods.factorio.com/api/mods", "url": "https://mods.factorio.com", "count_estimate": None, "count_source": None, "verification": "public_unauthenticated_paginated_catalog"},
+    {"id": "steam-workshop", "name": "Steam Workshop", "category": "gaming", "api_status": "token", "endpoint": "https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/", "url": "https://steamcommunity.com/workshop", "count_estimate": None, "count_source": None, "verification": "publisher_key_required_for_discovery; public_details_by_known_id_only"},
 ]
 BY_ID = {item["id"]: item for item in CATALOG}
 if len(BY_ID) != len(CATALOG): raise RuntimeError("Duplicate ecosystem id")
