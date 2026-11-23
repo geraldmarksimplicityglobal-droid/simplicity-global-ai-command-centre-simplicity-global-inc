@@ -4,18 +4,18 @@ from datetime import datetime, timezone
 from typing import Any
 from registry import BY_ID
 UA='SimplicityGlobal-PluginCensus/0.1'
-PUBLIC_HOSTS={'api.wordpress.org','api.github.com','registry.npmjs.org','displaycatalog.mp.microsoft.com','store.playstation.com','mods.factorio.com'}
-TOKEN_HOSTS={'apipulse.vodacom.co.za','marketplace-api.takealot.com','seller-api.takealot.com','api.payjustnow.com','marketplace.magento.com','huggingface.co','registry.modelcontextprotocol.io','api.crewai.com','api.apify.com','api.vercel.com'}
+PUBLIC_HOSTS={'open-vsx.org','packagecontrol.io','melpa.org','pypi.org','deepseekharnessplugins.com','api.claude-plugins.dev','claudepluginhub.com','registry.modelcontextprotocol.io','mcp.casdoor.org','api.wordpress.org','api.github.com','registry.npmjs.org','displaycatalog.mp.microsoft.com','store.playstation.com','mods.factorio.com'}
+TOKEN_HOSTS={'api.steampowered.com','apipulse.vodacom.co.za','marketplace-api.takealot.com','seller-api.takealot.com','api.payjustnow.com','marketplace.magento.com','huggingface.co','registry.modelcontextprotocol.io','api.crewai.com','api.apify.com','api.vercel.com'}
 MAX_PAGES=100
 class HarvestError(RuntimeError): pass
-def fetch_json(url, headers=None):
+def fetch_json(url, headers=None, max_bytes=5_000_000):
     p=urllib.parse.urlparse(url)
     if p.scheme!='https' or p.hostname not in PUBLIC_HOSTS|TOKEN_HOSTS: raise HarvestError('HTTPS host is not allowlisted')
     req=urllib.request.Request(url,headers={'User-Agent':UA,'Accept':'application/json',**(headers or {})})
     try:
         with urllib.request.urlopen(req,timeout=20) as res:
-            raw=res.read(5_000_001)
-            if len(raw)>5_000_000: raise HarvestError('Response exceeds 5 MB limit')
+            raw=res.read(max_bytes+1)
+            if len(raw)>max_bytes: raise HarvestError('Response exceeds 5 MB limit')
             return json.loads(raw.decode('utf-8'))
     except urllib.error.HTTPError as e:
         if e.code in (401,403): raise HarvestError(f'Authorization rejected (HTTP {e.code})') from e
@@ -164,7 +164,227 @@ def factorio(state):
         time.sleep(0.25)
     raise HarvestError('Factorio pagination safety stop; resume with saved page state')
 
-ADAPTERS={'factorio':factorio,'xbox-gamepass':xbox_gamepass,'psn-store':psn_store,'shopglu':shopglu,'n8n':n8n,'nodered':nodered,'vodacom':vodacom,'takealot':takealot,'payjustnow':payjustnow}
+
+def steam_workshop(state):
+    """Discover Workshop items only with an explicitly configured publisher key."""
+    key=os.environ.get('STEAM_PUBLISHER_KEY')
+    if not key:
+        raise HarvestError('STEAM_PUBLISHER_KEY is required for Steam Workshop discovery')
+    if len(key)>256 or any(ch.isspace() for ch in key):
+        raise HarvestError('STEAM_PUBLISHER_KEY has an invalid format')
+    try: appid=int(state.get('appid',427520))
+    except (TypeError,ValueError): raise HarvestError('Steam appid must be an integer')
+    if appid <= 0: raise HarvestError('Steam appid must be positive')
+    cursor=state.get('cursor','*')
+    for _ in range(MAX_PAGES):
+        params={'key':key,'appid':appid,'query_type':0,'numperpage':100,'cursor':cursor,
+                'return_short_description':'true'}
+        url='https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/?'+urllib.parse.urlencode(params)
+        data=fetch_json(url)
+        body=data.get('response') or {}
+        items=body.get('publishedfiledetails') or []
+        if not isinstance(items,list): raise HarvestError('Unexpected Steam Workshop item list')
+        if not items: return
+        for item in items:
+            if not isinstance(item,dict): continue
+            pid=item.get('publishedfileid')
+            title=item.get('title')
+            if pid is None or not title: continue
+            vote=item.get('vote_data') if isinstance(item.get('vote_data'),dict) else {}
+            yield record('steam-workshop',str(pid),title,item,
+                author=str(item.get('creator')) if item.get('creator') is not None else None,
+                downloads=item.get('subscriptions'),rating=vote.get('score'),
+                category='workshop-app-'+str(appid),updated_at=str(item.get('time_updated')) if item.get('time_updated') is not None else None,
+                url=item.get('file_url') or 'https://steamcommunity.com/sharedfiles/filedetails/?id='+str(pid))
+        next_cursor=body.get('next_cursor')
+        if not next_cursor or next_cursor==cursor: return
+        cursor=next_cursor
+        state['cursor']=cursor
+        state['appid']=appid
+        time.sleep(0.25)
+    raise HarvestError('Steam Workshop pagination safety stop; resume with saved cursor')
+
+def openvsx(state):
+    offset=int(state.get('offset',0)); size=100
+    for _ in range(MAX_PAGES):
+        params=urllib.parse.urlencode({'query':'','size':size,'offset':offset,'sortBy':'downloadCount','sortOrder':'desc'})
+        data=fetch_json('https://open-vsx.org/api/-/search?'+params)
+        items=data.get('extensions') or []
+        if not isinstance(items,list): raise HarvestError('Unexpected Open VSX extensions field')
+        if not items: return
+        for e in items:
+            ns=e.get('namespace',''); name=e.get('name','')
+            if not ns or not name: continue
+            yield record('openvsx',ns+'.'+name,e.get('displayName') or name,e,
+                author=ns,version=e.get('version'),downloads=e.get('downloadCount'),rating=e.get('averageRating'),
+                category=(e.get('categories') or [None])[0],updated_at=e.get('timestamp'),
+                url='https://open-vsx.org/extension/'+urllib.parse.quote(ns,safe='')+'/'+urllib.parse.quote(name,safe=''))
+        offset+=len(items); state['offset']=offset
+        total=int(data.get('totalSize') or 0)
+        if offset>=total or len(items)<size: return
+        time.sleep(0.25)
+    raise HarvestError('Open VSX pagination safety stop; resume with saved offset')
+
+def sublime_package_control(state):
+    data=fetch_json('https://packagecontrol.io/channel_v3.json')
+    cache=data.get('packages_cache') or {}
+    packages=cache.get('packages') or []
+    if not isinstance(packages,list): raise HarvestError('Unexpected Sublime packages field')
+    for p in packages:
+        if not isinstance(p,dict) or not p.get('name'): continue
+        releases=p.get('releases') or []
+        latest=releases[-1] if releases else {}
+        authors=p.get('authors')
+        author=(authors[0] if authors else None) if isinstance(authors,list) else p.get('author')
+        yield record('sublime-package-control',p['name'],p['name'],p,
+            author=author,version=latest.get('version'),category=(p.get('labels') or [None])[0],
+            updated_at=latest.get('date'),url=p.get('homepage') or 'https://packagecontrol.io/packages/'+urllib.parse.quote(p['name'],safe=''))
+
+def melpa(state):
+    archive=fetch_json('https://melpa.org/archive.json')
+    counts=fetch_json('https://melpa.org/download_counts.json')
+    if not isinstance(archive,dict) or not isinstance(counts,dict): raise HarvestError('Unexpected MELPA JSON shape')
+    for name,versions in archive.items():
+        latest=versions[-1] if isinstance(versions,list) and versions else {}
+        if not isinstance(latest,dict): latest={}
+        raw={'archive':latest,'downloads':counts.get(name)}
+        yield record('melpa',name,name,raw,version=latest.get('version'),downloads=counts.get(name),
+            url='https://melpa.org/#/'+urllib.parse.quote(name,safe=''))
+
+def pypi_simple(state):
+    import re
+    patterns=state.get('patterns',[r'-plugin'xbox-gamepass':xbox_gamepass,'psn-store':psn_store,'shopglu':shopglu,'n8n':n8n,'nodered':nodered,'vodacom':vodacom,'takealot':takealot,'payjustnow':payjustnow}
+def init_db(path):
+    with sqlite3.connect(path) as db:
+        db.execute('CREATE TABLE IF NOT EXISTS harvested_items (ecosystem TEXT NOT NULL, plugin_id TEXT NOT NULL, name TEXT NOT NULL, author TEXT, version TEXT, downloads INTEGER, rating REAL, category TEXT, updated_at TEXT, url TEXT, raw_json TEXT NOT NULL, harvested_at TEXT NOT NULL, PRIMARY KEY(ecosystem,plugin_id))')
+        db.execute('CREATE TABLE IF NOT EXISTS harvest_runs (id INTEGER PRIMARY KEY AUTOINCREMENT, ecosystem TEXT NOT NULL, started_at TEXT NOT NULL, finished_at TEXT, records INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL, error TEXT)')
+def run_one(ecosystem,db_path):
+    if ecosystem not in BY_ID: raise HarvestError('Unknown ecosystem: '+ecosystem)
+    if ecosystem not in ADAPTERS: raise HarvestError(ecosystem+' is catalog-only')
+    init_db(db_path); count=0; started=datetime.now(timezone.utc).isoformat()
+    with sqlite3.connect(db_path) as db:
+        run_id=db.execute('INSERT INTO harvest_runs(ecosystem,started_at,status) VALUES(?,?,?)',(ecosystem,started,'running')).lastrowid
+        try:
+            for row in ADAPTERS[ecosystem]({}):
+                cols=list(row); marks=','.join('?' for _ in cols); column_sql=','.join(cols)
+                updates=','.join(f'{c}=excluded.{c}' for c in cols if c not in ('ecosystem','plugin_id'))
+                sql=f"INSERT INTO harvested_items ({column_sql}) VALUES ({marks}) ON CONFLICT(ecosystem,plugin_id) DO UPDATE SET {updates}"
+                db.execute(sql,[row[c] for c in cols]); count+=1
+            db.execute('UPDATE harvest_runs SET finished_at=?,records=?,status=? WHERE id=?',(datetime.now(timezone.utc).isoformat(),count,'complete',run_id))
+        except Exception as e:
+            db.execute('UPDATE harvest_runs SET finished_at=?,records=?,status=?,error=? WHERE id=?',(datetime.now(timezone.utc).isoformat(),count,'failed',str(e),run_id)); raise
+    return count
+def main(argv=None):
+    parser=argparse.ArgumentParser(description='SG Plugin Census harvester')
+    parser.add_argument('--db',default='census.db'); parser.add_argument('--only',nargs='+',required=True,choices=sorted(BY_ID)); parser.add_argument('--execute',action='store_true')
+    args=parser.parse_args(argv)
+    if not args.execute:
+        for key in args.only:
+            item=BY_ID[key]; print(f"{key}: {item['api_status']} / {'adapter-ready' if key in ADAPTERS else 'catalog-only'} / {item['verification']}")
+        print('Dry run only. Add --execute to perform network requests.'); return 0
+    failures=0
+    for key in args.only:
+        try: print(f'{key}: stored {run_one(key,args.db)} records')
+        except HarvestError as e: failures+=1; print(f'{key}: BLOCKED — {e}',file=sys.stderr)
+    return 1 if failures else 0
+if __name__=='__main__': raise SystemExit(main())
+,r'^pytest-',r'^flask-',r'^django-'])
+    if not isinstance(patterns,list) or len(patterns)>100: raise HarvestError('PyPI patterns must be a list of at most 100 regexes')
+    try: regexes=[re.compile(p,re.IGNORECASE) for p in patterns]
+    except re.error as e: raise HarvestError('Invalid PyPI filter regex: '+str(e))
+    data=fetch_json('https://pypi.org/simple/',headers={'Accept':'application/vnd.pypi.simple.v1+json'},max_bytes=100_000_000)
+    projects=data.get('projects') or []
+    for project in projects:
+        name=project.get('name') if isinstance(project,dict) else None
+        if not name or not any(r.search(name) for r in regexes): continue
+        yield record('pypi-simple',name,name,project,category='pypi-plugin',url='https://pypi.org/project/'+urllib.parse.quote(name,safe='')+'/')
+    state['patterns']=patterns
+
+def dsh_plugins(state):
+    page=int(state.get('page',1)); page_size=50
+    for _ in range(MAX_PAGES):
+        url='https://deepseekharnessplugins.com/api/v1/plugins?'+urllib.parse.urlencode({'page':page,'pageSize':page_size,'sort':'stars'})
+        data=fetch_json(url); body=data.get('data') or {}; items=body.get('items') or []
+        if not items: return
+        for p in items:
+            full=p.get('full_name') or ''
+            yield record('dsh-plugins',p.get('id') or full,p.get('name') or full,p,
+                author=full.split('/')[0] if full else None,rating=p.get('stars'),
+                category=(p.get('categories') or [None])[0],updated_at=p.get('pushed_at'),url=p.get('url'))
+        total=int(body.get('total') or 0)
+        if page*page_size>=total: return
+        page+=1; state['page']=page; time.sleep(0.25)
+    raise HarvestError('DeepSeek Harness pagination safety stop')
+
+def claude_plugins_dev(state):
+    offset=int(state.get('offset',0)); limit=100
+    for _ in range(MAX_PAGES):
+        params=urllib.parse.urlencode({'q':'','limit':limit,'offset':offset})
+        data=fetch_json('https://api.claude-plugins.dev/api/search?'+params)
+        items=data.get('results') or data.get('plugins') or []
+        if not items: return
+        for p in items:
+            pid=p.get('id') or p.get('name')
+            if not pid: continue
+            yield record('claude-plugins-dev',pid,p.get('name') or pid,p,
+                author=p.get('author'),version=p.get('version'),downloads=p.get('downloads'),
+                rating=p.get('stars'),category=p.get('category'),updated_at=p.get('updatedAt'),url=p.get('gitUrl'))
+        offset+=len(items); state['offset']=offset
+        total=int(data.get('total') or 0)
+        if offset>=total or len(items)<limit: return
+        time.sleep(0.25)
+    raise HarvestError('Claude Plugins API pagination safety stop')
+
+def claude_plugin_hub(state):
+    page=int(state.get('page',1))
+    for _ in range(MAX_PAGES):
+        data=fetch_json('https://claudepluginhub.com/api/plugins?'+urllib.parse.urlencode({'q':'','page':page}))
+        items=data.get('plugins') or data.get('data') or []
+        if not items: return
+        for p in items:
+            pid=p.get('slug') or p.get('id')
+            if not pid: continue
+            current=p.get('currentVersion') if isinstance(p.get('currentVersion'),dict) else {}
+            yield record('claude-plugin-hub',pid,p.get('name') or pid,p,
+                version=current.get('version'),downloads=p.get('installCount'),rating=p.get('starCount'),
+                updated_at=p.get('lastCommitDate'),url=p.get('repositoryUrl'))
+        total_pages=int(data.get('totalPages') or 0)
+        if total_pages and page>=total_pages: return
+        if not total_pages and len(items)<36: return
+        page+=1; state['page']=page; time.sleep(0.25)
+    raise HarvestError('Claude Plugin Hub pagination safety stop')
+
+def mcp_official(state):
+    cursor=state.get('cursor')
+    for _ in range(MAX_PAGES):
+        params={'limit':100}
+        if cursor: params['cursor']=cursor
+        data=fetch_json('https://registry.modelcontextprotocol.io/v0/servers?'+urllib.parse.urlencode(params))
+        servers=data.get('servers') or []
+        if not servers: return
+        for s in servers:
+            name=s.get('name')
+            if not name: continue
+            yield record('mcp-official',name,s.get('title') or name,s,
+                author=name.split('/')[0] if '/' in name else None,version=s.get('version'),
+                category='mcp-server',updated_at=s.get('updatedAt') or s.get('publishedAt'),
+                url=s.get('repository') or 'https://registry.modelcontextprotocol.io/')
+        next_cursor=data.get('nextCursor')
+        if not next_cursor or next_cursor==cursor: return
+        cursor=next_cursor; state['cursor']=cursor; time.sleep(0.25)
+    raise HarvestError('Official MCP Registry pagination safety stop')
+
+def mcp_casdoor(state):
+    data=fetch_json('https://mcp.casdoor.org/registry.json')
+    if not isinstance(data,list): raise HarvestError('Unexpected Casdoor registry JSON; expected array')
+    for entry in data:
+        pid=entry.get('id'); name=entry.get('name')
+        if not pid or not name: continue
+        yield record('mcp-casdoor',pid,name,entry,category=entry.get('category') or 'mcp-server',
+            url=entry.get('website') or 'https://mcp.casdoor.org')
+
+
+ADAPTERS={'steam-workshop':steam_workshop,'openvsx':openvsx,'sublime-package-control':sublime_package_control,'melpa':melpa,'pypi-simple':pypi_simple,'dsh-plugins':dsh_plugins,'claude-plugins-dev':claude_plugins_dev,'claude-plugin-hub':claude_plugin_hub,'mcp-official':mcp_official,'mcp-casdoor':mcp_casdoor,'factorio':factorio,'xbox-gamepass':xbox_gamepass,'psn-store':psn_store,'shopglu':shopglu,'n8n':n8n,'nodered':nodered,'vodacom':vodacom,'takealot':takealot,'payjustnow':payjustnow}
 def init_db(path):
     with sqlite3.connect(path) as db:
         db.execute('CREATE TABLE IF NOT EXISTS harvested_items (ecosystem TEXT NOT NULL, plugin_id TEXT NOT NULL, name TEXT NOT NULL, author TEXT, version TEXT, downloads INTEGER, rating REAL, category TEXT, updated_at TEXT, url TEXT, raw_json TEXT NOT NULL, harvested_at TEXT NOT NULL, PRIMARY KEY(ecosystem,plugin_id))')
