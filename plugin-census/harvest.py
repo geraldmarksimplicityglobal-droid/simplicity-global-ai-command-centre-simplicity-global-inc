@@ -350,6 +350,8 @@ def mcp_casdoor(state):
 
 
 ADAPTERS={'steam-workshop':steam_workshop,'openvsx':openvsx,'sublime-package-control':sublime_package_control,'melpa':melpa,'pypi-simple':pypi_simple,'dsh-plugins':dsh_plugins,'claude-plugins-dev':claude_plugins_dev,'claude-plugin-hub':claude_plugin_hub,'mcp-official':mcp_official,'mcp-casdoor':mcp_casdoor,'factorio':factorio,'xbox-gamepass':xbox_gamepass,'psn-store':psn_store,'shopglu':shopglu,'n8n':n8n,'nodered':nodered,'vodacom':vodacom,'takealot':takealot,'payjustnow':payjustnow}
+# Share the current module when invoked as a script, avoiding a second harvest.py import.
+sys.modules.setdefault('harvest', sys.modules[__name__])
 from extended_adapters import EXTRA_ADAPTERS
 ADAPTERS.update(EXTRA_ADAPTERS)
 def init_db(path):
