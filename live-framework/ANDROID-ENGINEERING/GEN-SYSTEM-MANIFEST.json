@@ -4,7 +4,7 @@
   "name": "Android Application Engineering and Release",
   "version": "0.1.0",
   "platform": "android",
-  "status": "source-scaffolded-validation-pending",
+  "status": "ci-verified-device-validation-pending",
   "capabilities": [
     "android-project-development",
     "apk-metadata-inspection",
@@ -31,9 +31,10 @@
     "adb": "planned-device-test-adapter"
   },
   "verification": {
-    "node_policy_tests": "local",
-    "kotlin_unit_tests": "ci-configured",
-    "android_build": "ci-configured",
+    "node_policy_tests": "12/12 passed in GitHub Actions",
+    "kotlin_unit_tests": "passed in GitHub Actions",
+    "android_build": "Gradle :app:assembleDebug passed in GitHub Actions",
+    "debug_apk_artifact": "upload configured; latest artifact workflow pending",
     "device_test": "pending-connected-device",
     "production_release": "blocked-until-review-and-approval"
   }
