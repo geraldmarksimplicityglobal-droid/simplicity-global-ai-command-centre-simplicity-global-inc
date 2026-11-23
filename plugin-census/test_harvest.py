@@ -143,4 +143,61 @@ class CensusTests(unittest.TestCase):
   self.assertEqual(row['plugin_id'],'123')
   self.assertEqual(row['downloads'],88)
 
+
+ def test_six_new_registry_entries_and_adapter_registration(self):
+  expected=('joomla-vel','drupal-api','jenkins-update-center','grafana-catalog','agent-plugins-directory','reportportal-public')
+  for key in expected:
+   self.assertEqual(BY_ID[key]['api_status'],'live')
+   self.assertIn(key,harvest.ADAPTERS)
+  self.assertIn('security_advisory',BY_ID['joomla-vel']['verification'])
+  self.assertIn('seed_driven',BY_ID['grafana-catalog']['verification'])
+
+ def test_joomla_vel_maps_security_fields(self):
+  payload={'success':True,'data':{'items':[{'id':7,'title':'Vulnerable Extension','patch_version':'2.0','cvss30_base_score':8.1,'risk level':'high','install_data':{'author':'Vendor'}}]}}
+  with patch.object(harvest,'fetch_json',return_value=payload):
+   row=next(harvest.ADAPTERS['joomla-vel']({}))
+  self.assertEqual(row['plugin_id'],'7')
+  self.assertEqual(row['version'],'2.0')
+  self.assertEqual(row['rating'],8.1)
+  self.assertEqual(row['author'],'Vendor')
+
+ def test_drupal_api_paginates(self):
+  pages=[{'list':[{'nid':1,'title':'Module','taxonomy_vocabulary_3':{'name':'Commerce'},'changed':'2026-01-01','uri':'https://drupal.org/project/module'}],'next':'?page=1'},
+         {'list':[]}]
+  with patch.object(harvest,'fetch_json',side_effect=pages):
+   state={}
+   row=next(harvest.ADAPTERS['drupal-api'](state))
+  self.assertEqual(row['plugin_id'],'1')
+  self.assertEqual(row['category'],'Commerce')
+  self.assertEqual(state['page'],1)
+
+ def test_jenkins_update_center_uses_first_version(self):
+  payload={'plugins':{'demo':{'2.0':{'releaseTimestamp':'2026-01-01'},'1.0':{}}}}
+  with patch.object(harvest,'fetch_json',return_value=payload) as mocked:
+   row=next(harvest.ADAPTERS['jenkins-update-center']({}))
+  self.assertEqual(row['version'],'2.0')
+  self.assertEqual(row['category'],'jenkins-plugin')
+  self.assertEqual(mocked.call_args.kwargs['max_bytes'],40_000_000)
+
+ def test_grafana_requires_seed_and_normalizes(self):
+  with patch.dict('os.environ',{},clear=True):
+   with self.assertRaisesRegex(harvest.HarvestError,'provide state.slugs'):
+    list(harvest.ADAPTERS['grafana-catalog']({}))
+  payload={'name':'Demo Panel','orgName':'Grafana Labs','version':{'version':'1.2'},'downloads':99}
+  with patch.object(harvest,'fetch_json',return_value=payload):
+   row=next(harvest.ADAPTERS['grafana-catalog']({'slugs':['demo-panel']}))
+  self.assertEqual(row['plugin_id'],'demo-panel')
+  self.assertEqual(row['version'],'1.2')
+  self.assertEqual(row['downloads'],99)
+
+ def test_agent_plugins_directory_paged_api_and_reportportal(self):
+  with patch.object(harvest,'_fetch_json_with_headers',return_value=({'plugins':[{'owner':'acme','name':'tool','version':'1.0'}]}, {'Link':''})):
+   row=next(harvest.ADAPTERS['agent-plugins-directory']({}))
+  self.assertEqual(row['plugin_id'],'acme/tool')
+  payload=[{'id':'rp1','name':'ReportPortal Plugin','vendor':'Vendor','version':'3.0'}]
+  with patch.object(harvest,'fetch_json',return_value=payload):
+   row=next(harvest.ADAPTERS['reportportal-public']({}))
+  self.assertEqual(row['plugin_id'],'rp1')
+  self.assertEqual(row['author'],'Vendor')
+
 if __name__=='__main__': unittest.main()
