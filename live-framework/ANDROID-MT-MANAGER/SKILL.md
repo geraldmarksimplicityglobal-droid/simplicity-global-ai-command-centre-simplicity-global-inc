@@ -74,7 +74,7 @@ Record the input path, SHA-256, tool versions, exit code and bounded output. Do 
 
 ## GEN SYSTEM integration
 
-The Android Termux adapter is registered under android-termux in live-framework/AGENTIC-MULTI-IDE-CLI/src/android-adapter.mjs. It advertises fixed operations and declares supportsShell: false. The Android policy module returns argument-array invocations with shell: false; it does not execute them. A future device runner must enforce canonical-path containment, restricted OS identity, command timeout/output limits, secret-manager injection, authenticated approval resolution, separate execution authorization and durable redacted audit events.
+The Android Termux adapter is registered under android-termux in live-framework/AGENTIC-MULTI-IDE-CLI/src/android-adapter.mjs. It advertises fixed operations and declares supportsShell: false. The Android policy module returns argument-array invocations with shell: false; it does not execute them. Approval and execution-authorization records must be resolved by trusted server-side services and injected by the runner; never accept approval claims directly from an untrusted client payload. A future device runner must enforce canonical-path containment, restricted OS identity, command timeout/output limits, secret-manager injection, authenticated approval resolution, separate execution authorization and durable redacted audit events.
 
 ## Verification checklist
 
