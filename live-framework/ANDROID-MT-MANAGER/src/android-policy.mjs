@@ -183,7 +183,7 @@ export function validateAndroidRequest(request, policy) {
     executable = tool(policy, 'apksigner');
     args.push('sign', '--ks', keystorePath, '--ks-key-alias', alias,
       '--ks-pass', 'env:SG_ANDROID_KEYSTORE_PASSWORD',
-      '--key-pass', 'env:SG_ANDROID_KEY_PASSWORD', '-out', outputPath, inputPath);
+      '--key-pass', 'env:SG_ANDROID_KEY_PASSWORD', '--out', outputPath, inputPath);
     requiredEnvironment = ['SG_ANDROID_KEYSTORE_PASSWORD', 'SG_ANDROID_KEY_PASSWORD'];
   } else if (operation === 'launch-mt-manager') {
     const packageId = requiredText(request.packageId, 'packageId');
