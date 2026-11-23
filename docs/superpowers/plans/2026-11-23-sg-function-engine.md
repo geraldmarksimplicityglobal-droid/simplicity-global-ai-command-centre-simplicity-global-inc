@@ -1,6 +1,6 @@
 # SG Function Engine Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add a registry for all 30 Function micro-types and a safe local dispatcher for nine deterministic operations, exposed through the SG Codex CLI.
 
@@ -23,11 +23,11 @@
 - Create: `sg-codex-studio/src/function-engine.ts`
 - Create: `sg-codex-studio/src/function-engine.test.ts`
 
-- [ ] Test the exact 30-function registry and capability states.
-- [ ] Test all nine local operations and invalid input cases.
-- [ ] Test that all deferred and approval-gated operations fail closed.
-- [ ] Implement typed registry, error type, and dispatcher.
-- [ ] Run build and tests.
+- [x] Test the exact 30-function registry and capability states.
+- [x] Test all nine local operations and invalid input cases.
+- [x] Test that all deferred and approval-gated operations fail closed.
+- [x] Implement typed registry, error type, and dispatcher.
+- [x] Run build and tests.
 
 ### Task 2: CLI integration
 
@@ -35,16 +35,16 @@
 - Modify: `sg-codex-studio/src/cli.ts`
 - Modify: `sg-codex-studio/src/cli.test.ts`
 
-- [ ] Test `function types` and JSON output.
-- [ ] Test `function run <name> <json>`, malformed input, unknown function and deferred operation behavior.
-- [ ] Implement CLI routing without adding shell or network execution.
-- [ ] Run full build and test suite.
+- [x] Test `function types` and JSON output.
+- [x] Test `function run <name> <json>`, malformed input, unknown function and deferred operation behavior.
+- [x] Implement CLI routing without adding shell or network execution.
+- [x] Run full build and test suite.
 
 ### Task 3: Documentation and verification
 
 **Files:**
 - Modify: `sg-codex-studio/README.md`
 
-- [ ] Document registry, available operations, deferred capabilities and examples.
-- [ ] Run GitHub Actions build/test workflow on the feature branch.
-- [ ] Review diff and preserve the feature branch; do not merge or deploy.
+- [x] Document registry, available operations, deferred capabilities and examples.
+- [x] Run GitHub Actions build/test workflow on the feature branch.
+- [x] Review diff and preserve the feature branch; do not merge or deploy.
