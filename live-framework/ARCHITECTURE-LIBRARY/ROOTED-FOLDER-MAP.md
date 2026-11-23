@@ -5,6 +5,7 @@ live-framework/
 ├── ARCHITECTURE-LIBRARY/{modules,schemas,governance}/
 ├── AGENTIC-MULTI-IDE-CLI/{src,test}/
 ├── BACKGROUND-RUNNERS/{src,schemas,test}/
+├── ANDROID-APP-ENGINE/{src,test,skill,schemas,config,docs}/
 ├── DOMAIN-REGISTRAR/
 │   ├── config/
 │   ├── modules/SG-DOM-001 ... SG-DOM-024/
@@ -18,6 +19,7 @@ live-framework/
 | ARCHITECTURE-LIBRARY | SG-ARCH-LIB-001 | Canonical registry and boundaries |
 | AGENTIC-MULTI-IDE-CLI | SG-AGENTIC-MULTI-IDE-CLI-001 | Governed IDE/CLI task workflow |
 | BACKGROUND-RUNNERS | SG-RUN-001–010 | Bounded build, retry, evidence and GLOBAL MARK |
+| ANDROID-APP-ENGINE | SG-SKILL-BUILD-001 | Governed Android APK/AAB engineering, signing plans and release evidence |
 | DOMAIN-REGISTRAR | SG-DOM-001–024 | Provider-neutral registrar system |
 | IMPLEMENTATION/identity/github-enterprise | SG-ID-001 | Brokered GitHub Enterprise sign-in |
 | IMPLEMENTATION/api | SG-LIVE-API-001 | API authentication, authorization and audit |
