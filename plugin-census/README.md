@@ -33,3 +33,37 @@ SIMSWAP_API_TOKEN. The example GSMA sandbox URL is intentionally not assumed
 to be a verified endpoint. The offline test suite mocks HTTP and does not query
 real MSISDNs or contact a provider. Optional audit persistence uses an HMAC
 fingerprint rather than storing the telephone number.
+
+## Xbox and PlayStation surfaces
+
+The registry distinguishes game catalogs, SDK distributions and partner-scoped
+APIs; these are not represented as one generic plug-in marketplace.
+
+- `xbox-gamepass`: public Microsoft Store catalog adapter, queried by market
+  and platform. It produces game-catalog records, not GDK/XSAPI extensions.
+- `xbox-partner`: token/partner-scoped registry entry only; no global catalog
+  adapter is provided.
+- `xbox-xsapi`: manual SDK source entry; SDK artifacts are not a browsable
+  marketplace catalog.
+- `psn-store`: unofficial PlayStation Store Chihiro adapter. It only fetches
+  explicitly supplied seed container IDs (default seed retained from the
+  supplied project notes); it does not claim full-store discovery.
+- `psn-partners`: OAuth/partner-scoped entry only; no partner credentials are
+  requested and no seller sales data is queried.
+
+Dry-run:
+```bash
+python harvest.py --db census.db --only xbox-gamepass psn-store
+```
+
+Execute explicitly:
+```bash
+python harvest.py --db census.db --only xbox-gamepass psn-store --execute
+```
+
+The adapters use the fixed HTTPS hosts in the harvester allowlist. The
+PlayStation endpoint is unofficial and may change. Microsoft Store catalog
+results may include products beyond Game Pass entitlement; returned records
+must not be interpreted as confirmed Game Pass availability without an
+entitlement-aware source. Both adapters are opt-in network operations and
+offline tests mock all HTTP responses.
