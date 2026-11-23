@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 from registry import BY_ID
 UA='SimplicityGlobal-PluginCensus/0.1'
-PUBLIC_HOSTS={'extensions.joomla.org','www.drupal.org','updates.jenkins.io','grafana.com','agent-plugins.directory','demo.reportportal.io','open-vsx.org','packagecontrol.io','melpa.org','pypi.org','deepseekharnessplugins.com','api.claude-plugins.dev','claudepluginhub.com','registry.modelcontextprotocol.io','mcp.casdoor.org','api.wordpress.org','api.github.com','registry.npmjs.org','displaycatalog.mp.microsoft.com','store.playstation.com','mods.factorio.com'}
+PUBLIC_HOSTS={'extensions.joomla.org','www.drupal.org','flows.nodered.org','raw.githubusercontent.com','repo.zotero.org','www.raycast.com','rensei.ai','updates.jenkins.io','grafana.com','agent-plugins.directory','demo.reportportal.io','open-vsx.org','packagecontrol.io','melpa.org','pypi.org','deepseekharnessplugins.com','api.claude-plugins.dev','claudepluginhub.com','registry.modelcontextprotocol.io','mcp.casdoor.org','api.wordpress.org','api.github.com','registry.npmjs.org','displaycatalog.mp.microsoft.com','store.playstation.com','mods.factorio.com'}
 TOKEN_HOSTS={'api.steampowered.com','apipulse.vodacom.co.za','marketplace-api.takealot.com','seller-api.takealot.com','api.payjustnow.com','marketplace.magento.com','huggingface.co','registry.modelcontextprotocol.io','api.crewai.com','api.apify.com','api.vercel.com'}
 MAX_PAGES=100
 class HarvestError(RuntimeError): pass
