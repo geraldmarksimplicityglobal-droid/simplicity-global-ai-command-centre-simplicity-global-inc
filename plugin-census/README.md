@@ -2,7 +2,7 @@
 
 Separate opt-in Python subsystem. It distinguishes plugin marketplaces from telecom product catalogs, seller-scoped commerce APIs and merchant transaction APIs.
 
-- Registry: 38 records (36 prior entries plus Factorio Mod Portal and Steam Workshop).
+- Registry: 50 records, including Factorio, Steam Workshop, editor/package registries, AI plugin directories and MCP registries.
 - Access posture: `live`, `token`, or `manual`; verification metadata separately records whether the endpoint is confirmed.
 - Implemented public adapters: ShopGlu (single WordPress.org lookup), n8n (GitHub node directories), Node-RED (npm keyword search).
 - Vodacom, Takealot and PayJustNow credentialed templates fail closed because the supplied exact read endpoints are unverified.
@@ -84,3 +84,35 @@ python harvest.py --db census.db --only factorio --execute
 ``
 
 Steam Workshop is intentionally excluded from unauthenticated harvesting. Its classification describes the discovery credential requirement, not the per-ID metadata endpoint.
+
+## Editor, Python, AI and MCP registry expansion
+
+New public adapters:
+- `openvsx`: offset-paginated Open VSX search; IDs are normalized as `namespace.name`.
+- `sublime-package-control`: reads the public Package Control channel JSON.
+- `melpa`: merges MELPA archive metadata with download counts.
+- `pypi-simple`: requests the PEP 691 JSON Simple API and applies configurable regex filters. It is a package index, not a semantic plug-in registry; defaults intentionally yield only a heuristic subset. The bounded response cap is 100 MB.
+- `dsh-plugins`, `claude-plugins-dev`, `claude-plugin-hub`: paginated AI-plugin directories.
+- `mcp-official`: cursor-paginated Official MCP Registry.
+- `mcp-casdoor`: static public JSON directory.
+- `steam-workshop`: publisher-key-gated QueryFiles discovery, defaulting to Factorio AppID 427520. Set `STEAM_PUBLISHER_KEY` in the process environment; never commit it. The public per-ID details method is not used for enumeration.
+
+The ACP page is recorded but its backing repository's exact machine-readable file and schema were not included in the supplied specification. Botpress and Tagada are also catalogued but left without harvest adapters until their request authentication, pagination/per-ID contract and response envelope are verified. These entries are not falsely represented as executable adapters.
+
+Dry-run:
+```bash
+python harvest.py --db census.db --only openvsx sublime-package-control melpa pypi-simple dsh-plugins claude-plugins-dev claude-plugin-hub mcp-official mcp-casdoor steam-workshop acp-registry botpress-plugins tagada-plugins
+```
+
+Execute public adapters explicitly:
+```bash
+python harvest.py --db census.db --only openvsx sublime-package-control melpa pypi-simple dsh-plugins claude-plugins-dev claude-plugin-hub mcp-official mcp-casdoor --execute
+```
+
+Steam discovery requires a separate explicit execution and key:
+```bash
+export STEAM_PUBLISHER_KEY="<publisher-key>"
+python harvest.py --db census.db --only steam-workshop --execute
+```
+
+The user-supplied historical catalogue counts are stored as dated estimates, not verified live totals. All new adapter tests mock HTTP; no live registry harvest was performed.
