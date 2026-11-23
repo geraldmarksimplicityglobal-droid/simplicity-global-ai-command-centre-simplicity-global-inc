@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { mkdir, lstat } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { JsonObjectStore, OBJECT_TYPES, isObjectType } from "./object-engine.js";
 
 export interface CliIO { out(message: string): void; err(message: string): void; }
@@ -126,6 +127,6 @@ export async function main(argv: string[], cwd = process.cwd(), io: CliIO = {
   }
 }
 
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replaceAll("\\", "/"))) {
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   void main(process.argv.slice(2)).then(code => { process.exitCode = code; });
 }

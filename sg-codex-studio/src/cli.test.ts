@@ -1,8 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, mkdir, copyFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { main } from "./cli.js";
 
 async function runCase(run: (cwd: string, out: string[]) => Promise<void>) {
@@ -47,4 +49,16 @@ test("rejects malformed JSON, unknown commands and unknown flags", async () => r
   assert.equal(await main(["object", "create", "Text", "{bad"], cwd, io(out)), 2);
   assert.equal(await main(["not-a-command"], cwd, io(out)), 2);
   assert.equal(await main(["object", "list", "--unknown"], cwd, io(out)), 2);
+}));
+
+
+test("runs the CLI when its installation path contains spaces", async () => runCase(async (cwd, out) => {
+  const binDir = join(cwd, "installed package");
+  await mkdir(binDir, { recursive: true });
+  const distDir = dirname(fileURLToPath(import.meta.url));
+  await copyFile(join(distDir, "cli.js"), join(binDir, "cli.js"));
+  await copyFile(join(distDir, "object-engine.js"), join(binDir, "object-engine.js"));
+  const result = spawnSync(process.execPath, [join(binDir, "cli.js"), "help"], { encoding: "utf8" });
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /SG Codex CLI/);
 }));
