@@ -42,3 +42,7 @@ Objects are stored in `.sg-codex/objects.json relative to the selected project d
 
 ## Initial studios
 Architecture, Android, Windows, DeepSeek Harness, Codex Bridge, Governance, Security, Testing, Build and Documentation.
+
+## Current implementation boundary
+
+This branch delivers the local CLI and JSON-backed Object Engine only. Agent execution, remote plugin connections, cloud persistence and deployment remain out of scope until separately designed and approved.
