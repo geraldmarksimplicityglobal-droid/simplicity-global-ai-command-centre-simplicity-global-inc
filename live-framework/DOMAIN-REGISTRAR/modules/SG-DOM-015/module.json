@@ -1,0 +1,23 @@
+{
+  "id": "SG-DOM-015",
+  "name": "Provider Connectors",
+  "area": "integration",
+  "state": "mock-only",
+  "defaultMode": "mock",
+  "provider": "unconfigured",
+  "liveEnabled": false,
+  "readCapabilities": [
+    "inspect-provider-contract"
+  ],
+  "writeCapabilities": [],
+  "approvalRequiredFor": [
+    "external-write",
+    "account-change",
+    "dns-change",
+    "payment",
+    "registration",
+    "transfer",
+    "deployment"
+  ],
+  "evidenceRequired": true
+}

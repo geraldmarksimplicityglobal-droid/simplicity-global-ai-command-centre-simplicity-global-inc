@@ -1,0 +1,30 @@
+name: Background Runner Bots — Isolated Build Checks
+on:
+  push:
+    branches: [codex/live-enterprise-framework]
+    paths: ["live-framework/BACKGROUND-RUNNERS/**", ".github/workflows/background-runner-bots.yml"]
+  pull_request:
+    paths: ["live-framework/BACKGROUND-RUNNERS/**", ".github/workflows/background-runner-bots.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: sg-background-runner-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  isolated-runner-contract:
+    name: Validate mock runner and GLOBAL MARK gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: live-framework/BACKGROUND-RUNNERS
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax checks
+        run: npm run check
+      - name: Runner policy and GLOBAL MARK tests
+        run: npm test

@@ -1,0 +1,23 @@
+{
+  "id": "SG-DOM-003",
+  "name": "Availability",
+  "area": "registrar",
+  "state": "mock-only",
+  "defaultMode": "mock",
+  "provider": "unconfigured",
+  "liveEnabled": false,
+  "readCapabilities": [
+    "check-availability"
+  ],
+  "writeCapabilities": [],
+  "approvalRequiredFor": [
+    "external-write",
+    "account-change",
+    "dns-change",
+    "payment",
+    "registration",
+    "transfer",
+    "deployment"
+  ],
+  "evidenceRequired": true
+}

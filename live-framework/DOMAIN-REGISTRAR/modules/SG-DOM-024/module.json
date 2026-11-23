@@ -1,0 +1,23 @@
+{
+  "id": "SG-DOM-024",
+  "name": "Administration",
+  "area": "governance",
+  "state": "local-only",
+  "defaultMode": "design",
+  "provider": "unconfigured",
+  "liveEnabled": false,
+  "readCapabilities": [
+    "read-local-status"
+  ],
+  "writeCapabilities": [],
+  "approvalRequiredFor": [
+    "external-write",
+    "account-change",
+    "dns-change",
+    "payment",
+    "registration",
+    "transfer",
+    "deployment"
+  ],
+  "evidenceRequired": true
+}

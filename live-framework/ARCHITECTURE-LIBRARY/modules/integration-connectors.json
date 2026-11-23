@@ -1,0 +1,37 @@
+{
+  "id": "SG-INT-REG-001",
+  "connectors": [
+    {
+      "id": "SG-INT-001",
+      "name": "Windows Commander / Desktop Commander",
+      "mode": "read-only-inventory",
+      "hostOnline": false,
+      "writeEnabled": false
+    },
+    {
+      "id": "SG-INT-002",
+      "name": "Postman",
+      "mode": "metadata-inspection",
+      "workspaceId": "b1774254-6aec-4c11-8311-5b71b7ae4629",
+      "collectionRequestsExecuted": false
+    },
+    {
+      "id": "SG-INT-003",
+      "name": "GitHub",
+      "mode": "repository-and-ci",
+      "writeScope": "feature-branch-only"
+    },
+    {
+      "id": "SG-INT-004",
+      "name": "Visual Studio Code",
+      "mode": "adapter-design",
+      "hostSessionVerified": false
+    },
+    {
+      "id": "SG-INT-005",
+      "name": "Plugin connectors",
+      "mode": "inventory-and-contract",
+      "newAuthorizations": false
+    }
+  ]
+}

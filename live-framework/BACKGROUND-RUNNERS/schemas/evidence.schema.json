@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Simplicity Global runner evidence",
+  "type": "object",
+  "required": [
+    "jobId",
+    "target",
+    "status",
+    "attempts",
+    "evidence",
+    "globalMark"
+  ],
+  "properties": {
+    "jobId": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "incomplete"
+      ]
+    },
+    "attempts": {
+      "type": "array"
+    },
+    "evidence": {
+      "type": "array"
+    },
+    "globalMark": {
+      "type": "object",
+      "required": [
+        "score",
+        "passedGates",
+        "totalGates",
+        "reached",
+        "status",
+        "gates"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

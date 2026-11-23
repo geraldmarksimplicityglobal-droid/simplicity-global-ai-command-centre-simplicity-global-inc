@@ -1,0 +1,31 @@
+{
+  "default": "deny",
+  "readOnlyFirst": true,
+  "secretsInSource": false,
+  "unapprovedShellExecution": false,
+  "unapprovedExternalWrites": false,
+  "unapprovedProductionDeployment": false,
+  "requiresHumanApproval": [
+    "domain.register",
+    "domain.renew",
+    "domain.transfer",
+    "dns.write",
+    "nameserver.write",
+    "identity.provider.configure",
+    "oauth.app.create",
+    "host.command.execute",
+    "package.install",
+    "production.deploy",
+    "payment.execute"
+  ],
+  "auditFields": [
+    "actor",
+    "target",
+    "operation",
+    "approvalReference",
+    "timestamp",
+    "result",
+    "evidenceReference"
+  ],
+  "failurePolicy": "stop-and-report"
+}

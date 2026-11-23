@@ -1,0 +1,23 @@
+{
+  "systemId": "SG-ID-001",
+  "providerType": "github-enterprise-server",
+  "corporateDomainReference": "https://simplicityglobal.com",
+  "githubBaseUrl": "",
+  "organizationSlug": "",
+  "ghesVersion": "",
+  "brokerProduct": "",
+  "brokerIssuer": "",
+  "brokerClientId": "simplicity-global-web",
+  "redirectUri": "",
+  "apiBaseUrl": "",
+  "providerAlias": "github-enterprise",
+  "scopes": [
+    "openid",
+    "profile"
+  ],
+  "pkceMethod": "S256",
+  "automaticProvisioning": false,
+  "repositoryScopes": [],
+  "clientSecretLocation": "approved-secret-manager-only",
+  "activationState": "blocked-pending-ghes-hostname-version-broker-and-origins"
+}

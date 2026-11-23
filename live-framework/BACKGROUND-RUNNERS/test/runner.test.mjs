@@ -1,0 +1,12 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {executeRunnerJob,REQUIRED_STAGES,validateRunnerJob} from "../src/index.mjs";
+const job=()=>({id:"SG-RUN-JOB-001",requester:"operator-a",target:"isolated-fixture",objective:"Validate mock build",operation:"mock-validation",maxAttempts:2,stages:[...REQUIRED_STAGES]});
+const handlers=Object.fromEntries(REQUIRED_STAGES.map(s=>[s,async()=>({status:"passed",summary:s+" checks passed",evidenceId:"ev-"+s})]));
+const approval={approvalId:"approval-001",status:"approved",approver:"reviewer-b",jobId:"SG-RUN-JOB-001",target:"isolated-fixture",expiresAt:2000};
+test("all seven gates are required to reach GLOBAL MARK",async()=>{const r=await executeRunnerJob({job:job(),handlers,approval,now:1000});assert.equal(r.status,"completed");assert.equal(r.globalMark.score,100);assert.equal(r.globalMark.totalGates,7);});
+test("failed stage retries only to configured limit",async()=>{let n=0;const h={...handlers,tests:async()=>++n<2?{status:"failed",summary:"retry"}:{status:"passed",summary:"recovered"}};const r=await executeRunnerJob({job:job(),handlers:h,approval,now:1000});assert.equal(n,2);assert.equal(r.status,"completed");});
+test("expired or self-approved authorisation fails GLOBAL MARK",async()=>{const a=await executeRunnerJob({job:job(),handlers,approval:{...approval,expiresAt:999},now:1000});assert.equal(a.globalMark.reached,false);const b=await executeRunnerJob({job:job(),handlers,approval:{...approval,approver:"operator-a"},now:1000});assert.equal(b.globalMark.reached,false);});
+test("arbitrary shell and command payloads are rejected",()=>{assert.throws(()=>validateRunnerJob({...job(),command:"rm -rf /"}),/process field/);assert.throws(()=>validateRunnerJob({...job(),stages:["shell"]}),/stage allowlist/);});
+test("retry ceiling cannot exceed three",()=>assert.throws(()=>validateRunnerJob({...job(),maxAttempts:4}),/between 1 and 3/));
+test("missing handler fails closed",async()=>{const h={...handlers};delete h.security;const r=await executeRunnerJob({job:job(),handlers:h,approval,now:1000});assert.equal(r.status,"incomplete");assert.equal(r.globalMark.reached,false);});

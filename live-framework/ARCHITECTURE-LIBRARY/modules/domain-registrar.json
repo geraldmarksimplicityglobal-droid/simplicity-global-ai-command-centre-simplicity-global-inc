@@ -1,0 +1,539 @@
+{
+  "id": "SG-DOM-001-024",
+  "name": "Domain Registrar",
+  "root": "live-framework/DOMAIN-REGISTRAR",
+  "moduleCount": 24,
+  "providerMode": "mock-only",
+  "liveProviderConnected": false,
+  "liveMutationEnabled": false,
+  "domainReference": "simplicityglobal.com",
+  "domainOwnershipVerified": false,
+  "modules": [
+    {
+      "id": "SG-DOM-001",
+      "name": "Registrar Core",
+      "area": "core",
+      "state": "mock-only",
+      "defaultMode": "mock",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [
+        "read-capabilities"
+      ],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-002",
+      "name": "Domain Registry",
+      "area": "domain",
+      "state": "local-model",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [
+        "read-local-registry"
+      ],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-003",
+      "name": "Availability",
+      "area": "registrar",
+      "state": "mock-only",
+      "defaultMode": "mock",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [
+        "check-availability"
+      ],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-004",
+      "name": "Registration",
+      "area": "registrar",
+      "state": "disabled",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-005",
+      "name": "Renewal",
+      "area": "registrar",
+      "state": "disabled",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-006",
+      "name": "Transfer",
+      "area": "registrar",
+      "state": "disabled",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-007",
+      "name": "DNS Manager",
+      "area": "dns",
+      "state": "read-only-mock",
+      "defaultMode": "read-only-mock",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [
+        "read-dns-records"
+      ],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-008",
+      "name": "Nameservers",
+      "area": "dns",
+      "state": "disabled",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-009",
+      "name": "SSL/TLS",
+      "area": "infrastructure",
+      "state": "disabled",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-010",
+      "name": "Hosting",
+      "area": "infrastructure",
+      "state": "unconfigured",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-011",
+      "name": "Website Manager",
+      "area": "web",
+      "state": "reference-only",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [
+        "read-site-reference"
+      ],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-012",
+      "name": "Bing Webmaster",
+      "area": "seo",
+      "state": "unconfigured",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-013",
+      "name": "Sitemap",
+      "area": "seo",
+      "state": "local-validation",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [
+        "validate-sitemap"
+      ],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-014",
+      "name": "Postman",
+      "area": "integration",
+      "state": "manual-only",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [
+        "read-collection-metadata"
+      ],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-015",
+      "name": "Provider Connectors",
+      "area": "integration",
+      "state": "mock-only",
+      "defaultMode": "mock",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [
+        "inspect-provider-contract"
+      ],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-016",
+      "name": "Billing",
+      "area": "finance",
+      "state": "disabled",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-017",
+      "name": "Identity",
+      "area": "security",
+      "state": "design-only",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-018",
+      "name": "Permissions",
+      "area": "security",
+      "state": "design-only",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [
+        "inspect-policy"
+      ],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-019",
+      "name": "Audit",
+      "area": "governance",
+      "state": "in-memory",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [
+        "append-local-event"
+      ],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-020",
+      "name": "Notifications",
+      "area": "operations",
+      "state": "disabled",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-021",
+      "name": "Automation",
+      "area": "operations",
+      "state": "disabled",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-022",
+      "name": "Backup",
+      "area": "operations",
+      "state": "design-only",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-023",
+      "name": "Monitoring",
+      "area": "operations",
+      "state": "design-only",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "SG-DOM-024",
+      "name": "Administration",
+      "area": "governance",
+      "state": "local-only",
+      "defaultMode": "design",
+      "provider": "unconfigured",
+      "liveEnabled": false,
+      "readCapabilities": [
+        "read-local-status"
+      ],
+      "writeCapabilities": [],
+      "approvalRequiredFor": [
+        "external-write",
+        "account-change",
+        "dns-change",
+        "payment",
+        "registration",
+        "transfer",
+        "deployment"
+      ],
+      "evidenceRequired": true
+    }
+  ]
+}

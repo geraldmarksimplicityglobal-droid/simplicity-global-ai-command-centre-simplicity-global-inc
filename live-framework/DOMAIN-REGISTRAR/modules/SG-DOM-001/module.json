@@ -1,0 +1,23 @@
+{
+  "id": "SG-DOM-001",
+  "name": "Registrar Core",
+  "area": "core",
+  "state": "mock-only",
+  "defaultMode": "mock",
+  "provider": "unconfigured",
+  "liveEnabled": false,
+  "readCapabilities": [
+    "read-capabilities"
+  ],
+  "writeCapabilities": [],
+  "approvalRequiredFor": [
+    "external-write",
+    "account-change",
+    "dns-change",
+    "payment",
+    "registration",
+    "transfer",
+    "deployment"
+  ],
+  "evidenceRequired": true
+}

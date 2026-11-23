@@ -1,0 +1,14 @@
+{
+  "name": "sg-domain-registrar",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Simplicity Global provider-neutral domain registrar foundation",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/index.js && node --check src/core/module-registry.js && node --check src/core/module-manifest.js && node --check src/modules/registrar.js && node --check src/modules/dns.js && node --check src/modules/bing-webmaster.js && node --check src/modules/sitemap.js"
+  }
+}

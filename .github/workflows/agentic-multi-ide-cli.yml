@@ -1,0 +1,30 @@
+name: Agentic Multi-IDE CLI workflow checks
+
+on:
+  pull_request:
+    paths:
+      - "live-framework/AGENTIC-MULTI-IDE-CLI/**"
+      - ".github/workflows/agentic-multi-ide-cli.yml"
+  push:
+    branches:
+      - "codex/live-enterprise-framework"
+    paths:
+      - "live-framework/AGENTIC-MULTI-IDE-CLI/**"
+      - ".github/workflows/agentic-multi-ide-cli.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  workflow-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: node --check live-framework/AGENTIC-MULTI-IDE-CLI/src/workflow.mjs
+      - name: Run state-machine and approval tests
+        working-directory: live-framework/AGENTIC-MULTI-IDE-CLI
+        run: node --test

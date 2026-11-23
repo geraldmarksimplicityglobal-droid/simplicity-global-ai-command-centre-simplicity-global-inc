@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Simplicity Global runner job",
+  "type": "object",
+  "required": [
+    "id",
+    "requester",
+    "target",
+    "objective",
+    "stages"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requester": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target": {
+      "type": "string",
+      "minLength": 1
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operation": {
+      "const": "mock-validation"
+    },
+    "maxAttempts": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "build",
+          "tests",
+          "security",
+          "integration",
+          "quality",
+          "evidence"
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

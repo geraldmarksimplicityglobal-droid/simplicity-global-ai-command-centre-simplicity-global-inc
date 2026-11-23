@@ -1,0 +1,74 @@
+{
+  "systemId": "SG-ARCH-LIB-001",
+  "version": "1.0.0",
+  "modules": [
+    {
+      "id": "SG-ARCH-LIB-001",
+      "name": "Architecture Library",
+      "root": "live-framework/ARCHITECTURE-LIBRARY",
+      "status": "implemented-source"
+    },
+    {
+      "id": "SG-AGENTIC-MULTI-IDE-CLI-001",
+      "name": "Agentic Multi-IDE CLI",
+      "root": "live-framework/AGENTIC-MULTI-IDE-CLI",
+      "status": "implemented-source",
+      "runtime": "not-activated"
+    },
+    {
+      "id": "SG-DOM-001-024",
+      "name": "Domain Registrar",
+      "root": "live-framework/DOMAIN-REGISTRAR",
+      "status": "mock-verified",
+      "provider": "not-connected"
+    },
+    {
+      "id": "SG-ID-001",
+      "name": "GitHub Enterprise Sign-in",
+      "root": "live-framework/IMPLEMENTATION/identity/github-enterprise",
+      "status": "configured-unverified"
+    },
+    {
+      "id": "SG-LIVE-API-001",
+      "name": "Live Framework API",
+      "root": "live-framework/IMPLEMENTATION/api",
+      "status": "mock-verified",
+      "deployment": "not-deployed"
+    },
+    {
+      "id": "SG-RUN-001-010",
+      "name": "Background Runner Bots",
+      "root": "live-framework/BACKGROUND-RUNNERS",
+      "status": "mock-verified",
+      "persistentBots": "not-deployed"
+    },
+    {
+      "id": "SG-INT-001",
+      "name": "Windows Commander / Desktop Commander",
+      "status": "blocked-on-host-connection"
+    },
+    {
+      "id": "SG-INT-002",
+      "name": "Postman",
+      "status": "metadata-inspected",
+      "requestsExecuted": false
+    },
+    {
+      "id": "SG-INT-003",
+      "name": "GitHub",
+      "status": "connected",
+      "scope": "feature-branch-only"
+    },
+    {
+      "id": "SG-INT-004",
+      "name": "Visual Studio Code",
+      "status": "blocked-on-host-connection"
+    },
+    {
+      "id": "SG-INT-005",
+      "name": "Plugin Connector Registry",
+      "status": "design-source"
+    }
+  ],
+  "sourceOfTruth": "Repository implementation state only."
+}
