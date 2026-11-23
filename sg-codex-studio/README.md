@@ -30,7 +30,7 @@ The compiled executable is `dist/cli.js` and the package exposes the `sg-codex` 
 ## Object Engine
 The registry contains 30 micro-types: Text, Number, Boolean, Date, List, Map, File, Link, Tag, Comment, User, Team, Role, Task, Project, Order, Product, Invoice, Event, Place, Image, Audio, Video, Model, Note, Page, Block, Form, Chart and Dashboard.
 
-Objects are stored in `.sg-codex/objects.json relative to the selected project directory. Object data must be JSON-compatible and is limited to 1 MiB per object. IDs are restricted to 1-128 letters, numbers, underscores or hyphens. Writes are serialized within one process and persisted using temporary-file replacement.
+Objects are stored in `.sg-codex/objects.json` relative to the selected project directory. Object data must be JSON-compatible and is limited to 1 MiB per object. IDs are restricted to 1-128 letters, numbers, underscores or hyphens. Writes are serialized within one process and persisted using temporary-file replacement.
 
 ## Safety model
 - Existing studio scheduler remains read-only by default.
@@ -46,3 +46,7 @@ Architecture, Android, Windows, DeepSeek Harness, Codex Bridge, Governance, Secu
 ## Current implementation boundary
 
 This branch delivers the local CLI and JSON-backed Object Engine only. Agent execution, remote plugin connections, cloud persistence and deployment remain out of scope until separately designed and approved.
+
+ 
+## Function Engine
+The Function Engine registers 30 Function micro-types. Nine deterministic local operations are available: Convert, Validate, Search, Filter, Sort, Group, Merge, Split and Clone. Use `npm run start -- function types --json` to inspect availability and `npm run start -- function run Split '{"value":"a,b","separator":","}' --json` to execute a local operation. Model-backed functions, media operations, notifications, command execution and state-changing security operations are registered but remain unavailable until their providers/adapters and approval controls are implemented.

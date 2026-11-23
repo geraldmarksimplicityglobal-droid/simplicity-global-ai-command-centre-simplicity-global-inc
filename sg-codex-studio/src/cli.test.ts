@@ -58,7 +58,19 @@ test("runs the CLI when its installation path contains spaces", async () => runC
   const distDir = dirname(fileURLToPath(import.meta.url));
   await copyFile(join(distDir, "cli.js"), join(binDir, "cli.js"));
   await copyFile(join(distDir, "object-engine.js"), join(binDir, "object-engine.js"));
+  await copyFile(join(distDir, "function-engine.js"), join(binDir, "function-engine.js"));
   const result = spawnSync(process.execPath, [join(binDir, "cli.js"), "help"], { encoding: "utf8" });
   assert.equal(result.status, 0);
   assert.match(result.stdout, /SG Codex CLI/);
+}));
+
+ 
+test("discovers and runs local Function Engine operations", async () => runCase(async (cwd, out) => {
+  assert.equal(await main(["function", "types", "--json"], cwd, io(out)), 0);
+  assert.equal(JSON.parse(out.join("")).length, 30);
+  out.length = 0;
+  assert.equal(await main(["function", "run", "Split", '{"value":"a,b","separator":","}', "--json"], cwd, io(out)), 0);
+  assert.deepEqual(JSON.parse(out.join("")), ["a", "b"]);
+  out.length = 0;
+  assert.equal(await main(["function", "run", "GenerateText", '{"prompt":"hello"}'], cwd, io(out)), 1);
 }));

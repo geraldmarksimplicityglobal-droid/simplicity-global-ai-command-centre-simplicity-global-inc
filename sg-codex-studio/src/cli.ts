@@ -3,6 +3,7 @@ import { mkdir, lstat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { JsonObjectStore, OBJECT_TYPES, isObjectType } from "./object-engine.js";
+import { FunctionEngine } from "./function-engine.js";
 
 export interface CliIO { out(message: string): void; err(message: string): void; }
 class UsageError extends Error {}
@@ -14,6 +15,8 @@ const HELP = [
   "  sg-codex init [--json]",
   "  sg-codex doctor [--json]",
   "  sg-codex object types [--json]",
+  "  sg-codex function types [--json]",
+  "  sg-codex function run <name> <json> [--json]",
   "  sg-codex object create <type> <json> [--id ID] [--json]",
   "  sg-codex object get <id> [--json]",
   "  sg-codex object list [type] [--json]",
@@ -78,6 +81,22 @@ export async function main(argv: string[], cwd = process.cwd(), io: CliIO = {
       const result = { healthy, node, minimumNode: "20", registeredObjectTypes: OBJECT_TYPES.length };
       emit(io, json ? result : "Node.js " + node + ": " + (healthy ? "OK" : "upgrade required") + "; " + OBJECT_TYPES.length + " object types registered", json);
       return healthy ? 0 : 1;
+    }
+    if (command === "function") {
+      const action = args[1];
+      if (action === "types") {
+        if (args.length !== 2) throw new UsageError("function types accepts no extra arguments");
+        const registry = new FunctionEngine().list();
+        emit(io, json ? registry : registry.map(item => item.name + "\\t" + item.availability).join("\\n"), json);
+        return 0;
+      }
+      if (action === "run") {
+        if (args.length !== 4) throw new UsageError("function run requires <name> and <json>");
+        const result = new FunctionEngine().execute(args[2]!, parseData(args[3]!));
+        emit(io, json ? result : "Function result: " + JSON.stringify(result, null, 2), json);
+        return 0;
+      }
+      throw new UsageError("Unknown function subcommand: " + (action ?? "(missing)"));
     }
     if (command !== "object") throw new UsageError("Unknown command: " + command);
     const action = args[1];
