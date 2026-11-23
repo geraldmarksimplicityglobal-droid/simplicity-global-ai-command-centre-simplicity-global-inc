@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 import harvest
+import extended_adapters as ext
 from registry import CATALOG,BY_ID
 class CensusTests(unittest.TestCase):
  def test_registry_has_56_unique_entries(self):
@@ -154,7 +155,7 @@ class CensusTests(unittest.TestCase):
 
  def test_joomla_vel_maps_security_fields(self):
   payload={'success':True,'data':{'items':[{'id':7,'title':'Vulnerable Extension','patch_version':'2.0','cvss30_base_score':8.1,'risk level':'high','install_data':{'author':'Vendor'}}]}}
-  with patch.object(harvest,'fetch_json',return_value=payload):
+  with patch.object(ext,'fetch_json',return_value=payload):
    row=next(harvest.ADAPTERS['joomla-vel']({}))
   self.assertEqual(row['plugin_id'],'7')
   self.assertEqual(row['version'],'2.0')
@@ -164,16 +165,17 @@ class CensusTests(unittest.TestCase):
  def test_drupal_api_paginates(self):
   pages=[{'list':[{'nid':1,'title':'Module','taxonomy_vocabulary_3':{'name':'Commerce'},'changed':'2026-01-01','uri':'https://drupal.org/project/module'}],'next':'?page=1'},
          {'list':[]}]
-  with patch.object(harvest,'fetch_json',side_effect=pages):
+  with patch.object(ext,'fetch_json',side_effect=pages):
    state={}
-   row=next(harvest.ADAPTERS['drupal-api'](state))
+   rows=list(harvest.ADAPTERS['drupal-api'](state))
+   row=rows[0]
   self.assertEqual(row['plugin_id'],'1')
   self.assertEqual(row['category'],'Commerce')
   self.assertEqual(state['page'],1)
 
  def test_jenkins_update_center_uses_first_version(self):
   payload={'plugins':{'demo':{'2.0':{'releaseTimestamp':'2026-01-01'},'1.0':{}}}}
-  with patch.object(harvest,'fetch_json',return_value=payload) as mocked:
+  with patch.object(ext,'fetch_json',return_value=payload) as mocked:
    row=next(harvest.ADAPTERS['jenkins-update-center']({}))
   self.assertEqual(row['version'],'2.0')
   self.assertEqual(row['category'],'jenkins-plugin')
@@ -184,18 +186,18 @@ class CensusTests(unittest.TestCase):
    with self.assertRaisesRegex(harvest.HarvestError,'provide state.slugs'):
     list(harvest.ADAPTERS['grafana-catalog']({}))
   payload={'name':'Demo Panel','orgName':'Grafana Labs','version':{'version':'1.2'},'downloads':99}
-  with patch.object(harvest,'fetch_json',return_value=payload):
+  with patch.object(ext,'fetch_json',return_value=payload):
    row=next(harvest.ADAPTERS['grafana-catalog']({'slugs':['demo-panel']}))
   self.assertEqual(row['plugin_id'],'demo-panel')
   self.assertEqual(row['version'],'1.2')
   self.assertEqual(row['downloads'],99)
 
  def test_agent_plugins_directory_paged_api_and_reportportal(self):
-  with patch.object(harvest,'_fetch_json_with_headers',return_value=({'plugins':[{'owner':'acme','name':'tool','version':'1.0'}]}, {'Link':''})):
+  with patch.object(ext,'_fetch_json_with_headers',return_value=({'plugins':[{'owner':'acme','name':'tool','version':'1.0'}]}, {'Link':''})): 
    row=next(harvest.ADAPTERS['agent-plugins-directory']({}))
   self.assertEqual(row['plugin_id'],'acme/tool')
   payload=[{'id':'rp1','name':'ReportPortal Plugin','vendor':'Vendor','version':'3.0'}]
-  with patch.object(harvest,'fetch_json',return_value=payload):
+  with patch.object(ext,'fetch_json',return_value=payload):
    row=next(harvest.ADAPTERS['reportportal-public']({}))
   self.assertEqual(row['plugin_id'],'rp1')
   self.assertEqual(row['author'],'Vendor')
