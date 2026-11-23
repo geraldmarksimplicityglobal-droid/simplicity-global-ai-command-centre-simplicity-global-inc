@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - sg-codex-x1000-studio
+      - codex/sg-cli-object-engine-001
     paths:
       - "sg-codex-studio/**"
       - ".github/workflows/sg-codex-studio-build.yml"
@@ -31,7 +32,7 @@ jobs:
         run: npm run build
       - name: Run unit tests
         run: npm test
-      - name: Upload compiled scheduler
+      - name: Upload compiled studio
         uses: actions/upload-artifact@v4
         with:
           name: sg-codex-studio-dist
