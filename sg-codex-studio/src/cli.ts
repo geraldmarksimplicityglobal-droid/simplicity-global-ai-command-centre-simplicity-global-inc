@@ -1,6 +1,6 @@
 import { ObjectEngine } from "./object-engine.js";
 import { FileObjectStore } from "./object-store.js";
-import { isObjectType } from "./object-types.js";
+import { isObjectType, type ObjectType } from "./object-types.js";
 
 interface CliOptions {
   args: string[];
@@ -110,7 +110,7 @@ export function runCli(inputArgs: string[]): number {
     }
     if (command === "list") {
       if (first && !isObjectType(first)) throw new Error(`Unknown object type: ${first}`);
-      process.stdout.write(JSON.stringify(store.list(first), null, 2) + "\n");
+      process.stdout.write(JSON.stringify(store.list(first as ObjectType | undefined), null, 2) + "\n");
       return 0;
     }
     if (command === "update") {
