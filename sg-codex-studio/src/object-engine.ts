@@ -128,7 +128,7 @@ export class JsonObjectStore implements ObjectStore {
     try { return await operation(); } finally { release(); }
   }
 
-  async create(type: ObjectType, data: Record<string, unknown>, id = randomUUID()): Promise<StoredObject> {
+  async create(type: ObjectType, data: Record<string, unknown>, id: string = randomUUID()): Promise<StoredObject> {
     return this.serializeWrite(async () => {
       if (!isObjectType(String(type))) throw new Error(`Unsupported object type: ${String(type)}`);
       validateObjectData(data);
