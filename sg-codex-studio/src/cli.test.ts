@@ -1,0 +1,50 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { main } from "./cli.js";
+
+async function runCase(run: (cwd: string, out: string[]) => Promise<void>) {
+  const cwd = await mkdtemp(join(tmpdir(), "sg-codex-cli-"));
+  const out: string[] = [];
+  try { await run(cwd, out); } finally { await rm(cwd, { recursive: true, force: true }); }
+}
+const io = (out: string[]) => ({ out: (value: string) => out.push(value), err: (_value: string) => {} });
+
+test("prints help and initializes a local workspace", async () => runCase(async (cwd, out) => {
+  assert.equal(await main(["help"], cwd, io(out)), 0);
+  assert.match(out.join(""), /object create/);
+  out.length = 0;
+  assert.equal(await main(["init"], cwd, io(out)), 0);
+  assert.match(out.join(""), /Initialized/);
+  out.length = 0;
+  assert.equal(await main(["doctor"], cwd, io(out)), 0);
+  assert.match(out.join(""), /Node.js/);
+}));
+
+test("lists all 30 object types in JSON mode", async () => runCase(async (cwd, out) => {
+  assert.equal(await main(["object", "types", "--json"], cwd, io(out)), 0);
+  assert.equal(JSON.parse(out.join("")).length, 30);
+}));
+
+test("creates, gets, lists and approval-gates deletion", async () => runCase(async (cwd, out) => {
+  assert.equal(await main(["object", "create", "Text", '{"value":"hello"}', "--id", "hello-1", "--json"], cwd, io(out)), 0);
+  assert.equal(JSON.parse(out.join("")).id, "hello-1");
+  out.length = 0;
+  assert.equal(await main(["object", "get", "hello-1", "--json"], cwd, io(out)), 0);
+  assert.equal(JSON.parse(out.join("")).data.value, "hello");
+  out.length = 0;
+  assert.equal(await main(["object", "list", "Text", "--json"], cwd, io(out)), 0);
+  assert.equal(JSON.parse(out.join("")).length, 1);
+  assert.equal(await main(["object", "delete", "hello-1"], cwd, io(out)), 2);
+  assert.equal(await main(["object", "get", "hello-1"], cwd, io(out)), 0);
+  assert.equal(await main(["object", "delete", "hello-1", "--yes"], cwd, io(out)), 0);
+  assert.equal(await main(["object", "get", "hello-1"], cwd, io(out)), 1);
+}));
+
+test("rejects malformed JSON, unknown commands and unknown flags", async () => runCase(async (cwd, out) => {
+  assert.equal(await main(["object", "create", "Text", "{bad"], cwd, io(out)), 2);
+  assert.equal(await main(["not-a-command"], cwd, io(out)), 2);
+  assert.equal(await main(["object", "list", "--unknown"], cwd, io(out)), 2);
+}));

@@ -1,12 +1,20 @@
 {
   "name": "@simplicity-global/sg-codex-studio",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "GEN SYSTEM bounded parallel studio orchestration baseline",
+  "description": "GEN SYSTEM bounded orchestration and local Codex CLI",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "sg-codex": "./dist/cli.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "node --test dist/*.test.js"
+    "test": "node --test dist/*.test.js",
+    "start": "node dist/cli.js",
+    "prepack": "npm run build"
   },
   "devDependencies": {
     "typescript": "^5.8.3",
