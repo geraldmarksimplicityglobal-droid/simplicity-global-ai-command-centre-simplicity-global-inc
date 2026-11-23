@@ -1,0 +1,26 @@
+{
+  "schema": "sg-android-skill/1.0",
+  "system_id": "SG-SKILL-BUILD-001",
+  "name": "MT Manager and Android App Signing",
+  "platform": "android",
+  "runtime": "termux-or-android-shell-bridge",
+  "status": "source-implemented-device-activation-pending",
+  "adapter": {
+    "id": "android-termux",
+    "permission_tier": "read-only-by-default",
+    "supports_shell": false,
+    "operations": [
+      "inspect-apk", "inspect-manifest", "inspect-dex", "dump-badging",
+      "verify-signature", "verify-alignment", "list-packages", "probe-tool",
+      "decompile-apk", "rebuild-apk", "align-apk", "sign-apk", "launch-mt-manager"
+    ]
+  },
+  "security": {
+    "default_mode": "read-only",
+    "write_requires_approval": true,
+    "execution_authorization_separate": true,
+    "signing_reviewer_executor_separation": true,
+    "secrets_in_process_arguments": false,
+    "production_key_generation": false
+  }
+}
