@@ -75,9 +75,10 @@ def run_one(ecosystem,db_path):
         run_id=db.execute('INSERT INTO harvest_runs(ecosystem,started_at,status) VALUES(?,?,?)',(ecosystem,started,'running')).lastrowid
         try:
             for row in ADAPTERS[ecosystem]({}):
-                cols=list(row); marks=','.join('?' for _ in cols)
+                cols=list(row); marks=','.join('?' for _ in cols); column_sql=','.join(cols)
                 updates=','.join(f'{c}=excluded.{c}' for c in cols if c not in ('ecosystem','plugin_id'))
-                db.execute(f'INSERT INTO harvested_items ({','.join(cols)}) VALUES ({marks}) ON CONFLICT(ecosystem,plugin_id) DO UPDATE SET {updates}',[row[c] for c in cols]); count+=1
+                sql=f"INSERT INTO harvested_items ({column_sql}) VALUES ({marks}) ON CONFLICT(ecosystem,plugin_id) DO UPDATE SET {updates}"
+                db.execute(sql,[row[c] for c in cols]); count+=1
             db.execute('UPDATE harvest_runs SET finished_at=?,records=?,status=? WHERE id=?',(datetime.now(timezone.utc).isoformat(),count,'complete',run_id))
         except Exception as e:
             db.execute('UPDATE harvest_runs SET finished_at=?,records=?,status=?,error=? WHERE id=?',(datetime.now(timezone.utc).isoformat(),count,'failed',str(e),run_id)); raise
