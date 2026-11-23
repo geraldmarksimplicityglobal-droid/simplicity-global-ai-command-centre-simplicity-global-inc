@@ -1,0 +1,13 @@
+{
+  "id": "SG-SKILL-BUILD-001",
+  "name": "SG Android App Engine",
+  "area": "android-application-engineering",
+  "state": "implemented-source",
+  "defaultMode": "read-only-mock",
+  "provider": "local-toolchain-not-connected",
+  "liveEnabled": false,
+  "readCapabilities": ["artifact.inspect", "artifact.hash", "artifact.classify", "signature.verify.plan", "build.plan", "device.test.plan", "release.checklist"],
+  "writeCapabilities": [],
+  "approvalRequiredFor": ["artifact.modify", "build.execute", "apk.sign", "aab.sign", "device.write", "app.install", "production.sign", "publish"],
+  "evidenceRequired": true
+}
