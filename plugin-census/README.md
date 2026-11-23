@@ -22,3 +22,14 @@ Set `GITHUB_TOKEN` in the process environment to reduce unauthenticated GitHub r
 Recognized credential variable names: `VODACOM_API_TOKEN`, `TAKEALOT_API_KEY`, `PAYJUSTNOW_MERCHANT_ID`, `PAYJUSTNOW_SECRET_KEY`. Supplying them does not enable unverified endpoints.
 
 SQLite stores normalized records and a harvest-run audit trail. Counts in the registry are supplied historical estimates, not live totals. The second supplied list contains 27 entries, despite its introductory claim of 24.
+
+## CAMARA SIM Swap service
+
+The operational SIM Swap client is isolated under services/simswap.py and is not
+registered as a catalog harvester. See SIMSWAP.md for the two POST operations,
+configuration, privacy controls and usage. It requires an operator/aggregator
+documented HTTPS base URL in SIMSWAP_API_BASE_URL and a bearer token in
+SIMSWAP_API_TOKEN. The example GSMA sandbox URL is intentionally not assumed
+to be a verified endpoint. The offline test suite mocks HTTP and does not query
+real MSISDNs or contact a provider. Optional audit persistence uses an HMAC
+fingerprint rather than storing the telephone number.
