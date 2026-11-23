@@ -87,5 +87,92 @@ class ExtendedAdapterTests(unittest.TestCase):
         self.assertEqual(row['author'], 'Example')
         self.assertEqual(row['category'], 'integration')
 
+
+    def test_six_new_registries_are_registered_without_duplicate_surfaces(self):
+        expected = ('node-red-flow-library', 'joplin-plugins', 'zotero-plugins',
+                    'raycast-store', 'rensei-plugins', 'homeassistant-catalog')
+        for key in expected:
+            self.assertEqual(BY_ID[key]['api_status'], 'live')
+            self.assertIn(key, harvest.ADAPTERS)
+        self.assertNotEqual(BY_ID['node-red-flow-library']['id'], BY_ID['nodered']['id'])
+        self.assertNotEqual(BY_ID['homeassistant-catalog']['id'], 'homeassistant')
+
+    def test_node_red_flow_library_maps_and_pages(self):
+        pages = [
+            {'results': [{'id': 'node-red-contrib-demo', 'name': 'Demo Nodes',
+                          'npm_username': 'acme', 'version': '1.0',
+                          'downloads': 42, 'categories': ['network']}],
+             'num_pages': 2},
+            {'results': [{'npm_package': 'node-red-extra', 'name': 'Extra'}],
+             'num_pages': 2}
+        ]
+        with patch.object(ext, 'fetch_json', side_effect=pages):
+            state = {}
+            rows = list(ext.node_red_flow_library(state))
+        self.assertEqual([r['plugin_id'] for r in rows], ['node-red-contrib-demo', 'node-red-extra'])
+        self.assertEqual(rows[0]['downloads'], 42)
+        self.assertEqual(rows[0]['category'], 'network')
+        self.assertEqual(state['page'], 2)
+
+    def test_joplin_merges_optional_download_stats(self):
+        manifests = [{'id': 'plugin.demo', 'name': 'Demo', 'author': 'Author',
+                      'version': '2.0', 'categories': ['productivity'],
+                      'repository_url': 'https://github.com/example/demo'}]
+        stats = {'plugin.demo': {'2.0': {'downloadCount': 123}}}
+        with patch.object(ext, 'fetch_json', side_effect=[manifests, stats]):
+            row = next(ext.joplin_plugins({}))
+        self.assertEqual(row['plugin_id'], 'plugin.demo')
+        self.assertEqual(row['downloads'], 123)
+        self.assertEqual(row['category'], 'productivity')
+
+    def test_zotero_accepts_only_list_envelope_and_fails_closed(self):
+        with patch.object(ext, 'fetch_json', return_value={'plugins': [
+            {'id': 'z1', 'name': 'Zotero Add-on', 'author': 'Author'}]}):
+            row = next(ext.zotero_plugins({}))
+        self.assertEqual(row['plugin_id'], 'z1')
+        self.assertEqual(row['author'], 'Author')
+        with patch.object(ext, 'fetch_json', return_value={'html': 'not-json-catalog'}):
+            with self.assertRaisesRegex(harvest.HarvestError, 'verify the current REST route/schema'):
+                list(ext.zotero_plugins({}))
+
+    def test_raycast_store_paginates_and_maps_downloads(self):
+        pages = [
+            {'data': [{'slug': 'demo', 'title': 'Demo Extension',
+                       'owner': {'handle': 'acme'}, 'downloadCount': 100,
+                       'categories': ['Developer Tools']}], 'total': 101},
+            {'data': [{'slug': 'demo-two', 'title': 'Second',
+                       'owner': {'handle': 'acme'}}], 'total': 101}
+        ]
+        with patch.object(ext, 'fetch_json', side_effect=pages):
+            state = {}
+            rows = list(ext.raycast_store(state))
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]['downloads'], 100)
+        self.assertEqual(rows[0]['url'], 'https://www.raycast.com/acme/demo')
+        self.assertEqual(state['page'], 2)
+
+    def test_rensei_uses_offset_and_total(self):
+        pages = [
+            {'plugins': [{'id': 'p1', 'name': 'Plugin One', 'provider': 'Vendor',
+                          'status': 'active'}], 'total': 2},
+            {'plugins': [{'id': 'p2', 'name': 'Plugin Two'}], 'total': 2}
+        ]
+        with patch.object(ext, 'fetch_json', side_effect=pages):
+            state = {}
+            rows = list(ext.rensei_plugins(state))
+        self.assertEqual([r['plugin_id'] for r in rows], ['p1', 'p2'])
+        self.assertEqual(rows[0]['author'], 'Vendor')
+        self.assertEqual(state['offset'], 2)
+
+    def test_homeassistant_generated_catalog_maps_core_integrations(self):
+        payload = {'integration': {
+            'demo': {'name': 'Demo Integration', 'integration_type': 'hub',
+                     'iot_class': 'cloud_polling', 'config_flow': True}}}
+        with patch.object(ext, 'fetch_json', return_value=payload):
+            row = next(ext.homeassistant_catalog({}))
+        self.assertEqual(row['plugin_id'], 'demo')
+        self.assertEqual(row['name'], 'Demo Integration')
+        self.assertEqual(row['category'], 'hub')
+
 if __name__ == '__main__':
     unittest.main()
