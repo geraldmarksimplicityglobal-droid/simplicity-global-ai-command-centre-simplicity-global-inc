@@ -36,7 +36,7 @@ class CensusTests(unittest.TestCase):
   self.assertEqual(BY_ID['steam-workshop']['api_status'],'token')
   self.assertIn('publisher_key_required',BY_ID['steam-workshop']['verification'])
   self.assertIn('factorio',harvest.ADAPTERS)
-  self.assertNotIn('steam-workshop',harvest.ADAPTERS)
+  self.assertIn('steam-workshop',harvest.ADAPTERS)
 
  def test_factorio_paginates_and_normalizes(self):
   pages=[
