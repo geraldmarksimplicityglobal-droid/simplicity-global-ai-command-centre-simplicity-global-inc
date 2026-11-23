@@ -254,7 +254,7 @@ def melpa(state):
 def pypi_simple(state):
     import re
     patterns=state.get('patterns',[r'-plugin'xbox-gamepass':xbox_gamepass,'psn-store':psn_store,'shopglu':shopglu,'n8n':n8n,'nodered':nodered,'vodacom':vodacom,'takealot':takealot,'payjustnow':payjustnow}
-from extended_adapters import EXTRA_ADAPTERS
+# Ensure script-mode execution and module imports share one module instance.\nsys.modules.setdefault('harvest', sys.modules[__name__])\nfrom extended_adapters import EXTRA_ADAPTERS
 ADAPTERS.update(EXTRA_ADAPTERS)
 
 def init_db(path):
