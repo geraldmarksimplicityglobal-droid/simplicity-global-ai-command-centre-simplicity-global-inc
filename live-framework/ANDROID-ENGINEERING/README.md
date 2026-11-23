@@ -37,4 +37,4 @@ Never commit a keystore or secret. A release build is not a production release u
 The companion selects APKs through SAF and uses Android's system Sharesheet for a human-controlled handoff. It does not assume undocumented MT Manager APIs or modify APKs itself.
 
 ## Verification boundary
-Repository-side Node tests run without Android SDK. Android compilation and Kotlin tests require Gradle and Android SDK; CI is configured to provide them. Device installation and MT Manager handoff have not been tested on a connected device. No production signing key has been provisioned and no release has been signed or published.
+GitHub Actions verified 12/12 Node policy/skill tests, Kotlin unit tests, and `:app:assembleDebug` successfully. Device installation and MT Manager handoff have not been tested on a connected device. No production signing key has been provisioned and no release has been signed or published.
