@@ -3,8 +3,8 @@ from unittest.mock import patch
 import harvest
 from registry import CATALOG,BY_ID
 class CensusTests(unittest.TestCase):
- def test_registry_has_31_unique_entries(self):
-  self.assertEqual(len(CATALOG),36); self.assertEqual(len(BY_ID),36)
+ def test_registry_has_38_unique_entries(self):
+  self.assertEqual(len(CATALOG),38); self.assertEqual(len(BY_ID),38)
   self.assertEqual(BY_ID['telkom']['api_status'],'manual')
  def test_credentialed_templates_fail_closed(self):
   with patch.dict('os.environ',{'VODACOM_API_TOKEN':'test'},clear=True):
