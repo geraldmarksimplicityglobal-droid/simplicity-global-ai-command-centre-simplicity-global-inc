@@ -1,0 +1,12 @@
+{
+  "name": "sg-android-app-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Governed Android app engineering skill and signing-plan policy engine",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/artifact-policy.mjs && node --check src/approval-policy.mjs && node --check src/signing-plan.mjs && node --check src/index.mjs"
+  }
+}
