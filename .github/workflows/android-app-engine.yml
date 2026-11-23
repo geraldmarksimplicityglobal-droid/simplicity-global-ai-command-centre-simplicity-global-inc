@@ -1,0 +1,35 @@
+name: SG Android App Engine
+on:
+  pull_request:
+    paths:
+      - "live-framework/ANDROID-APP-ENGINE/**"
+      - "live-framework/ARCHITECTURE-LIBRARY/modules/registry.json"
+      - "live-framework/ARCHITECTURE-LIBRARY/ROOTED-FOLDER-MAP.md"
+      - "live-framework/README.md"
+      - ".github/workflows/android-app-engine.yml"
+  push:
+    branches: ["codex/sg-skill-build-001-android"]
+    paths:
+      - "live-framework/ANDROID-APP-ENGINE/**"
+      - "live-framework/ARCHITECTURE-LIBRARY/modules/registry.json"
+      - "live-framework/ARCHITECTURE-LIBRARY/ROOTED-FOLDER-MAP.md"
+      - "live-framework/README.md"
+      - ".github/workflows/android-app-engine.yml"
+permissions:
+  contents: read
+jobs:
+  policy-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: live-framework/ANDROID-APP-ENGINE
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm test
+      - run: npm run check
+      - name: Validate JSON contracts
+        run: |
+          node -e "for (const p of ['manifest.json','config/toolchain-policy.json','schemas/android-job.schema.json']) JSON.parse(require('node:fs').readFileSync(p,'utf8'))"

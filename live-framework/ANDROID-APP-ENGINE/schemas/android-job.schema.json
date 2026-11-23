@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SG Android App Engine job",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["taskId", "authorised", "inputPath", "outputPath", "workspaceRoot", "operation", "approval"],
+  "properties": {
+    "taskId": { "type": "string", "minLength": 1 },
+    "authorised": { "type": "boolean", "const": true },
+    "inputPath": { "type": "string", "minLength": 1 },
+    "outputPath": { "type": "string", "minLength": 1 },
+    "workspaceRoot": { "type": "string", "minLength": 1 },
+    "operation": { "enum": ["inspect", "hash", "modify", "build", "sign", "verify-signature", "install", "device-write", "production-sign", "publish"] },
+    "artifactType": { "enum": ["apk", "aab", "source-project"] },
+    "approval": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["status", "taskId", "target", "operations", "expiresAt"],
+      "properties": {
+        "status": { "const": "approved" },
+        "taskId": { "type": "string", "minLength": 1 },
+        "target": { "type": "string", "minLength": 1 },
+        "operations": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "string" } },
+        "expiresAt": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}
