@@ -2,7 +2,7 @@
 
 Separate opt-in Python subsystem. It distinguishes plugin marketplaces from telecom product catalogs, seller-scoped commerce APIs and merchant transaction APIs.
 
-- Registry: 56 records, including CMS, CI/CD, observability, test automation, Factorio, Steam Workshop, editor/package registries, AI plugin directories and MCP registries.
+- Registry: 62 records, including CMS, CI/CD, observability, test automation, Factorio, Steam Workshop, editor/package registries, AI plugin directories and MCP registries.
 - Access posture: `live`, `token`, or `manual`; verification metadata separately records whether the endpoint is confirmed.
 - Implemented adapters include public ShopGlu, n8n, Node-RED, Factorio, Xbox Store, PlayStation Store, editor/package, AI/MCP, CMS, Jenkins, Grafana, Agent Plugins Directory and ReportPortal surfaces; see the extension sections for each adapter's limits.
 - Vodacom, Takealot and PayJustNow credentialed templates fail closed because the supplied exact read endpoints are unverified.
@@ -120,7 +120,7 @@ The user-supplied historical catalogue counts are stored as dated estimates, not
 
 ## CMS, CI/CD, observability and agent-plugin expansion
 
-The census now contains 56 ecosystem records. Six new adapters were added:
+The census now contains 62 ecosystem records. Six new adapters were added:
 
 - `joomla-vel`: Joomla Vulnerable Extensions List JSON feed. This is a security-advisory feed for vulnerable/resolved extensions, not a complete Joomla extension directory. The adapter maps the feed's CVSS 3.0 base score into the generic `rating` field for storage compatibility; interpret it as severity, not a user rating.
 - `drupal-api`: Drupal.org API-D7 `node.json`, filtered to `type=project_module`, with bounded page traversal and taxonomy category normalization.
@@ -153,3 +153,34 @@ python harvest.py --db census.db --only \
 ```
 
 Jenkins' static index and the Agent Plugins Directory's one-fetch index may be substantially larger than the default 5 MB response cap; their adapters use explicit larger caps. All destinations remain HTTPS-host-allowlisted and all network harvesting remains opt-in via `--execute`.
+
+
+## PKM, visual programming, reference, launcher and home-automation expansion
+
+Six additional unauthenticated registry surfaces are registered and have offline-tested adapters:
+
+- `node-red-flow-library`: Node-RED Flow Library search API, filtered to `type=node`; this is distinct from the existing npm keyword-search adapter `nodered`.
+- `joplin-plugins`: public Joplin `manifests.json`, optionally enriched with per-version download counts from `stats.json`. Missing or unavailable stats do not prevent manifest harvesting.
+- `zotero-plugins`: Zotero repository root adapter. The supplied specification did not include a precise JSON response schema or confirmed list route, so the adapter accepts only a top-level list or `plugins`/`data`/`results` list envelope and otherwise fails closed. Confirm the current route/schema before treating the endpoint as operationally verified; requests are intentionally single-shot and respect the stated anonymous rate-limit constraint.
+- `raycast-store`: public paginated Store Listings API, defaulting to 100 records per page and normalizing owner, downloads, category and update metadata.
+- `rensei-plugins`: public offset/limit plugin API with bounded pagination and total-aware stopping.
+- `homeassistant-catalog`: generated core integration JSON catalog. It is distinct from the existing analytics-based Home Assistant source and captures integration metadata rather than installation counts.
+
+Grafana was not added again: its existing `grafana-catalog` entry remains the seeded detail/versions surface. The existing Raycast manual directory record also remains separate from the new API-backed `raycast-store` surface.
+
+Offline tests mock all HTTP responses. No live endpoint verification or registry harvesting was performed for this extension.
+
+Dry-run:
+```bash
+python harvest.py --db census.db --only \
+  node-red-flow-library joplin-plugins zotero-plugins \
+  raycast-store rensei-plugins homeassistant-catalog
+```
+
+Execute explicitly:
+```bash
+python harvest.py --db census.db --only \
+  node-red-flow-library joplin-plugins zotero-plugins \
+  raycast-store rensei-plugins homeassistant-catalog --execute
+```
+
