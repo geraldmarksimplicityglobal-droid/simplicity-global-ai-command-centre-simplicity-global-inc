@@ -22,7 +22,7 @@ jobs:
           python-version: '3.12'
       - name: Compile Python sources
         working-directory: plugin-census
-        run: python -m py_compile registry.py harvest.py test_harvest.py test_simswap.py services/simswap.py
+        run: python -m py_compile registry.py harvest.py extended_adapters.py test_harvest.py test_extended_adapters.py test_simswap.py services/simswap.py
       - name: Run offline unit tests
         working-directory: plugin-census
         run: python -m unittest -v
