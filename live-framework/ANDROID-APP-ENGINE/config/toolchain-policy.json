@@ -1,0 +1,15 @@
+{
+  "default": "deny",
+  "executionEnabled": false,
+  "shell": false,
+  "mtManager": { "enabled": false, "discoveryRequired": true, "rootAssumed": false },
+  "androidSdk": { "enabled": false, "discoveryRequired": true },
+  "adb": { "enabled": false, "defaultMode": "read-only" },
+  "secretValuesInArgumentsOrLogs": false,
+  "originalArtifactImmutable": true,
+  "outputsMustDifferFromInput": true,
+  "artifactAuthorizationRequired": true,
+  "protectedOperations": ["modify", "build", "sign", "install", "device-write", "production-sign", "publish"],
+  "approval": { "singleOperationOnly": true, "taskScoped": true, "targetScoped": true, "expires": true },
+  "failurePolicy": "stop-and-report"
+}
