@@ -10,6 +10,7 @@ A separate, non-production enterprise operations console foundation.
 - Integration catalogue with verified / unverified / disconnected distinctions.
 - Change approval records, audit timeline, roadmap and control guardrails.
 - JSON export and browser-local persistence.
+- SG-SKILL-BUILD-001 Android MT Manager and APK signing skill with a fixed-operation Termux policy adapter; live Android activation remains pending.
 
 ## Safety and limitations
 - This branch does not modify the repository's existing main branch.
@@ -22,15 +23,15 @@ A separate, non-production enterprise operations console foundation.
 - Production rollout requires architecture review, authentication/RBAC, database and secret-vault setup, threat modelling, automated tests, legal review and explicit release approval.
 
 ## Run locally
-Open `index.html` in a modern browser or serve this directory using any static file server.
+Open index.html in a modern browser or serve this directory using any static file server.
 
 ## Deployment
 Not deployed. Do not publish until production controls and approvals are complete.
 
-
 ## Rooted architecture and runner library
-
 - [Architecture Library](./ARCHITECTURE-LIBRARY/README.md)
 - [Background Runner Bots](./BACKGROUND-RUNNERS/README.md)
 - [Domain Registrar module matrix](./DOMAIN-REGISTRAR/docs/module-implementation-matrix.md)
 - [GitHub Enterprise activation blockers](./IMPLEMENTATION/identity/github-enterprise/ACTIVATION-BLOCKERS.md)
+- [Android MT Manager and App Signing](./ANDROID-MT-MANAGER/README.md)
+- [Agentic Multi-IDE / CLI](./AGENTIC-MULTI-IDE-CLI/README.md)
