@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 from registry import BY_ID
 UA='SimplicityGlobal-PluginCensus/0.1'
-PUBLIC_HOSTS={'api.wordpress.org','api.github.com','registry.npmjs.org','displaycatalog.mp.microsoft.com','store.playstation.com'}
+PUBLIC_HOSTS={'api.wordpress.org','api.github.com','registry.npmjs.org','displaycatalog.mp.microsoft.com','store.playstation.com','mods.factorio.com'}
 TOKEN_HOSTS={'apipulse.vodacom.co.za','marketplace-api.takealot.com','seller-api.takealot.com','api.payjustnow.com','marketplace.magento.com','huggingface.co','registry.modelcontextprotocol.io','api.crewai.com','api.apify.com','api.vercel.com'}
 MAX_PAGES=100
 class HarvestError(RuntimeError): pass
@@ -121,7 +121,50 @@ def psn_store(state):
             url='https://store.playstation.com/en-us/product/'+urllib.parse.quote(cid,safe='-_'))
     state['seed_containers']=seeds
 
-ADAPTERS={'xbox-gamepass':xbox_gamepass,'psn-store':psn_store,'shopglu':shopglu,'n8n':n8n,'nodered':nodered,'vodacom':vodacom,'takealot':takealot,'payjustnow':payjustnow}
+
+def factorio(state):
+    """Enumerate public Factorio Mod Portal pages; no credentials are sent."""
+    page=int(state.get('page',1))
+    page_size=int(state.get('page_size',100))
+    if page < 1 or not 1 <= page_size <= 100:
+        raise HarvestError('Factorio page must be positive and page_size must be 1..100')
+    for _ in range(MAX_PAGES):
+        query=urllib.parse.urlencode({'page':page,'page_size':page_size})
+        data=fetch_json('https://mods.factorio.com/api/mods?'+query)
+        if not isinstance(data,dict):
+            raise HarvestError('Unexpected Factorio Mod Portal response')
+        results=data.get('results') or []
+        if not isinstance(results,list):
+            raise HarvestError('Unexpected Factorio results field')
+        if not results:
+            return
+        for mod in results:
+            if not isinstance(mod,dict): continue
+            release=mod.get('latest_release') or {}
+            if not isinstance(release,dict): release={}
+            name=mod.get('name')
+            if not name: continue
+            yield record('factorio',name,mod.get('title') or name,mod,
+                author=mod.get('owner'),version=release.get('version'),
+                downloads=mod.get('downloads_count'),rating=mod.get('score'),
+                category=mod.get('category'),updated_at=release.get('released_at'),
+                url='https://mods.factorio.com/mod/'+urllib.parse.quote(str(name),safe=''))
+        pagination=data.get('pagination') or {}
+        if not isinstance(pagination,dict):
+            raise HarvestError('Unexpected Factorio pagination field')
+        total=pagination.get('page_count') or pagination.get('pages')
+        if total is not None:
+            try: total=int(total)
+            except (TypeError,ValueError): raise HarvestError('Invalid Factorio page count')
+            if page >= total: return
+        elif len(results) < page_size:
+            return
+        page+=1
+        state['page']=page
+        time.sleep(0.25)
+    raise HarvestError('Factorio pagination safety stop; resume with saved page state')
+
+ADAPTERS={'factorio':factorio,'xbox-gamepass':xbox_gamepass,'psn-store':psn_store,'shopglu':shopglu,'n8n':n8n,'nodered':nodered,'vodacom':vodacom,'takealot':takealot,'payjustnow':payjustnow}
 def init_db(path):
     with sqlite3.connect(path) as db:
         db.execute('CREATE TABLE IF NOT EXISTS harvested_items (ecosystem TEXT NOT NULL, plugin_id TEXT NOT NULL, name TEXT NOT NULL, author TEXT, version TEXT, downloads INTEGER, rating REAL, category TEXT, updated_at TEXT, url TEXT, raw_json TEXT NOT NULL, harvested_at TEXT NOT NULL, PRIMARY KEY(ecosystem,plugin_id))')
