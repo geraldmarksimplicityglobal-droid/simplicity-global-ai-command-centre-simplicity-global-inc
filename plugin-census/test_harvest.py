@@ -3,8 +3,8 @@ from unittest.mock import patch
 import harvest
 from registry import CATALOG,BY_ID
 class CensusTests(unittest.TestCase):
- def test_registry_has_38_unique_entries(self):
-  self.assertEqual(len(CATALOG),38); self.assertEqual(len(BY_ID),38)
+ def test_registry_has_50_unique_entries(self):
+  self.assertEqual(len(CATALOG),50); self.assertEqual(len(BY_ID),50)
   self.assertEqual(BY_ID['telkom']['api_status'],'manual')
  def test_credentialed_templates_fail_closed(self):
   with patch.dict('os.environ',{'VODACOM_API_TOKEN':'test'},clear=True):
@@ -83,5 +83,64 @@ class CensusTests(unittest.TestCase):
    list(harvest.xbox_gamepass({'markets':['../'],'platforms':['console']}))
   with self.assertRaisesRegex(harvest.HarvestError,'container ID'):
    list(harvest.psn_store({'seed_containers':['../etc']}))
+
+
+ def test_new_registry_classifications_and_adapter_boundaries(self):
+  for key in ('openvsx','sublime-package-control','melpa','pypi-simple','dsh-plugins',
+              'claude-plugins-dev','claude-plugin-hub','mcp-official','mcp-casdoor'):
+   self.assertEqual(BY_ID[key]['api_status'],'live')
+   self.assertIn(key,harvest.ADAPTERS)
+  for key in ('acp-registry','botpress-plugins','tagada-plugins'):
+   self.assertEqual(BY_ID[key]['api_status'],'live')
+   self.assertNotIn(key,harvest.ADAPTERS)
+ def test_openvsx_pagination_and_namespace_identifier(self):
+  pages=[
+   {'extensions':[{'namespace':'acme','name':'tool','displayName':'Acme Tool','downloadCount':25,'averageRating':4.5}],'totalSize':101},
+   {'extensions':[{'namespace':'org','name':'extra'}],'totalSize':101},
+  ]
+  with patch.object(harvest,'fetch_json',side_effect=pages):
+   rows=list(harvest.openvsx({}))
+  self.assertEqual([r['plugin_id'] for r in rows],['acme.tool','org.extra'])
+  self.assertEqual(rows[0]['downloads'],25)
+ def test_sublime_and_melpa_normalization(self):
+  sublime={'packages_cache':{'packages':[{'name':'Demo','authors':['Author'],'labels':['linting'],'releases':[{'version':'1.2','date':'2026-01-01'}]}]}}
+  with patch.object(harvest,'fetch_json',return_value=sublime):
+   row=next(harvest.sublime_package_control({}))
+  self.assertEqual(row['version'],'1.2')
+  with patch.object(harvest,'fetch_json',side_effect=[{'demo':[{'version':'2.0'}]},{'demo':123}]):
+   row=next(harvest.melpa({}))
+  self.assertEqual(row['downloads'],123)
+ def test_pypi_semantic_filter(self):
+  payload={'projects':[{'name':'demo-plugin'},{'name':'ordinary-package'},{'name':'pytest-demo'}]}
+  with patch.object(harvest,'fetch_json',return_value=payload) as mocked:
+   rows=list(harvest.pypi_simple({}))
+  self.assertEqual([r['plugin_id'] for r in rows],['demo-plugin','pytest-demo'])
+  self.assertEqual(mocked.call_args.kwargs['max_bytes'],100_000_000)
+ def test_ai_and_mcp_normalization(self):
+  dsh={'data':{'items':[{'id':'p1','name':'Plugin','full_name':'owner/plugin','stars':7}],'total':1}}
+  with patch.object(harvest,'fetch_json',return_value=dsh):
+   self.assertEqual(next(harvest.dsh_plugins({}))['rating'],7)
+  claude={'results':[{'id':'c1','name':'Claude Plugin','stars':9}],'total':1}
+  with patch.object(harvest,'fetch_json',return_value=claude):
+   self.assertEqual(next(harvest.claude_plugins_dev({}))['plugin_id'],'c1')
+  hub={'plugins':[{'slug':'hub-one','name':'Hub One','currentVersion':{'version':'1.0'}}],'totalPages':1}
+  with patch.object(harvest,'fetch_json',return_value=hub):
+   self.assertEqual(next(harvest.claude_plugin_hub({}))['version'],'1.0')
+  mcp={'servers':[{'name':'io.example/server','title':'Example','version':'1.0'}]}
+  with patch.object(harvest,'fetch_json',return_value=mcp):
+   self.assertEqual(next(harvest.mcp_official({}))['category'],'mcp-server')
+  with patch.object(harvest,'fetch_json',return_value=[{'id':'cas-one','name':'Casdoor Server','category':'database','endpoint':'https://mcp.example'}]):
+   row=next(harvest.mcp_casdoor({}))
+  self.assertEqual(row['url'],'https://mcp.casdoor.org')
+ def test_steam_workshop_requires_key_and_normalizes(self):
+  with patch.dict('os.environ',{},clear=True):
+   with self.assertRaisesRegex(harvest.HarvestError,'STEAM_PUBLISHER_KEY'):
+    list(harvest.steam_workshop({}))
+  payload={'response':{'publishedfiledetails':[{'publishedfileid':'123','title':'Workshop Mod','creator':'42','subscriptions':88,'vote_data':{'score':0.95}}]}}
+  with patch.dict('os.environ',{'STEAM_PUBLISHER_KEY':'test-key'},clear=True):
+   with patch.object(harvest,'fetch_json',return_value=payload):
+    row=next(harvest.steam_workshop({'appid':427520}))
+  self.assertEqual(row['plugin_id'],'123')
+  self.assertEqual(row['downloads'],88)
 
 if __name__=='__main__': unittest.main()
