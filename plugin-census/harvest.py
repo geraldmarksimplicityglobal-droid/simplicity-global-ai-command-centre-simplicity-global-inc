@@ -15,7 +15,7 @@ def fetch_json(url, headers=None, max_bytes=5_000_000):
     try:
         with urllib.request.urlopen(req,timeout=20) as res:
             raw=res.read(max_bytes+1)
-            if len(raw)>max_bytes: raise HarvestError('Response exceeds 5 MB limit')
+            if len(raw)>max_bytes: raise HarvestError(f'Response exceeds {max_bytes} byte limit')
             return json.loads(raw.decode('utf-8'))
     except urllib.error.HTTPError as e:
         if e.code in (401,403): raise HarvestError(f'Authorization rejected (HTTP {e.code})') from e
