@@ -54,6 +54,8 @@ export class WorkflowService {
   authorizeExecution(proposal, executorId) {
     assertNonEmpty(executorId, "executorId"); if (proposal.state !== ProposalState.REVIEW_APPROVED) throw new Error("Reviewer approval is required first");
     assertDistinctActors(proposal.reviewerId, executorId, this.#policy);
+    assertProposalDigest(proposal, proposal.approvedDigest, "review approval");
+    proposal.authorizedDigest = proposal.approvedDigest;
     proposal.executorId = executorId; proposal.state = ProposalState.EXECUTION_AUTHORIZED;
     this.#record("EXECUTION_AUTHORIZED", executorId, { proposalId: proposal.id }); return proposal;
   }
