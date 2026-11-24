@@ -3,7 +3,7 @@
 ## Component flow
 ARCHIVE UI / CLI -> Workflow Service -> Zapier MCP Adapter -> Zapier MCP server
 
-The workflow service accepts normalized adapter results. The adapter is injected by the host and owns protocol/session details. No Zapier URL, token, or credential is hard-coded.
+The workflow service accepts normalized adapter results. The adapter is injected by the host and owns protocol/session details. No Zapier URL, token, or credential is hard-coded. The listWorkflows/getWorkflow/getRunHistory methods are ARCHIVE adapter abstractions, not guaranteed Zapier MCP built-ins; they may be implemented only when actual configured read tools or separately authorized export sources provide equivalent data.
 
 ## Modules
 - src/types.js: workflow, run, proposal, approval and audit contracts.
@@ -15,7 +15,7 @@ The workflow service accepts normalized adapter results. The adapter is injected
 ## Lifecycle
 DISCOVERED -> INSPECTED -> PROPOSED -> REVIEW_APPROVED -> EXECUTION_AUTHORIZED -> COPY_CREATED -> COPY_TESTED
 
-A failed check moves the proposal to BLOCKED. Approval and execution authorization are distinct events, must be performed by distinct actor IDs for high-risk changes, and are both required before an executor is called.
+A failed check moves the proposal to BLOCKED. Approval and execution authorization are distinct events, must be performed by distinct actor IDs for high-risk changes, and are both required before an executor is called. Each is bound to a digest of the exact proposal; any post-approval edit invalidates the authorization chain.
 
 ## Data handling
 - Store secret values only in the host's secret manager.
