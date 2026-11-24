@@ -1,6 +1,19 @@
+import { createHash, randomUUID } from "node:crypto";
 import { assertReadOnlyAdapter, normalizeRun, normalizeWorkflow } from "./adapter-contract.js";
 import { assertDistinctActors, assertNonEmpty, DEFAULT_POLICY } from "./policy.js";
 import { ProposalState, auditEvent } from "./types.js";
+
+function stableStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  if (value && typeof value === "object") return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(",")}}`;
+  return JSON.stringify(value);
+}
+function proposalDigest(proposal) {
+  return createHash("sha256").update(stableStringify({ id: proposal.id, workflowId: proposal.workflowId, summary: proposal.summary, changes: proposal.changes })).digest("hex");
+}
+function assertProposalDigest(proposal, expected, stage) {
+  if (!expected || proposalDigest(proposal) !== expected) throw new Error(`Proposal changed after ${stage}; approval chain is invalid`);
+}
 
 export class WorkflowService {
   #adapter; #executor; #policy; #audit = [];
@@ -30,12 +43,12 @@ export class WorkflowService {
   createProposal({ workflowId, actorId, summary, changes }) {
     assertNonEmpty(workflowId, "workflowId"); assertNonEmpty(actorId, "actorId"); assertNonEmpty(summary, "summary");
     if (!Array.isArray(changes) || changes.length === 0) throw new TypeError("At least one proposed change is required");
-    const proposal = { id: "prop_" + crypto.randomUUID(), workflowId, summary, changes: structuredClone(changes), state: ProposalState.PROPOSED, reviewerId: null, executorId: null, copyId: null, createdBy: actorId };
+    const proposal = { id: "prop_" + randomUUID(), workflowId, summary, changes: structuredClone(changes), state: ProposalState.PROPOSED, reviewerId: null, executorId: null, copyId: null, createdBy: actorId, proposalDigest: null, approvedDigest: null, authorizedDigest: null };
     this.#record("CHANGE_PROPOSED", actorId, { proposalId: proposal.id, workflowId }); return proposal;
   }
   approveProposal(proposal, reviewerId) {
     assertNonEmpty(reviewerId, "reviewerId"); if (proposal.state !== ProposalState.PROPOSED) throw new Error("Only proposed changes can be reviewed");
-    proposal.reviewerId = reviewerId; proposal.state = ProposalState.REVIEW_APPROVED;
+    proposal.proposalDigest = proposalDigest(proposal); proposal.approvedDigest = proposal.proposalDigest; proposal.reviewerId = reviewerId; proposal.state = ProposalState.REVIEW_APPROVED;
     this.#record("REVIEW_APPROVED", reviewerId, { proposalId: proposal.id }); return proposal;
   }
   authorizeExecution(proposal, executorId) {
@@ -47,6 +60,7 @@ export class WorkflowService {
   async executeCopyOnly(proposal) {
     if (!this.#policy.allowLiveWrites) throw new Error("Live writes are disabled by policy");
     if (proposal.state !== ProposalState.EXECUTION_AUTHORIZED) throw new Error("Execution authorization is required");
+    assertProposalDigest(proposal, proposal.authorizedDigest, "execution authorization");
     if (!this.#policy.requireCopyOnly) throw new Error("This release only supports copy-only execution");
     if (!this.#executor || typeof this.#executor.createWorkflowCopy !== "function") throw new Error("No approved copy-only executor is configured");
     const result = await this.#executor.createWorkflowCopy({ sourceWorkflowId: proposal.workflowId, proposal: structuredClone(proposal), requestedBy: proposal.executorId });
