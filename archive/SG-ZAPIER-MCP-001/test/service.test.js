@@ -38,3 +38,21 @@ test("audit trail records control decisions", async () => {
   const service = new WorkflowService({ adapter: makeAdapter() }); await service.inspectInventory("operator");
   assert.equal(service.auditTrail[0].type, "WORKFLOW_INVENTORY_INSPECTED");
 });
+
+test("editing a proposal after review invalidates its approval", () => {
+  const service = new WorkflowService({ adapter: makeAdapter() });
+  const proposal = service.createProposal({ workflowId: "zap_1", actorId: "author", summary: "Fix auth", changes: [{ action: "refresh" }] });
+  service.approveProposal(proposal, "reviewer");
+  proposal.changes.push({ action: "send email" });
+  assert.throws(() => service.authorizeExecution(proposal, "executor"), /changed after review approval/);
+});
+
+test("editing a proposal after execution authorization blocks dispatch", async () => {
+  const executor = { async createWorkflowCopy() { throw new Error("must not dispatch"); } };
+  const service = new WorkflowService({ adapter: makeAdapter(), executor, policy: { allowLiveWrites: true } });
+  const proposal = service.createProposal({ workflowId: "zap_1", actorId: "author", summary: "Fix auth", changes: [{ action: "refresh" }] });
+  service.approveProposal(proposal, "reviewer");
+  service.authorizeExecution(proposal, "executor");
+  proposal.summary = "Changed after approval";
+  await assert.rejects(() => service.executeCopyOnly(proposal), /changed after execution authorization/);
+});
