@@ -329,6 +329,109 @@ export function generateMicrosoftPayoutSettlementCandidates(bankRows, payouts, o
   return generateReconciliationCandidates(bankRows, sentPayouts, options);
 }
 
+export function reviewMicrosoftPayoutSettlements(bankRows, payouts, options = {}) {
+  if (!Array.isArray(bankRows) || !Array.isArray(payouts)) {
+    throw new TypeError("bankRows and payouts must be arrays");
+  }
+  const maxDayDifference = Number.isInteger(options.maxDayDifference) ? options.maxDayDifference : 3;
+  if (maxDayDifference < 0 || maxDayDifference > 31) {
+    throw new RangeError("maxDayDifference must be between 0 and 31");
+  }
+  const candidates = generateMicrosoftPayoutSettlementCandidates(bankRows, payouts, { maxDayDifference });
+  const dayDistance = (left, right) => {
+    const a = Date.parse(left);
+    const b = Date.parse(right);
+    return Number.isFinite(a) && Number.isFinite(b) ? Math.abs(a - b) / 86400000 : null;
+  };
+  const sameReference = (left, right) =>
+    Boolean(left && right && String(left).trim().toLowerCase() === String(right).trim().toLowerCase());
+
+  const reviews = payouts.map(payout => {
+    if (payout.normalizedStatus !== "sent_by_microsoft" || !payout.sentDate) {
+      return {
+        payoutId: payout.payoutId,
+        status: "NOT_SENT",
+        candidates: [],
+        reconciled: false,
+        requiresHumanConfirmation: true
+      };
+    }
+    let exact = candidates.filter(candidate => candidate.ledgerId === payout.payoutId);
+    if (exact.some(candidate => candidate.referenceMatch)) {
+      exact = exact.filter(candidate => candidate.referenceMatch);
+    }
+    let status;
+    let reviewCandidates = exact;
+    if (exact.length > 1) {
+      status = "AMBIGUOUS_MATCH";
+    } else if (exact.length === 1) {
+      status = "SUGGESTED_MATCH";
+    } else {
+      const referenceRows = bankRows.filter(row => sameReference(row.reference, payout.reference));
+      const nearReferenceRows = referenceRows.filter(row => {
+        const days = dayDistance(row.date, payout.sentDate);
+        return days !== null && days <= maxDayDifference;
+      });
+      const fxRows = nearReferenceRows.filter(row => row.currency !== payout.currency);
+      const amountRows = nearReferenceRows.filter(row => row.currency === payout.currency);
+      const exactAmountRows = bankRows.filter(row => {
+        if (row.currency !== payout.currency) return false;
+        try {
+          return toMinorUnits(row.amount, row.currency) === toMinorUnits(payout.amount, payout.currency);
+        } catch {
+          return false;
+        }
+      });
+      if (fxRows.length) {
+        status = "FX_REVIEW";
+        reviewCandidates = fxRows;
+      } else if (amountRows.length) {
+        status = "AMOUNT_REVIEW";
+        reviewCandidates = amountRows;
+      } else if (exactAmountRows.length) {
+        status = "DATE_REVIEW";
+        reviewCandidates = exactAmountRows;
+      } else {
+        status = "UNMATCHED";
+        reviewCandidates = [];
+      }
+    }
+    return {
+      payoutId: payout.payoutId,
+      status,
+      candidates: reviewCandidates.map(candidate => ({
+        bankId: candidate.bankId ?? candidate.id ?? null,
+        ledgerId: candidate.ledgerId ?? payout.payoutId,
+        currency: candidate.currency ?? null,
+        amount: candidate.amount ?? null,
+        reference: candidate.reference ?? null,
+        dayDifference: candidate.dayDifference ?? dayDistance(candidate.date, payout.sentDate),
+        referenceMatch: candidate.referenceMatch ?? sameReference(candidate.reference, payout.reference)
+      })),
+      reconciled: false,
+      requiresHumanConfirmation: true
+    };
+  });
+
+  const uses = new Map();
+  for (const review of reviews) {
+    if (review.status === "SUGGESTED_MATCH" && review.candidates[0]?.bankId) {
+      const bankId = review.candidates[0].bankId;
+      uses.set(bankId, [...(uses.get(bankId) ?? []), review.payoutId]);
+    }
+  }
+  for (const review of reviews) {
+    if (review.status === "SUGGESTED_MATCH" && review.candidates[0]?.bankId &&
+        (uses.get(review.candidates[0].bankId) ?? []).length > 1) {
+      review.status = "CONFLICT";
+    }
+  }
+  return Object.freeze(reviews.map(review => Object.freeze({
+    ...review,
+    candidates: Object.freeze(review.candidates.map(candidate => Object.freeze(candidate)))
+  })));
+}
+
 export function buildMicrosoftEarningJournalProposal(earning, mapping) {
   if (!earning || earning.kind !== "microsoft_earning") {
     throw new TypeError("normalised Microsoft earning is required");
