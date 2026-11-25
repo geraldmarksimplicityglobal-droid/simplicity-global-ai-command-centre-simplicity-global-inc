@@ -1,0 +1,40 @@
+{
+  "id": "SG-FIN-001",
+  "name": "Financial Intelligence System",
+  "area": "finance-accounting-crypto-compliance",
+  "state": "source-foundation",
+  "defaultMode": "design",
+  "provider": "read-only provider contracts; Microsoft Partner Center app registration/consent and Xero application OAuth are not configured",
+  "liveEnabled": false,
+  "readCapabilities": [
+    "source-event-normalisation",
+    "journal-proposal-validation",
+    "duplicate-detection",
+    "reconciliation-candidate-generation",
+    "microsoft-earnings-normalisation",
+    "microsoft-payout-normalisation",
+    "microsoft-payout-report-ingestion",
+    "microsoft-settlement-candidate-generation",
+    "microsoft-accounting-proposal",
+    "microsoft-settlement-exception-review"
+  ],
+  "writeCapabilities": [],
+  "approvalRequiredFor": [
+    "financial.journal.post",
+    "financial.reconciliation.accept",
+    "financial.invoice.issue",
+    "financial.invoice.send",
+    "financial.payment.execute",
+    "financial.bank_transfer.execute",
+    "financial.crypto_transfer.sign",
+    "financial.crypto_transfer.broadcast",
+    "financial.exchange_order.execute",
+    "financial.tax.submit",
+    "production.database.migrate",
+    "production.deploy",
+    "financial.microsoft_payout.profile.change",
+    "financial.microsoft_payout.tax_profile.change",
+    "financial.microsoft_payout.account_mapping.approve"
+  ],
+  "evidenceRequired": true
+}

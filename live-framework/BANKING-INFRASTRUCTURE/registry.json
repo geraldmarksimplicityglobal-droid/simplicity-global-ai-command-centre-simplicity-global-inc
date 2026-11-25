@@ -1,0 +1,94 @@
+{
+  "registryId": "SG-BANKING-INFRA-001",
+  "version": "1.0.0",
+  "classification": "banking-connectivity-aggregation-orchestration-registry",
+  "platform": {
+    "id": "SG-BANKING-INFRA-012",
+    "name": "Simplicity Global Banking Connectivity & Orchestration",
+    "category": "named-platform-vendor",
+    "role": "integration-and-access-layer",
+    "isPaymentRail": false,
+    "providerVerification": "pending"
+  },
+  "connectionTypes": [
+    {
+      "id": "SG-BANK-001",
+      "name": "API connectivity",
+      "status": "proposed"
+    },
+    {
+      "id": "SG-BANK-002",
+      "name": "Portal connectivity",
+      "status": "proposed"
+    },
+    {
+      "id": "SG-BANK-003",
+      "name": "Host-to-host / file connectivity",
+      "status": "proposed"
+    },
+    {
+      "id": "SG-BANK-004",
+      "name": "Webhook / event connectivity",
+      "status": "proposed"
+    },
+    {
+      "id": "SG-BANK-005",
+      "name": "Multi-bank aggregation",
+      "status": "proposed"
+    },
+    {
+      "id": "SG-BANK-006",
+      "name": "Payment orchestration",
+      "status": "proposed"
+    },
+    {
+      "id": "SG-BANK-007",
+      "name": "Virtual account connectivity",
+      "status": "proposed"
+    },
+    {
+      "id": "SG-BANK-008",
+      "name": "Statements and reporting",
+      "status": "proposed"
+    },
+    {
+      "id": "SG-BANK-009",
+      "name": "Indirect payment-rail access",
+      "status": "proposed"
+    },
+    {
+      "id": "SG-BANK-010",
+      "name": "Sandbox and testing",
+      "status": "proposed"
+    }
+  ],
+  "integrations": [
+    {
+      "id": "SG-MS-PAYOUT-001",
+      "name": "Microsoft Partner Center earnings and payout evidence",
+      "parentFinancialModule": "SG-FIN-001",
+      "provider": "Microsoft Partner Center",
+      "direction": "inbound-revenue-evidence",
+      "mode": "read-only",
+      "isPaymentRail": false,
+      "movesMoney": false,
+      "bankReceiptRequiresStatement": true,
+      "liveApiConnected": false,
+      "tenantConsentGranted": false,
+      "profileChangesEnabled": false,
+      "writeEnabled": false,
+      "status": "source-foundation"
+    }
+  ],
+  "sourceOfTruth": "Version-controlled registry only; provider access and capabilities require separate verification.",
+  "plannedEngines": [
+    {
+      "id": "SG-BANKING-INFRA-013",
+      "name": "Universal Banking API & Connector Engine",
+      "status": "planned",
+      "liveEnabled": false,
+      "providerConnectionsVerified": false,
+      "productionEnabled": false
+    }
+  ]
+}
