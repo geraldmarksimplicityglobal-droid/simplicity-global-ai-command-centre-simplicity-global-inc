@@ -76,6 +76,15 @@
       "status": "source-foundation",
       "liveEnabled": false,
       "provider": "not-connected"
+    },
+    {
+      "id": "SG-MS-PAYOUT-001",
+      "name": "Microsoft Partner Center Earnings and Payout Adapter",
+      "root": "live-framework/FINANCIAL-INTELLIGENCE/src/microsoft-payouts.mjs",
+      "parent": "SG-FIN-001",
+      "status": "source-foundation",
+      "liveEnabled": false,
+      "writeEnabled": false
     }
   ],
   "sourceOfTruth": "Repository implementation state only."
