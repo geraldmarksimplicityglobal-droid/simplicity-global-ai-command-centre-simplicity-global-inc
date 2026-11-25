@@ -85,6 +85,22 @@
       "status": "source-foundation",
       "liveEnabled": false,
       "writeEnabled": false
+    },
+    {
+      "id": "SG-BANKING-INFRA-001",
+      "name": "Banking Infrastructure & Connectivity Registry",
+      "root": "live-framework/BANKING-INFRASTRUCTURE",
+      "status": "taxonomy-source",
+      "liveEnabled": false
+    },
+    {
+      "id": "SG-BANKING-INFRA-012",
+      "name": "Simplicity Global Banking Connectivity & Orchestration",
+      "root": "live-framework/BANKING-INFRASTRUCTURE/registry.json",
+      "parent": "SG-BANKING-INFRA-001",
+      "status": "proposed-platform-classification",
+      "paymentRail": false,
+      "providerVerification": "pending"
     }
   ],
   "sourceOfTruth": "Repository implementation state only."
