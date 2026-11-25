@@ -9,5 +9,6 @@ export {
   normaliseMicrosoftEarning, ingestMicrosoftEarningsReport,
   normaliseMicrosoftPayout, ingestMicrosoftPayoutReport,
   generateMicrosoftPayoutSettlementCandidates,
+  reviewMicrosoftPayoutSettlements,
   buildMicrosoftEarningJournalProposal
 } from "./microsoft-payouts.mjs";
