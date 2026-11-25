@@ -4,13 +4,18 @@
   "area": "finance-accounting-crypto-compliance",
   "state": "source-foundation",
   "defaultMode": "design",
-  "provider": "provider-contract-only; Xero OAuth and wallet/blockchain adapters not configured",
+  "provider": "read-only provider contracts; Microsoft Partner Center app registration/consent and Xero application OAuth are not configured",
   "liveEnabled": false,
   "readCapabilities": [
     "source-event-normalisation",
     "journal-proposal-validation",
     "duplicate-detection",
-    "reconciliation-candidate-generation"
+    "reconciliation-candidate-generation",
+    "microsoft-earnings-normalisation",
+    "microsoft-payout-normalisation",
+    "microsoft-payout-report-ingestion",
+    "microsoft-settlement-candidate-generation",
+    "microsoft-accounting-proposal"
   ],
   "writeCapabilities": [],
   "approvalRequiredFor": [
@@ -25,7 +30,10 @@
     "financial.exchange_order.execute",
     "financial.tax.submit",
     "production.database.migrate",
-    "production.deploy"
+    "production.deploy",
+    "financial.microsoft_payout.profile.change",
+    "financial.microsoft_payout.tax_profile.change",
+    "financial.microsoft_payout.account_mapping.approve"
   ],
   "evidenceRequired": true
 }
