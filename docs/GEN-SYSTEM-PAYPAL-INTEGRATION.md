@@ -8,8 +8,8 @@
 
 ## Architecture
 
-- **Marketplace:** `internal/paypal` defines read-only invoice, transaction, and dispute contracts plus a deterministic mock provider.
-- **Partner Center:** `src/paypal-mock.js` exposes the same read-only fixture operations for the portal UI/workflow.
+- **Marketplace:** `internal/paypal` exposes mock-only HTTP views for status, invoices, transactions, disputes, payment links, and local reference reconciliation.
+- **Partner Center:** `src/paypal-mock.js` exposes isolated invoice, transaction, dispute, and payment-link fixtures, local reference reconciliation, and webhook fail-closed status.
 - **Command Centre:** This document is the integration control specification and evidence index.
 
 ## Supported read-only operations\n\nMarketplace API mock routes (all return `mode: mock`, `Cache-Control: no-store`, and reject non-GET methods):\n\n- `GET /api/v1/paypal/status`\n- `GET /api/v1/paypal/invoices`\n- `GET /api/v1/paypal/transactions`\n- `GET /api/v1/paypal/disputes`\n- `GET /api/v1/paypal/payment-links` (empty fixture; creation disabled)\n- `GET /api/v1/paypal/reconciliation` (reference counts only; explicitly not financial reconciliation)\n
@@ -19,11 +19,12 @@
 | List invoices | One local draft fixture, USD 0.00 |
 | List transactions | Empty local fixture |
 | List disputes | Empty local fixture |
+| List payment links | Empty local fixture |
 | Reconciliation | Compare imported/exported references only; no bank writes |
 
 ## Explicitly blocked operations
 
-Invoice dispatch, payment-link creation, checkout capture, authorization, refund, payout, transfer, account changes, live API calls, webhook registration, and deployment are not implemented or enabled.
+Invoice dispatch, payment-link creation, checkout capture, authorization, refund, payout, transfer, account changes, live API calls, webhook registration, and deployment are not implemented or enabled. Mock webhook verification explicitly fails closed; local reference matching is not settlement verification.
 
 ## Live integration prerequisites (not performed)
 
@@ -46,7 +47,7 @@ Invoice dispatch, payment-link creation, checkout capture, authorization, refund
 
 ## Evidence
 
-- Marketplace package: `internal/paypal/mock.go`, `internal/paypal/mock_test.go`
+- Marketplace package: `internal/paypal/mock.go`, `internal/paypal/modules.go`, `internal/paypal/http.go`, and package tests
 - Partner Center adapter: `src/paypal-mock.js`, `tests/paypal-mock.test.js`\n- Partner Center reference reconciliation compares opaque references only; it does not assert settlement or move funds.
 - Test entrypoint: Partner Center `npm test`
 - CI status must be checked on the pull request before merge.
