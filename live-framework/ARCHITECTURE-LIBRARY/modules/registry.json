@@ -101,6 +101,14 @@
       "status": "proposed-platform-classification",
       "paymentRail": false,
       "providerVerification": "pending"
+    },
+    {
+      "id": "SG-BANKING-INFRA-013",
+      "name": "Universal Banking API & Connector Engine",
+      "root": "live-framework/BANKING-INFRASTRUCTURE",
+      "parent": "SG-BANKING-INFRA-001",
+      "status": "planned",
+      "liveEnabled": false
     }
   ],
   "sourceOfTruth": "Repository implementation state only."
