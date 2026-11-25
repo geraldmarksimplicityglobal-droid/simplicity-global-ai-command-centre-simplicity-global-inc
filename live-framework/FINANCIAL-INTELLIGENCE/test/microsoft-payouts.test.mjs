@@ -8,6 +8,7 @@ import {
   normaliseMicrosoftPayout,
   ingestMicrosoftPayoutReport,
   generateMicrosoftPayoutSettlementCandidates,
+  reviewMicrosoftPayoutSettlements,
   buildMicrosoftEarningJournalProposal
 } from "../src/index.mjs";
 
@@ -156,6 +157,57 @@ test("settlement produces human-review candidates only for Microsoft-sent payout
   assert.equal(candidates[0].ledgerId, "MS-PAYOUT-001");
   assert.equal(candidates[0].requiresHumanConfirmation, true);
   assert.equal(candidates[0].status, "candidate");
+});
+
+
+test("settlement review distinguishes ambiguous, FX, amount, date and unmatched exceptions", () => {
+  const sent = normaliseMicrosoftPayout(payoutInput());
+  const baseBank = {
+    id: "BANK-REVIEW-001", amount: "94.00", currency: "USD",
+    date: "2026-11-18", reference: "MS-REF-001"
+  };
+  assert.equal(reviewMicrosoftPayoutSettlements([baseBank], [sent])[0].status, "SUGGESTED_MATCH");
+
+  const ambiguous = reviewMicrosoftPayoutSettlements(
+    [baseBank, { ...baseBank, id: "BANK-REVIEW-002" }],
+    [sent]
+  );
+  assert.equal(ambiguous[0].status, "AMBIGUOUS_MATCH");
+
+  const fx = reviewMicrosoftPayoutSettlements(
+    [{ ...baseBank, currency: "ZAR", amount: "1700.00" }],
+    [sent]
+  );
+  assert.equal(fx[0].status, "FX_REVIEW");
+
+  const amount = reviewMicrosoftPayoutSettlements(
+    [{ ...baseBank, amount: "95.00" }],
+    [sent]
+  );
+  assert.equal(amount[0].status, "AMOUNT_REVIEW");
+
+  const date = reviewMicrosoftPayoutSettlements(
+    [{ ...baseBank, date: "2026-12-15" }],
+    [sent]
+  );
+  assert.equal(date[0].status, "DATE_REVIEW");
+
+  assert.equal(reviewMicrosoftPayoutSettlements([], [sent])[0].status, "UNMATCHED");
+  const pending = normaliseMicrosoftPayout(payoutInput({ rawStatus: "Pending", sentDate: null }));
+  assert.equal(reviewMicrosoftPayoutSettlements([baseBank], [pending])[0].status, "NOT_SENT");
+});
+
+test("settlement review prevents one bank line being proposed for two payouts", () => {
+  const first = normaliseMicrosoftPayout(payoutInput());
+  const second = normaliseMicrosoftPayout(payoutInput({ payoutId: "MS-PAYOUT-002" }));
+  const bank = [{
+    id: "BANK-SHARED-001", amount: "94.00", currency: "USD",
+    date: "2026-11-18", reference: "MS-REF-001"
+  }];
+  const result = reviewMicrosoftPayoutSettlements(bank, [first, second]);
+  assert.equal(result[0].status, "CONFLICT");
+  assert.equal(result[1].status, "CONFLICT");
+  assert.equal(result[0].reconciled, false);
 });
 
 test("accounting output is a balanced draft only and requires approved account mapping", () => {
