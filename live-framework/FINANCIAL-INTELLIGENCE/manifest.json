@@ -4,10 +4,43 @@
   "version": "0.1.0",
   "status": "source-foundation",
   "integration_target": "live-framework",
-  "accounting_coverage": ["fiat", "cryptocurrency"],
+  "accounting_coverage": [
+    "fiat",
+    "cryptocurrency"
+  ],
   "reporting_base_currency": "ZAR",
   "default_provider_mode": "read-only",
-  "capabilities": ["money-precision", "journal-proposal-validation", "source-event-normalisation", "duplicate-detection", "approval-policy", "provider-capability-contract", "reconciliation-candidate-generation"],
-  "prohibited_without_separate_approval": ["journal-posting", "payment-execution", "crypto-transfer", "invoice-issuance", "tax-submission", "production-deployment", "database-provisioning"],
-  "runtime": { "node": ">=22", "dependencies": [] }
+  "capabilities": [
+    "money-precision",
+    "journal-proposal-validation",
+    "source-event-normalisation",
+    "duplicate-detection",
+    "approval-policy",
+    "provider-capability-contract",
+    "reconciliation-candidate-generation",
+    "microsoft-partner-center-read-only-provider",
+    "microsoft-earnings-normalisation",
+    "microsoft-payout-normalisation",
+    "microsoft-payout-report-ingestion",
+    "microsoft-settlement-candidate-generation",
+    "microsoft-accounting-draft-proposal"
+  ],
+  "prohibited_without_separate_approval": [
+    "journal-posting",
+    "payment-execution",
+    "crypto-transfer",
+    "invoice-issuance",
+    "tax-submission",
+    "production-deployment",
+    "database-provisioning",
+    "microsoft-api-consent",
+    "payout-profile-change",
+    "tax-profile-change",
+    "xero-journal-posting",
+    "bank-reconciliation-acceptance"
+  ],
+  "runtime": {
+    "node": ">=22",
+    "dependencies": []
+  }
 }
