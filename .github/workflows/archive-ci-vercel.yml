@@ -1,0 +1,55 @@
+name: ARCHIVE CI and Vercel preview checks
+
+on:
+  push:
+    branches:
+      - codex/archive-zapier-mcp-001-clean
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: archive-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zapier-module-tests:
+    name: SG-ZAPIER-MCP-001 tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+
+      - name: Run unit tests
+        working-directory: archive/SG-ZAPIER-MCP-001
+        run: npm test
+
+  delivery-policy:
+    name: Delivery policy and scope
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Confirm deployment is not invoked by CI
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -R -nE 'vercel[[:space:]]+deploy[[:space:]].*--prod|vercel[[:space:]]+--prod' .github/workflows --exclude=archive-ci-vercel.yml; then
+            echo "Production deployment commands must not run in this audit workflow."
+            exit 1
+          fi
+          echo "CI is test-only. Vercel preview delivery is handled by the repository's Git integration.";
