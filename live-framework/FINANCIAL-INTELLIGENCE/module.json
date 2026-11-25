@@ -1,0 +1,31 @@
+{
+  "id": "SG-FIN-001",
+  "name": "Financial Intelligence System",
+  "area": "finance-accounting-crypto-compliance",
+  "state": "source-foundation",
+  "defaultMode": "design",
+  "provider": "provider-contract-only; Xero OAuth and wallet/blockchain adapters not configured",
+  "liveEnabled": false,
+  "readCapabilities": [
+    "source-event-normalisation",
+    "journal-proposal-validation",
+    "duplicate-detection",
+    "reconciliation-candidate-generation"
+  ],
+  "writeCapabilities": [],
+  "approvalRequiredFor": [
+    "financial.journal.post",
+    "financial.reconciliation.accept",
+    "financial.invoice.issue",
+    "financial.invoice.send",
+    "financial.payment.execute",
+    "financial.bank_transfer.execute",
+    "financial.crypto_transfer.sign",
+    "financial.crypto_transfer.broadcast",
+    "financial.exchange_order.execute",
+    "financial.tax.submit",
+    "production.database.migrate",
+    "production.deploy"
+  ],
+  "evidenceRequired": true
+}
