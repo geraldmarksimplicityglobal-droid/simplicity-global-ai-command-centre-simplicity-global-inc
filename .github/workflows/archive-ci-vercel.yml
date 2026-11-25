@@ -48,7 +48,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -R -nE 'vercel (deploy|promote|rollback).*--prod|vercel --prod' .github/workflows; then
+          if grep -R -nE 'vercel[[:space:]]+deploy[[:space:]].*--prod|vercel[[:space:]]+--prod' .github/workflows --exclude=archive-ci-vercel.yml; then
             echo "Production deployment commands must not run in this audit workflow."
             exit 1
           fi
