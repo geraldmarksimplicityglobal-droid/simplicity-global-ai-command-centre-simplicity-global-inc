@@ -80,5 +80,15 @@
       "status": "source-foundation"
     }
   ],
-  "sourceOfTruth": "Version-controlled registry only; provider access and capabilities require separate verification."
+  "sourceOfTruth": "Version-controlled registry only; provider access and capabilities require separate verification.",
+  "plannedEngines": [
+    {
+      "id": "SG-BANKING-INFRA-013",
+      "name": "Universal Banking API & Connector Engine",
+      "status": "planned",
+      "liveEnabled": false,
+      "providerConnectionsVerified": false,
+      "productionEnabled": false
+    }
+  ]
 }
