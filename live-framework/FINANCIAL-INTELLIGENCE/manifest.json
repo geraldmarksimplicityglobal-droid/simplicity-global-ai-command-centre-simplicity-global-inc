@@ -23,7 +23,8 @@
     "microsoft-payout-normalisation",
     "microsoft-payout-report-ingestion",
     "microsoft-settlement-candidate-generation",
-    "microsoft-accounting-draft-proposal"
+    "microsoft-accounting-draft-proposal",
+    "microsoft-settlement-exception-review"
   ],
   "prohibited_without_separate_approval": [
     "journal-posting",
