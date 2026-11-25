@@ -22,6 +22,7 @@
 | Provider / data source | Current state | Required next step |
 |---|---|---|
 | Xero | Connected via ChatGPT integration; organisation is South African and ZAR-based | Configure dedicated application OAuth; start with read-only scopes |
+| Microsoft Partner Center | Publisher/Partner Center notices found; identity verification action required; API app registration/consent not verified | Complete authorized identity verification, confirm program eligibility, then obtain tenant-owner approval for read-only API app registration and delegated consent |
 | Supabase | Connected organisation; zero projects returned | Select provider, region and cost; create only after explicit approval |
 | Crypto market data | Public market data tools available | Indicative pricing only; store source and timestamp |
 | Wallet / blockchain indexer | No verified connection | Select networks and read-only provider; test transaction-hash verification |
