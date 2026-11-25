@@ -122,7 +122,7 @@ Primary exception codes include `INVALID_REPORT`, `INVALID_EARNINGS_ROW`, `INVAL
 
 Only payouts classified as `sent_by_microsoft` and carrying a sent date are considered for bank candidate generation. Existing SG-FIN-001 reconciliation logic matches exact currency and amount inside a configured date window and ranks reference matches.
 
-Every result remains a `candidate` with `requiresHumanConfirmation: true`. The operator must verify:
+Every result remains a `candidate` with `requiresHumanConfirmation: true`. The review helper classifies `SUGGESTED_MATCH`, `AMBIGUOUS_MATCH`, `CONFLICT`, `FX_REVIEW`, `AMOUNT_REVIEW`, `DATE_REVIEW`, `UNMATCHED` and `NOT_SENT`. All review outcomes retain `reconciled: false`. The operator must verify:
 - exact amount and currency;
 - remittance reference and remitter;
 - booking date and value date;
