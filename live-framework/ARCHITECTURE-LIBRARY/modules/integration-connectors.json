@@ -55,6 +55,16 @@
       "projectAvailable": false,
       "schemaApplied": false,
       "writeEnabled": false
+    },
+    {
+      "id": "SG-INT-009",
+      "name": "Microsoft Partner Center",
+      "mode": "read-only-report-normalisation",
+      "applicationRegistrationConfigured": false,
+      "tenantConsentGranted": false,
+      "liveApiConnected": false,
+      "profileChangesEnabled": false,
+      "writeEnabled": false
     }
   ]
 }
