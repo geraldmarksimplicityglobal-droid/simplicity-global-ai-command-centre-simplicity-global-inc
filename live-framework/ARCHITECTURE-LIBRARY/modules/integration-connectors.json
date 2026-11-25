@@ -32,6 +32,29 @@
       "name": "Plugin connectors",
       "mode": "inventory-and-contract",
       "newAuthorizations": false
+    },
+    {
+      "id": "SG-INT-006",
+      "name": "Xero",
+      "mode": "chatgpt-read-only-observation",
+      "applicationOAuthConfigured": false,
+      "writeEnabled": false
+    },
+    {
+      "id": "SG-INT-007",
+      "name": "Cryptocurrency market data",
+      "mode": "market-data-only",
+      "walletAccess": false,
+      "transactionVerification": false,
+      "writeEnabled": false
+    },
+    {
+      "id": "SG-INT-008",
+      "name": "Supabase",
+      "mode": "organisation-visible-no-projects",
+      "projectAvailable": false,
+      "schemaApplied": false,
+      "writeEnabled": false
     }
   ]
 }
