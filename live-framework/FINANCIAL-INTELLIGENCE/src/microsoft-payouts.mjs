@@ -133,7 +133,7 @@ export function normaliseMicrosoftEarning(input) {
   });
 
   const canonical = {
-    reportId, programType, sellerRef, sourceRecordId, earningDate,
+    programType, sellerRef, sourceRecordId, earningDate,
     currency: amounts.currency, amounts: amounts.formatted,
     rawStatus: typeof input.paymentStatus === "string" ? input.paymentStatus : null
   };
@@ -186,6 +186,10 @@ function ingestRows(report, rows, normalise, existingRecords, reportType) {
         programType: row.programType ?? report.programType,
         sellerRef: row.sellerRef ?? report.sellerRef
       });
+      if (report.currency && record.currency !== String(report.currency).toUpperCase()) {
+        result.exceptions.push({ code: "CURRENCY_MISMATCH", rowIndex, sourceRecordId: record.sourceRecordId ?? record.payoutId });
+        return;
+      }
       if (reportType === "earnings" &&
           (record.earningDate < report.periodStart || record.earningDate > report.periodEnd)) {
         result.exceptions.push({ code: "DATE_OUTSIDE_PERIOD", rowIndex, sourceRecordId: record.sourceRecordId });
@@ -271,7 +275,7 @@ export function normaliseMicrosoftPayout(input) {
     evidenceRef
   });
   const canonical = {
-    payoutId, reportId, programType, sellerRef, currency, amount,
+    payoutId, programType, sellerRef, currency, amount,
     rawStatus, observedAt, sentDate, reference
   };
   return Object.freeze({
