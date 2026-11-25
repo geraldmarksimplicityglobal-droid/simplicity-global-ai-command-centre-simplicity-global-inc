@@ -399,15 +399,20 @@ export function reviewMicrosoftPayoutSettlements(bankRows, payouts, options = {}
     return {
       payoutId: payout.payoutId,
       status,
-      candidates: reviewCandidates.map(candidate => ({
-        bankId: candidate.bankId ?? candidate.id ?? null,
-        ledgerId: candidate.ledgerId ?? payout.payoutId,
-        currency: candidate.currency ?? null,
-        amount: candidate.amount ?? null,
-        reference: candidate.reference ?? null,
-        dayDifference: candidate.dayDifference ?? dayDistance(candidate.date, payout.sentDate),
-        referenceMatch: candidate.referenceMatch ?? sameReference(candidate.reference, payout.reference)
-      })),
+      candidates: reviewCandidates.map(candidate => {
+        const bankId = candidate.bankId ?? candidate.id ?? null;
+        const bankLine = bankRows.find(row => (row.id ?? row.bankId) === bankId);
+        const reference = candidate.reference ?? bankLine?.reference ?? null;
+        return {
+          bankId,
+          ledgerId: candidate.ledgerId ?? payout.payoutId,
+          currency: candidate.currency ?? bankLine?.currency ?? null,
+          amount: candidate.amount ?? bankLine?.amount ?? null,
+          reference,
+          dayDifference: candidate.dayDifference ?? dayDistance(bankLine?.date ?? candidate.date, payout.sentDate),
+          referenceMatch: candidate.referenceMatch ?? sameReference(reference, payout.reference)
+        };
+      }),
       reconciled: false,
       requiresHumanConfirmation: true
     };
