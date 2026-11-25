@@ -453,7 +453,7 @@ export function buildMicrosoftEarningJournalProposal(earning, mapping) {
       throw new TypeError("approved mapping is missing " + key + " account");
     }
   }
-  if (new Set(requiredAccounts.map(key => accounts[key])).size !== requiredAccounts.length) {
+  if (new Set(requiredAccounts.map(key => accounts[key].trim())).size !== requiredAccounts.length) {
     throw new Error("Microsoft payout account mappings must use distinct account codes");
   }
 
