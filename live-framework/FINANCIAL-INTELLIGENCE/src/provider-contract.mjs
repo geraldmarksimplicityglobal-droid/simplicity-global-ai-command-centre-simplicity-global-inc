@@ -1,3 +1,5 @@
+import { assertFinancialActionAllowed } from "./approval-policy.mjs";
+
 const VALID_MODES = new Set(["read_only", "scoped_write", "disabled"]);
 
 export function defineFinancialProvider(config) {
@@ -23,8 +25,21 @@ export function assertProviderCapability(provider, capability, context = {}) {
   if (!provider || provider.mode === "disabled") throw new Error("provider is disabled");
   if (!provider.capabilities.includes(capability)) throw new Error("provider capability is not declared");
   if (capability.endsWith(":write")) {
-    if (provider.mode !== "scoped_write" || provider.writesEnabled !== true) throw new Error("provider writes are disabled by default");
-    if (!context.approval || !context.executionAuthorisation) throw new Error("provider write requires separate approval and execution authorisation");
+    if (provider.mode !== "scoped_write" || provider.writesEnabled !== true) {
+      throw new Error("provider writes are disabled by default");
+    }
+    if (!context.approval || !context.executionAuthorisation) {
+      throw new Error("provider write requires separate approval and execution authorisation");
+    }
+    assertFinancialActionAllowed({
+      operation: context.operation,
+      resourceId: context.resourceId,
+      requesterId: context.requesterId,
+      risk: context.risk ?? "high",
+      approval: context.approval,
+      executionAuthorisation: context.executionAuthorisation,
+      now: context.now ?? Date.now()
+    });
   }
   return true;
 }
