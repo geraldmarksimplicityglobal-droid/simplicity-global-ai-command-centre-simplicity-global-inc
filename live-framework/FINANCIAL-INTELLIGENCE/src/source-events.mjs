@@ -1,5 +1,5 @@
 const ALLOWED_TYPES = new Set([
-  "invoice", "credit_note", "payment", "bank_transaction",
+  "invoice", "credit_note", "payment", "bank_transaction", "earning", "payout",
   "crypto_transfer", "crypto_fee", "exchange_trade", "valuation", "tax_adjustment"
 ]);
 

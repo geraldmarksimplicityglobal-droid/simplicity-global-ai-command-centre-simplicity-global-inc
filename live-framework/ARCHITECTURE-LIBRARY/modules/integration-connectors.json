@@ -55,6 +55,21 @@
       "projectAvailable": false,
       "schemaApplied": false,
       "writeEnabled": false
+    },
+    {
+      "id": "SG-INT-009",
+      "name": "Microsoft Partner Center",
+      "mode": "read-only-report-normalisation",
+      "applicationRegistrationConfigured": false,
+      "tenantConsentGranted": false,
+      "liveApiConnected": false,
+      "profileChangesEnabled": false,
+      "writeEnabled": false,
+      "parentModule": "SG-FIN-001",
+      "bankingRegistry": "SG-BANKING-INFRA-001",
+      "direction": "inbound-revenue-evidence",
+      "isPaymentRail": false,
+      "movesMoney": false
     }
   ]
 }

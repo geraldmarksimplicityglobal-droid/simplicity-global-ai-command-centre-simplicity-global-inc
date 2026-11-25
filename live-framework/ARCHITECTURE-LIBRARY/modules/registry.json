@@ -76,6 +76,39 @@
       "status": "source-foundation",
       "liveEnabled": false,
       "provider": "not-connected"
+    },
+    {
+      "id": "SG-MS-PAYOUT-001",
+      "name": "Microsoft Partner Center Earnings and Payout Adapter",
+      "root": "live-framework/FINANCIAL-INTELLIGENCE/src/microsoft-payouts.mjs",
+      "parent": "SG-FIN-001",
+      "status": "source-foundation",
+      "liveEnabled": false,
+      "writeEnabled": false
+    },
+    {
+      "id": "SG-BANKING-INFRA-001",
+      "name": "Banking Infrastructure & Connectivity Registry",
+      "root": "live-framework/BANKING-INFRASTRUCTURE",
+      "status": "taxonomy-source",
+      "liveEnabled": false
+    },
+    {
+      "id": "SG-BANKING-INFRA-012",
+      "name": "Simplicity Global Banking Connectivity & Orchestration",
+      "root": "live-framework/BANKING-INFRASTRUCTURE/registry.json",
+      "parent": "SG-BANKING-INFRA-001",
+      "status": "proposed-platform-classification",
+      "paymentRail": false,
+      "providerVerification": "pending"
+    },
+    {
+      "id": "SG-BANKING-INFRA-013",
+      "name": "Universal Banking API & Connector Engine",
+      "root": "live-framework/BANKING-INFRASTRUCTURE",
+      "parent": "SG-BANKING-INFRA-001",
+      "status": "planned",
+      "liveEnabled": false
     }
   ],
   "sourceOfTruth": "Repository implementation state only."

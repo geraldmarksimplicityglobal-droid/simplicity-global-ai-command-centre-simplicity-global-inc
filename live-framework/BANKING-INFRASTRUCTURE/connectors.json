@@ -1,0 +1,35 @@
+{
+  "id": "SG-BANK-CONN-001",
+  "providers": [
+    {
+      "id": "microsoft-partner-center",
+      "registryModule": "SG-MS-PAYOUT-001",
+      "direction": "inbound-revenue-evidence",
+      "capabilities": [
+        "earnings-read",
+        "payout-status-read",
+        "settlement-candidate-generation"
+      ],
+      "apiRegistrationConfigured": false,
+      "tenantConsentGranted": false,
+      "liveEnabled": false,
+      "writeEnabled": false
+    },
+    {
+      "id": "xero-ledger",
+      "financialModule": "SG-FIN-001",
+      "role": "accounting-system-of-record",
+      "observedThrough": "connected-read-only-integration",
+      "applicationOAuthConfigured": false,
+      "journalPostingEnabled": false,
+      "bankReconciliationWriteEnabled": false
+    }
+  ],
+  "bankAccountInventory": {
+    "source": "Xero chart of accounts",
+    "existingAccountsPreserved": true,
+    "payoutDestinationMapped": false,
+    "accountDetailsStored": false,
+    "newAccountsCreated": false
+  }
+}
