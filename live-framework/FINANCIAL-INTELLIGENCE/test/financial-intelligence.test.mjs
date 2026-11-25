@@ -82,6 +82,23 @@ test("provider is read-only by default and rejects undeclared writes", () => {
     id: "bank-connector", mode: "scoped_write", writesEnabled: true, capabilities: ["payments:write"]
   });
   assert.throws(() => assertProviderCapability(writable, "payments:write"), /requires separate approval/);
+  const approval = {
+    status: "approved", operation: "financial.payment.execute", resourceId: "payment-1",
+    requesterId: "requester", reviewerId: "reviewer",
+    expiresAt: new Date(Date.now() + 60000).toISOString()
+  };
+  const executionAuthorisation = {
+    status: "authorised", operation: "financial.payment.execute", resourceId: "payment-1",
+    authoriserId: "executor", expiresAt: new Date(Date.now() + 60000).toISOString()
+  };
+  assert.equal(assertProviderCapability(writable, "payments:write", {
+    operation: "financial.payment.execute", resourceId: "payment-1", requesterId: "requester",
+    approval, executionAuthorisation
+  }), true);
+  assert.throws(() => assertProviderCapability(writable, "payments:write", {
+    operation: "financial.payment.execute", resourceId: "another-payment", requesterId: "requester",
+    approval, executionAuthorisation
+  }), /approval/);
 });
 
 test("reconciliation returns candidate matches but never confirms them", () => {
