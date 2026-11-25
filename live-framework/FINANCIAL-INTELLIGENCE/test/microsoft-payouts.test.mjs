@@ -27,6 +27,7 @@ const earningsReport = () => ({
   reportId: "MS-REPORT-001",
   programType: "marketplace",
   sellerRef: "seller-ref-001",
+  currency: "USD",
   periodStart: "2026-11-01",
   periodEnd: "2026-11-30",
   rows: [earningRow()]
@@ -77,7 +78,9 @@ test("earnings report ingestion is idempotent and quarantines identifier collisi
   assert.equal(first.accepted.length, 1);
   assert.equal(first.exceptions.length, 0);
 
-  const repeated = ingestMicrosoftEarningsReport(earningsReport(), first.accepted);
+  const nextReport = earningsReport();
+  nextReport.reportId = "MS-REPORT-002";
+  const repeated = ingestMicrosoftEarningsReport(nextReport, first.accepted);
   assert.equal(repeated.accepted.length, 0);
   assert.equal(repeated.duplicates.length, 1);
 
@@ -133,7 +136,8 @@ test("payout report ingestion detects duplicates without posting or settling", (
   const first = ingestMicrosoftPayoutReport(report);
   assert.equal(first.accepted.length, 1);
   assert.equal(first.accepted[0].reconciled, false);
-  const second = ingestMicrosoftPayoutReport(report, first.accepted);
+  const nextReport = { ...report, reportId: "MS-PAYMENTS-002" };
+  const second = ingestMicrosoftPayoutReport(nextReport, first.accepted);
   assert.equal(second.duplicates.length, 1);
 });
 
