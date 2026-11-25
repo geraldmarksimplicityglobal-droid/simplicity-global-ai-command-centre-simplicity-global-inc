@@ -87,3 +87,8 @@ The adapter generates accounting proposals and bank-match candidates only. Human
 - `live-framework/ARCHITECTURE-LIBRARY/modules/integration-connectors.json`
 
 All entries describe repository source state. They do not claim live banking access.
+
+
+## 6. Planned connector engine
+
+`SG-BANKING-INFRA-013 — Universal Banking API & Connector Engine` remains a planned, unactivated subsystem. It will own provider-neutral API, file, webhook and portal adapters after provider discovery, legal verification, security review and sandbox validation. The Microsoft Partner Center adapter remains a read-only evidence source within SG-FIN-001; it is not a banking connector or payment rail.
