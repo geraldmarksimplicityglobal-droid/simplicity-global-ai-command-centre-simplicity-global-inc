@@ -4,3 +4,10 @@ export { normaliseSourceEvent, sourceEventKey, findDuplicateSourceEvents } from 
 export { isProtectedFinancialOperation, assertFinancialActionAllowed } from "./approval-policy.mjs";
 export { defineFinancialProvider, assertProviderCapability } from "./provider-contract.mjs";
 export { generateReconciliationCandidates } from "./reconciliation.mjs";
+export {
+  microsoftPayoutProvider, assertMicrosoftPayoutReadCapability,
+  normaliseMicrosoftEarning, ingestMicrosoftEarningsReport,
+  normaliseMicrosoftPayout, ingestMicrosoftPayoutReport,
+  generateMicrosoftPayoutSettlementCandidates,
+  buildMicrosoftEarningJournalProposal
+} from "./microsoft-payouts.mjs";
