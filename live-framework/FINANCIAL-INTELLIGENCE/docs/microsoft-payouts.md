@@ -4,7 +4,7 @@
 **Banking layer:** SG-BANKING-INFRA-001  
 **Provider:** Microsoft Partner Center  
 **Mode:** read-only source normalisation; no live API connection  
-**Release state:** feature branch; not deployed
+**Release state:** integrated into the SG-FIN-001 feature branch via PR #10; parent PR #7 remains draft and unmerged; not deployed
 
 ## 1. Purpose and separation
 
@@ -188,10 +188,10 @@ These are workflow contracts, not connected Zapier tasks. No Zapier connection o
 - The connected Xero organisation is SIMPLICITY GLOBAL, ZA, ZAR, Africa/Johannesburg. Existing bank accounts and chart of accounts remain unchanged.
 - No Partner Center API app registration, tenant consent, report download, payout-profile validation or tax-profile validation is verified.
 - Vercel returned zero projects for the connected account and default team.
-- The source adapter and tests are implemented on a feature branch. It is not deployed or connected to a live Microsoft tenant.
+- The source adapter is integrated into `codex/sg-financial-intelligence-001` through PR #10. GitHub Actions passed 17/17 financial-intelligence tests on the merged commit. Parent PR #7 remains draft and unmerged to `codex/live-enterprise-framework`; the adapter is not deployed or connected to a live Microsoft tenant.
 
 ## 12. Release controls
 
 No database migration, secret creation, Microsoft consent, Xero write, journal posting, bank reconciliation acceptance, payout-profile change, tax submission, outgoing payment, Vercel deployment or production release is included.
 
-The feature must pass CI, be reviewed into SG-FIN-001, then complete separate tenant-owner, finance/accounting, security and production approvals before any live connector or financial write is enabled.
+CI passed (17/17 tests) for the feature-branch integration. The parent SG-FIN-001 pull request must still be reviewed and approved into the live-enterprise-framework branch. Separate tenant-owner, finance/accounting, security and production approvals remain mandatory before any live connector or financial write is enabled.
