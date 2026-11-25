@@ -68,6 +68,14 @@
       "id": "SG-INT-005",
       "name": "Plugin Connector Registry",
       "status": "design-source"
+    },
+    {
+      "id": "SG-FIN-001",
+      "name": "Financial Intelligence System",
+      "root": "live-framework/FINANCIAL-INTELLIGENCE",
+      "status": "source-foundation",
+      "liveEnabled": false,
+      "provider": "not-connected"
     }
   ],
   "sourceOfTruth": "Repository implementation state only."
