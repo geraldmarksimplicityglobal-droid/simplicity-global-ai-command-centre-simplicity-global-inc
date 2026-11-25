@@ -44,3 +44,14 @@ Requires Node.js 22+. Run npm test from this directory. The package uses only No
 - Production deployment, database provisioning, or paid infrastructure creation.
 
 Those capabilities require separately reviewed adapters, scoped credentials, operational runbooks, and explicit approval.
+
+## Microsoft Partner Center payouts
+
+The Microsoft Partner Center adapter is registered as `SG-MS-PAYOUT-001` under `SG-FIN-001`. It normalises Marketplace, Store and Incentives earnings/payment reports, preserves source statuses and provenance, detects duplicate/colliding source records, and generates bank-settlement candidates.
+
+- Provider mode is read-only. No Microsoft API app registration, tenant consent, report download or secret-vault credential is configured by this source change.
+- Microsoft-reported `sent` is not bank receipt. Bank matches remain candidates and require human confirmation.
+- Accounting output is a balanced journal proposal only. It requires an explicitly approved account mapping and still returns `postingAllowed: false`.
+- Existing Xero accounts, bank accounts and chart mappings are not modified.
+- Outgoing supplier/customer/contractor disbursements remain separate from incoming Microsoft payouts.
+- See [Microsoft payout integration controls](docs/microsoft-payouts.md).
