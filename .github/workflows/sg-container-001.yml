@@ -1,0 +1,36 @@
+name: SG Container 001
+
+on:
+  pull_request:
+    paths:
+      - ".devcontainer/**"
+      - ".github/workflows/sg-container-001.yml"
+      - "live-framework/IMPLEMENTATION/api/**"
+  push:
+    branches:
+      - main
+      - codex/live-enterprise-framework
+    paths:
+      - ".devcontainer/**"
+      - ".github/workflows/sg-container-001.yml"
+      - "live-framework/IMPLEMENTATION/api/**"
+
+permissions:
+  contents: read
+
+jobs:
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test container contracts
+        run: node --test .devcontainer/test/*.test.mjs
+      - name: Validate Compose configuration
+        run: |
+          cp .devcontainer/.env.container.example .env
+          docker compose --env-file .env -f .devcontainer/docker-compose.yml --profile application config --quiet
+      - name: Build API image (no push)
+        run: docker build --file .devcontainer/api.Dockerfile --tag sg-live-framework-api:test .
