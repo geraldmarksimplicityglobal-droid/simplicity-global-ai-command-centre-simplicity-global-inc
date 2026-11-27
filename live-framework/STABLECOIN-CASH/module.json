@@ -1,0 +1,36 @@
+{
+  "id": "SG-STABLECOIN-CASH-001",
+  "name": "Stablecoin Treasury Control Plane",
+  "area": "treasury-digital-assets-cash-management",
+  "state": "sandbox-source-foundation",
+  "defaultMode": "sandbox",
+  "liveEnabled": false,
+  "providerMode": "disabled-until-individually-verified",
+  "readCapabilities": [
+    "stablecoin-asset-registry",
+    "treasury-instruction-validation",
+    "sandbox-payment-simulation",
+    "debit-order-schedule-monitoring",
+    "reconciliation-candidate-generation"
+  ],
+  "writeCapabilities": [],
+  "blockedCapabilities": [
+    "wallet-signing",
+    "transaction-broadcast",
+    "stablecoin-transfer",
+    "fiat-transfer",
+    "debit-order-initiation",
+    "exchange-order-execution",
+    "automated-withdrawal"
+  ],
+  "approvalRequiredFor": [
+    "financial.crypto_transfer.sign",
+    "financial.crypto_transfer.broadcast",
+    "financial.bank_transfer.execute",
+    "financial.payment.execute",
+    "financial.debit_order.initiate",
+    "production.deploy"
+  ],
+  "evidenceRequired": true,
+  "accountingSystemOfRecord": "SG-FIN-001/Xero-current-authority"
+}
