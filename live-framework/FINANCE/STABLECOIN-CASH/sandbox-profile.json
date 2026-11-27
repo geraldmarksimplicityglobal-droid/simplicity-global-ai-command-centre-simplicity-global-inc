@@ -1,0 +1,60 @@
+{
+  "system_id": "SG-STABLECOIN-CASH-001",
+  "version": "0.1.0-draft",
+  "purpose": "multi-currency EVM corporate treasury visibility and accounting",
+  "environment": "sandbox",
+  "default_mode": "read_only",
+  "production_enabled": false,
+  "transaction_signing_enabled": false,
+  "custody_enabled": false,
+  "bank_rails_enabled": false,
+  "defi_actions_enabled": false,
+  "accounting_currencies": ["ZAR", "USD", "EUR"],
+  "candidate_assets": ["USDC", "USDT", "DAI", "EURC"],
+  "asset_allowlist": [],
+  "network_profiles": {
+    "local_simulator": {
+      "enabled": true,
+      "chain_id": null,
+      "rpc_env_var": "SG_TREASURY_LOCAL_RPC_URL",
+      "purpose": "isolated tests with generated mock ERC-20 contracts",
+      "broadcast_external_transactions": false
+    },
+    "ethereum_sepolia_read_only": {
+      "enabled": false,
+      "chain_id": 11155111,
+      "alchemy_network": "eth-sepolia",
+      "rpc_env_var": "ALCHEMY_SEPOLIA_RPC_URL",
+      "read_only": true,
+      "signing": false
+    }
+  },
+  "provider_inventory": {
+    "alchemy": {
+      "status": "connected",
+      "app_label": "Wallet App",
+      "scope": "network metadata and read-only RPC/indexing capability",
+      "active_wallet": false
+    },
+    "etherscan": {
+      "status": "connected",
+      "scope": "explorer data"
+    },
+    "supabase": {
+      "status": "no_project_found",
+      "migration_applied": false
+    },
+    "banking_offramp_custody": {
+      "status": "not_verified"
+    }
+  },
+  "controls": {
+    "require_maker_checker": true,
+    "require_explicit_execution_authorisation": true,
+    "require_chain_and_contract_allowlist": true,
+    "require_reconciliation_before_close": true,
+    "unknown_assets_block_execution": true,
+    "stale_prices_block_valuation_release": true,
+    "append_only_audit": true
+  }
+}
