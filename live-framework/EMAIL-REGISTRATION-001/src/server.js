@@ -39,7 +39,7 @@ const authLimiter = rateLimit({ windowMs: 15*60*1000, limit: 10, standardHeaders
 app.use(['/api/register','/api/login','/api/verify-email','/api/forgot-password','/api/reset-password','/api/resend-verification'], authLimiter);
 
 const emailSchema = z.string().trim().email().max(254).transform(v => v.toLowerCase());
-const passwordSchema = z.string().min(12).max(128);
+const passwordSchema = z.string().min(12).max(128).refine(value => Buffer.byteLength(value,'utf8') <= 72, 'password exceeds bcrypt 72-byte limit');
 const registrationSchema = z.object({ email: emailSchema, password: passwordSchema, displayName: z.string().trim().min(1).max(100).optional() }).strict();
 const loginSchema = z.object({ email: emailSchema, password: z.string().min(1).max(128) }).strict();
 const tokenSchema = z.string().min(40).max(512);
@@ -81,6 +81,7 @@ async function audit(userId, eventType, outcome, requestId = null) {
 }
 async function createActionToken(userId, purpose, ttlHours) {
   const raw = createOpaqueToken();
+  await pool.query('UPDATE auth_action_tokens SET consumed_at=now() WHERE user_id=$1 AND purpose=$2 AND consumed_at IS NULL',[userId,purpose]);
   await pool.query(`INSERT INTO auth_action_tokens(user_id,purpose,token_hash,expires_at)
     VALUES($1,$2,$3,now()+($4 * interval '1 hour'))`, [userId,purpose,hashToken(raw),ttlHours]);
   return raw;
