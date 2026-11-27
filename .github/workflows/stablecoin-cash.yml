@@ -1,0 +1,26 @@
+name: SG Stablecoin Cash
+
+on:
+  push:
+    paths:
+      - "live-framework/STABLECOIN-CASH/**"
+      - ".github/workflows/stablecoin-cash.yml"
+  pull_request:
+    paths:
+      - "live-framework/STABLECOIN-CASH/**"
+      - ".github/workflows/stablecoin-cash.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run sandbox treasury tests
+        working-directory: live-framework/STABLECOIN-CASH
+        run: npm test
