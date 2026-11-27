@@ -43,9 +43,9 @@ CREATE TABLE IF NOT EXISTS auth_audit_events (
 );
 CREATE INDEX IF NOT EXISTS idx_auth_audit_events_created ON auth_audit_events(created_at DESC);
 
-CREATE OR REPLACE FUNCTION sg_prevent_auth_audit_mutation() RETURNS trigger LANGUAGE plpgsql AS $
+CREATE OR REPLACE FUNCTION sg_prevent_auth_audit_mutation() RETURNS trigger LANGUAGE plpgsql AS $body$
 BEGIN RAISE EXCEPTION 'auth_audit_events are append-only'; END;
-$;
+$body$;
 DROP TRIGGER IF EXISTS auth_audit_events_no_mutation ON auth_audit_events;
 CREATE TRIGGER auth_audit_events_no_mutation BEFORE UPDATE OR DELETE ON auth_audit_events
   FOR EACH ROW EXECUTE FUNCTION sg_prevent_auth_audit_mutation();
