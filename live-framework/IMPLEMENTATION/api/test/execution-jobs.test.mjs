@@ -6,6 +6,7 @@ import {
   claimExecutionJob,
   completeExecutionJob,
   failExecutionJob,
+  blockExecutionJob,
   cancelExecutionJob,
   heartbeatExecutionJob
 } from "../src/execution-jobs.mjs";
@@ -157,4 +158,28 @@ test("reusing an idempotency key with a different payload returns conflict", asy
     input: { objective: "Different report", capabilities: ["repository.read"], risk: "read_only", idempotencyKey: "same-key" }
   }), /execution_job_conflict/);
   assert.equal(client.calls[1].params[1], "user-1");
+});
+
+test("blocked task records an approval or authorization requirement without retrying", async () => {
+  const client = fakeClient([{ rows: [{ id: "job-blocked", status: "blocked" }], rowCount: 1 }]);
+  const result = await blockExecutionJob(client, {
+    organisationId: "org-1",
+    jobId: "job-blocked",
+    workerId: "worker-1",
+    errorCode: "approval_required",
+    summary: "A separate approval is required"
+  });
+  assert.equal(result.status, "blocked");
+  assert.match(client.calls[0].sql, /status='blocked'/);
+  assert.match(client.calls[0].sql, /worker_id=NULL/);
+  assert.equal(client.calls[0].params[3], "approval_required");
+});
+
+test("blocked task rejects unbounded or secret-bearing error codes", async () => {
+  const client = fakeClient();
+  await assert.rejects(() => blockExecutionJob(client, {
+    organisationId: "org-1", jobId: "job-1", workerId: "worker-1",
+    errorCode: "secret-token-value"
+  }), /errorCode/);
+  assert.equal(client.calls.length, 0);
 });
