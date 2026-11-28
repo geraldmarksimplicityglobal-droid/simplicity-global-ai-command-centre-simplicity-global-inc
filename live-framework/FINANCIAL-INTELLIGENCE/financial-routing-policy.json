@@ -1,0 +1,116 @@
+{
+  "id": "SG-FIN-ROUTE-001",
+  "version": "1.0.0",
+  "status": "specification-only",
+  "environment": "private",
+  "autonomy": {
+    "sandbox": "L5-simulation-only",
+    "production_max": "L3.3",
+    "live_money_movement": "explicit-human-approval-required",
+    "self_escalation": false
+  },
+  "defaults": {
+    "execution_enabled": false,
+    "provider_writes_enabled": false,
+    "new_beneficiary_allowed": false,
+    "bank_detail_changes_allowed": false,
+    "automatic_fallback_allowed": false,
+    "blind_retries_allowed": false
+  },
+  "mandate": {
+    "amount_cap_per_transaction": null,
+    "amount_cap_per_day": null,
+    "amount_cap_per_period": null,
+    "counterparty_allowlist": [],
+    "rail_allowlist": [],
+    "corridor_allowlist": [],
+    "dual_control_threshold": null,
+    "configuration_authority": "human-only",
+    "unset_means": "deny"
+  },
+  "hard_gates": [
+    "mandate",
+    "amount_limits",
+    "velocity_limits",
+    "beneficiary_verification",
+    "rail_allowlist",
+    "corridor_allowlist",
+    "currency_eligibility",
+    "sanctions",
+    "aml",
+    "kyc_if_required",
+    "fraud_threshold",
+    "jurisdiction",
+    "liquidity",
+    "quote_freshness",
+    "approval",
+    "freeze_state",
+    "idempotency"
+  ],
+  "approval": {
+    "maker_checker_required_for_configured_tiers": true,
+    "live_transaction_approval_required": true,
+    "new_payee": "independent-human-verification",
+    "bank_detail_change": "dual-approval-and-out-of-band-verification",
+    "agent_self_approval": false
+  },
+  "connector_contract": {
+    "prepare_operation": "payments.prepare_route",
+    "execute_operation": "payments.execute_approved",
+    "connector_revalidates_policy": true,
+    "provider_acceptance_is_settlement": false,
+    "effectively_once_business_processing": true
+  },
+  "controls": {
+    "least_privilege": true,
+    "short_lived_credentials": true,
+    "per_provider_credentials": true,
+    "signed_webhooks": true,
+    "replay_protection": true,
+    "durable_idempotency": true,
+    "exact_decimal_arithmetic": true,
+    "immutable_audit_target": true,
+    "reconciliation_required": true,
+    "exception_queue_required": true,
+    "freeze_and_kill_switch_required": true
+  },
+  "stop_conditions": [
+    "screening-hit-or-unknown",
+    "limit-or-mandate-breach",
+    "empty-eligible-route-set",
+    "duplicate-suspicion",
+    "stale-fx-quote",
+    "slippage-breach",
+    "repeated-declines",
+    "unapproved-provider-fallback",
+    "reconciliation-mismatch",
+    "approval-expired-or-revoked",
+    "freeze-or-kill-switch-active"
+  ],
+  "audit": {
+    "decision": true,
+    "candidates": true,
+    "hard_gates": true,
+    "approval": true,
+    "connector_request": true,
+    "provider_reference": true,
+    "reconciliation": true,
+    "retention": "policy-defined"
+  },
+  "prohibitions": [
+    "agent-may-not-set-or-raise-limits",
+    "agent-may-not-add-counterparties",
+    "agent-may-not-change-bank-details",
+    "agent-may-not-add-rails-or-corridors",
+    "agent-may-not-waive-screening",
+    "agent-may-not-bypass-dual-control",
+    "agent-may-not-disable-freeze",
+    "agent-may-not-execute-with-unset-mandate"
+  ],
+  "deployment": {
+    "production_deployment": false,
+    "database_provisioning": false,
+    "live_financial_execution": false,
+    "requires_separate_approval": true
+  }
+}
