@@ -40,8 +40,12 @@ test("execution job payload is allowlisted and excludes secrets", () => {
 test("background queue rejects high-impact operations even if caller supplies approval flags", () => {
   assert.throws(() => validateExecutionJob({
     objective: "Transfer funds", capabilities: ["payments.transfer"],
-    risk: "financial", approved: true
+    risk: "financial"
   }), /background jobs currently allow only read_only or reversible/);
+  assert.throws(() => validateExecutionJob({
+    objective: "Read repository", capabilities: ["repository.read"],
+    risk: "read_only", approved: true
+  }), /unsupported field/);
 });
 
 test("enqueue persists tenant-scoped job and returns only safe job metadata", async () => {
