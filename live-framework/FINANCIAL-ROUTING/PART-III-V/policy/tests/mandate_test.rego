@@ -45,5 +45,5 @@ test_production_denies_by_default if {
 }
 
 test_missing_intent_hash_denies if {
-  mandate.deny[_] == "missing_intent_hash" with input as object.remove(base, "intent_hash")
+  mandate.deny[_] == "missing_intent_hash" with input as object.union(base, {"intent_hash": ""})
 }
