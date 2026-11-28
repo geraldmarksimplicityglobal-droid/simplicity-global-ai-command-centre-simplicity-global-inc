@@ -124,6 +124,8 @@ BEGIN
   IF n <> 1 THEN RAISE EXCEPTION 'workflow task update grant/policy failed'; END IF;
 
   PERFORM set_config('app.organisation_id','20000000-0000-4000-8000-000000000002',false);
+  SELECT count(*) INTO n FROM assets;
+  IF n <> 0 THEN RAISE EXCEPTION 'cross-organisation asset rows were visible under a different organisation context'; END IF;
   SELECT count(*) INTO n FROM workflow_tasks;
   IF n <> 0 THEN RAISE EXCEPTION 'cross-organisation workflow task access was not denied'; END IF;
   SELECT count(*) INTO n FROM workflow_task_events;
