@@ -275,15 +275,15 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'invalid SG AIF workflow state transition' USING ERRCODE='55000';
   END IF;
-  IF NEW.status='approved' THEN
-    SELECT event_type,actor_user_id INTO last_event_type,last_event_actor
-      FROM aif_workflow_events
-     WHERE organisation_id=NEW.organisation_id AND workflow_id=NEW.id
-     ORDER BY sequence DESC LIMIT 1;
-    IF last_event_type IS DISTINCT FROM 'workflow.approved' OR
-       last_event_actor IS NULL OR last_event_actor=NEW.requester_user_id THEN
-      RAISE EXCEPTION 'workflow approval requires a separately recorded reviewer' USING ERRCODE='55000';
-    END IF;
+  SELECT event_type,actor_user_id INTO last_event_type,last_event_actor
+    FROM aif_workflow_events
+   WHERE organisation_id=NEW.organisation_id AND workflow_id=NEW.id
+   ORDER BY sequence DESC LIMIT 1;
+  IF last_event_type IS DISTINCT FROM 'workflow.' || NEW.status OR last_event_actor IS NULL THEN
+    RAISE EXCEPTION 'workflow state change requires a matching authenticated event' USING ERRCODE='55000';
+  END IF;
+  IF NEW.status='approved' AND last_event_actor=NEW.requester_user_id THEN
+    RAISE EXCEPTION 'workflow approval requires a separately recorded reviewer' USING ERRCODE='55000';
   END IF;
   RETURN NEW;
 END;
