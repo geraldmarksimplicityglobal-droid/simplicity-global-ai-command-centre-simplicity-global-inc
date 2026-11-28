@@ -74,17 +74,6 @@ REVOKE UPDATE, DELETE, TRUNCATE ON audit_events FROM PUBLIC;
 -- SG-AIF-001 runtime grants: append-only records are INSERT/SELECT only.
 -- Workflow rows are mutable only for the state machine/checkpoint fields used
 -- by the API. No DELETE, TRUNCATE, payment execution, or provider-write grants.
-GRANT INSERT ON
-  aif_workflows,
-  aif_workflow_events,
-  aif_memory_records,
-  aif_plugin_registry,
-  aif_config_versions,
-  aif_config_approvals,
-  aif_config_activations,
-  financial_route_decisions
-TO sg_live_framework_runtime;
-
 GRANT UPDATE (status,current_stage,checkpoint,state_version,last_event_hash,updated_at,closed_at)
   ON aif_workflows TO sg_live_framework_runtime;
 
