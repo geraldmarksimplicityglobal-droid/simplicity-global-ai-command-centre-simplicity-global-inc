@@ -1,5 +1,6 @@
 import {
   claimExecutionJob,
+  heartbeatExecutionJob,
   completeExecutionJob,
   failExecutionJob
 } from "./execution-jobs.mjs";
@@ -30,6 +31,38 @@ export async function runExecutionWorkerOnce({
   );
   if (!job) return Object.freeze({ status: "idle" });
 
+  const controller = new AbortController();
+  let heartbeatLost = false;
+  const heartbeatTask = (async () => {
+    const intervalMs = Math.max(3000, Math.floor(leaseSeconds * 1000 / 3));
+    while (!controller.signal.aborted) {
+      await new Promise(resolve => {
+        const timer = setTimeout(resolve, intervalMs);
+        controller.signal.addEventListener("abort", () => {
+          clearTimeout(timer);
+          resolve();
+        }, { once: true });
+      });
+      if (controller.signal.aborted) break;
+      try {
+        const renewed = await withTenantClient(org, client =>
+          heartbeatExecutionJob(client, {
+            organisationId: org, jobId: job.id, workerId: worker, leaseSeconds
+          })
+        );
+        if (!renewed) {
+          heartbeatLost = true;
+          controller.abort();
+          break;
+        }
+      } catch {
+        heartbeatLost = true;
+        controller.abort();
+        break;
+      }
+    }
+  })();
+
   let result;
   try {
     result = await execute({
@@ -37,9 +70,13 @@ export async function runExecutionWorkerOnce({
       jobId: job.id,
       requesterId: job.requester_user_id,
       payload: job.payload,
-      attempt: job.attempts
+      attempt: job.attempts,
+      signal: controller.signal
     });
   } catch {
+    controller.abort();
+    await heartbeatTask;
+    if (heartbeatLost) return Object.freeze({ status: "lease_lost", jobId: job.id });
     const failed = await withTenantClient(org, client =>
       failExecutionJob(client, {
         organisationId: org, jobId: job.id, workerId: worker,
@@ -48,6 +85,9 @@ export async function runExecutionWorkerOnce({
     );
     return Object.freeze({ status: failed?.status ?? "lease_lost", jobId: job.id });
   }
+  controller.abort();
+  await heartbeatTask;
+  if (heartbeatLost) return Object.freeze({ status: "lease_lost", jobId: job.id });
 
   const completed = await withTenantClient(org, client =>
     completeExecutionJob(client, {
