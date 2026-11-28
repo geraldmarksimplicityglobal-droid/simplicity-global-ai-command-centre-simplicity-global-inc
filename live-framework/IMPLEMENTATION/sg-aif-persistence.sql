@@ -228,10 +228,10 @@ BEGIN
     'aif_workflow_events','aif_config_versions','aif_config_approvals',
     'aif_config_activations','financial_route_decisions'
   ] LOOP
-    EXECUTE format('DROP TRIGGER IF EXISTS %I_no_mutation ON %I',target_table,target_table);
+    EXECUTE format('DROP TRIGGER IF EXISTS %I ON %I',target_table || '_no_mutation',target_table);
     EXECUTE format(
-      'CREATE TRIGGER %I_no_mutation BEFORE UPDATE OR DELETE ON %I FOR EACH ROW EXECUTE FUNCTION public.sg_aif_reject_mutation()',
-      target_table,target_table
+      'CREATE TRIGGER %I BEFORE UPDATE OR DELETE ON %I FOR EACH ROW EXECUTE FUNCTION public.sg_aif_reject_mutation()',
+      target_table || '_no_mutation',target_table
     );
   END LOOP;
 END $$;
