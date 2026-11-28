@@ -139,6 +139,7 @@ const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let selectedOrganisation = "";
 let api = null;
+let pendingJobIdempotencyKey = null;
 const configured = Boolean(SG_AUTH_CONFIG.apiBaseUrl && SG_AUTH_CONFIG.issuer && SG_AUTH_CONFIG.clientId);
 if (configured) {
   api = createFrameworkApi({
@@ -216,19 +217,26 @@ $("reload-config").addEventListener("click", loadAll);
 
 $("job-form").addEventListener("submit", async event => {
   event.preventDefault();
+  const formElement = event.currentTarget;
+  const submitButton = formElement.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
   try {
     if (!api || !selectedOrganisation) throw new Error("Authenticate and select an organisation first.");
-    const form = Object.fromEntries(new FormData(event.currentTarget));
+    const form = Object.fromEntries(new FormData(formElement));
+    pendingJobIdempotencyKey ||= crypto.randomUUID();
     const result = await api.createAifJob({
       objective: form.objective,
       capabilities: [],
       risk: form.risk,
-      idempotencyKey: crypto.randomUUID()
+      idempotencyKey: pendingJobIdempotencyKey
     });
+    pendingJobIdempotencyKey = null;
     $("job-message").textContent = "Job persisted: " + result.data.id + " · " + result.data.status + ". Execution requires an authorised background worker.";
-    event.currentTarget.reset();
+    formElement.reset();
     await loadAll();
-  } catch (error) { $("job-message").textContent = error.message; }
+  } catch (error) {
+    $("job-message").textContent = error.message + (pendingJobIdempotencyKey ? " Retry will reuse the same idempotency key." : "");
+  } finally { submitButton.disabled = false; }
 });
 $("workflow-form").addEventListener("submit", async event => {
   event.preventDefault();
