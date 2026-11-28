@@ -70,8 +70,9 @@ export async function registerAifRoutes(app, requireScope) {
       );
       reply.code(job.idempotentReplay ? 200 : 202);
       return { data: job };
-    } catch {
-      return reply.code(409).send({ error: "execution_job_conflict" });
+    } catch (error) {
+      if (error?.message === "execution_job_conflict") return reply.code(409).send({ error: "execution_job_conflict" });
+      throw error;
     }
   }));
 
