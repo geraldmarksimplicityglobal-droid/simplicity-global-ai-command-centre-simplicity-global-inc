@@ -119,6 +119,8 @@ export function validateMemoryRecord(input) {
 
 export function validateAifConfiguration(input) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new TypeError("configuration object required");
+  const allowedKeys = new Set(["runtimeMode","maxProductionAutonomy","sandboxMaxAutonomy","memoryRetentionDays","maxWorkflowConcurrency","financialExecutionEnabled","providerWritesEnabled","productionDeploymentEnabled","selfEscalationEnabled"]);
+  if (Object.keys(input).some(key => !allowedKeys.has(key))) throw new TypeError("configuration contains an unsupported key");
   if (input.financialExecutionEnabled === true || input.providerWritesEnabled === true ||
       input.productionDeploymentEnabled === true || input.selfEscalationEnabled === true) {
     throw new Error("financial execution, provider writes, production deployment and self-escalation are not configurable");
@@ -152,9 +154,10 @@ export function buildFinancialRouteDecision(input, { mandate = null, killSwitchA
   if (typeof input.currency !== "string" || !/^[A-Z]{3}$/.test(input.currency)) throw new TypeError("currency must be an ISO-4217 code");
   const corridor = requiredText(input.corridor, "corridor", 80);
   if (!Array.isArray(input.candidateRoutes) || input.candidateRoutes.length > 50) throw new TypeError("candidateRoutes must be an array of at most 50 entries");
-  const hardGates = input.hardGates && typeof input.hardGates === "object" && !Array.isArray(input.hardGates)
+  const suppliedGates = input.hardGates && typeof input.hardGates === "object" && !Array.isArray(input.hardGates)
     ? input.hardGates : {};
   const requiredGates = ["sanctions", "aml", "beneficiary", "currency", "corridor", "jurisdiction", "approval", "idempotency"];
+  const hardGates = Object.fromEntries(requiredGates.map(key => [key, suppliedGates[key] === true]));
   const failedGates = requiredGates.filter(key => hardGates[key] !== true);
   const blockReasons = [];
   if (!mandate || !Array.isArray(mandate.counterpartyAllowlist) || mandate.counterpartyAllowlist.length === 0 ||
