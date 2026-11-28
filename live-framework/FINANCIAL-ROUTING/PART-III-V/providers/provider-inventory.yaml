@@ -1,0 +1,101 @@
+# Proposed integration inventory only. All statuses remain unverified until provider onboarding.
+# No endpoints, credentials, limits, or live scopes are asserted by this file.
+providers:
+  - id: nedbank
+    class: south_african_bank
+    connection_status: not_configured
+    auth_profile: provider_docs_required
+    intended_capabilities: [balance_read, statement_read, payment_prepare]
+    execution_enabled: false
+    autonomy_cap: L2
+  - id: capitec
+    class: south_african_bank
+    connection_status: not_configured
+    auth_profile: provider_docs_required
+    intended_capabilities: [balance_read, statement_read]
+    execution_enabled: false
+    autonomy_cap: L2
+  - id: capitec_business
+    class: south_african_business_bank
+    connection_status: not_configured
+    auth_profile: provider_docs_required
+    intended_capabilities: [statement_read, bulk_payment_prepare]
+    execution_enabled: false
+    autonomy_cap: L2
+  - id: tymebank
+    class: south_african_digital_bank
+    connection_status: not_configured
+    auth_profile: partner_docs_required
+    intended_capabilities: [balance_read, statement_read]
+    execution_enabled: false
+    autonomy_cap: L2
+  - id: equal
+    class: south_african_fintech
+    connection_status: not_configured
+    auth_profile: provider_docs_required
+    intended_capabilities: [collections_report_read, payout_prepare, reconciliation_read]
+    execution_enabled: false
+    autonomy_cap: L2
+  - id: valr
+    class: crypto_exchange
+    connection_status: not_configured
+    auth_profile: official_api_docs_required
+    intended_capabilities: [balance_read, market_data_read, trade_prepare]
+    withdrawal_enabled: false
+    autonomy_cap: L2
+  - id: luno
+    class: crypto_exchange
+    connection_status: not_configured
+    auth_profile: official_api_docs_required
+    intended_capabilities: [balance_read, market_data_read, trade_prepare]
+    withdrawal_enabled: false
+    autonomy_cap: L2
+  - id: coinbase
+    class: crypto_exchange
+    connection_status: not_configured
+    auth_profile: official_api_docs_required
+    intended_capabilities: [balance_read, market_data_read, trade_prepare]
+    withdrawal_enabled: false
+    autonomy_cap: L2
+  - id: onekey
+    class: self_custody_wallet
+    connection_status: not_configured
+    intended_capabilities: [unsigned_transaction_prepare]
+    ai_signing: false
+    ai_broadcast: false
+    autonomy_cap: L1
+  - id: trust_wallet
+    class: self_custody_wallet
+    connection_status: not_configured
+    intended_capabilities: [unsigned_transaction_prepare]
+    ai_signing: false
+    ai_broadcast: false
+    autonomy_cap: L1
+  - id: moonpay
+    class: fiat_crypto_ramp
+    connection_status: not_configured
+    auth_profile: official_api_docs_required
+    intended_capabilities: [quote_read, transaction_status_read]
+    offramp_enabled: false
+    autonomy_cap: L1
+  - id: paypal
+    class: global_payment_service
+    connection_status: not_configured
+    auth_profile: official_api_docs_required
+    intended_capabilities: [transaction_read, payout_prepare, refund_prepare]
+    execution_enabled: false
+    autonomy_cap: L2
+  - id: wise
+    class: cross_border_payment_service
+    connection_status: not_configured
+    auth_profile: official_api_docs_required
+    intended_capabilities: [balance_read, quote_read, transfer_prepare, statement_read]
+    execution_enabled: false
+    autonomy_cap: L2
+  - id: lumo
+    class: unverified_fintech
+    connection_status: unknown
+    verification_required: true
+    intended_capabilities: []
+    execution_enabled: false
+    autonomy_cap: L0

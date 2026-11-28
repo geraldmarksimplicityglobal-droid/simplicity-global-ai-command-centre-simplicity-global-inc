@@ -1,0 +1,34 @@
+{
+  "policy_version": "example-sandbox-1",
+  "effective_from": "2026-11-28",
+  "environment": "sandbox",
+  "limits": {
+    "hard_cap_minor": 100000,
+    "tier_t0_minor": 100000,
+    "tier_t2_minor": 1000000,
+    "tier_t3_minor": 10000000,
+    "velocity_1h_max": 5,
+    "fraud_max": 0.25
+  },
+  "allowlists": {
+    "rails": ["INTERNAL_SANDBOX"],
+    "corridors": ["ZA->ZA"],
+    "payees": ["sandbox-beneficiary-001"],
+    "currencies": ["ZAR"],
+    "chains": [],
+    "asset_chain": {},
+    "address_ids": [],
+    "memo_required": {}
+  },
+  "crypto": {
+    "asset_caps_minor": {},
+    "min_confirmations": {}
+  },
+  "controls": {
+    "new_payee_cooling_hours": 24,
+    "bank_detail_change": "block",
+    "screening_hit": "block",
+    "self_custody_ai_signing": false,
+    "execution_enabled": false
+  }
+}
