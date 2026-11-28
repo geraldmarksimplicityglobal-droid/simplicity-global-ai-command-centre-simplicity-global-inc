@@ -173,14 +173,14 @@ export async function registerAifRoutes(app, requireScope) {
         environment:workflow.environment,simulationOnly:workflow.simulation_only
       });
     } catch (error) { return reply.code(409).send({ error: "workflow_transition_denied", message: error.message }); }
-    const updated = await client.query(
-      "UPDATE aif_workflows SET status=$3,current_stage=$3,state_version=state_version+1,updated_at=now(),closed_at=CASE WHEN $3 IN ('rejected','cancelled','simulated') THEN now() ELSE closed_at END WHERE organisation_id=$1 AND id=$2 RETURNING id,status,current_stage,state_version,updated_at",
-      [scope.organisationId,request.params.id,body.nextStatus]
-    );
     await appendWorkflowEvent(client,{
       organisationId:scope.organisationId,workflowId:request.params.id,actorId:user.userId,
       eventType:"workflow."+body.nextStatus,payload
     });
+    const updated = await client.query(
+      "UPDATE aif_workflows SET status=$3,current_stage=$3,state_version=state_version+1,updated_at=now(),closed_at=CASE WHEN $3 IN ('rejected','cancelled') THEN now() ELSE closed_at END WHERE organisation_id=$1 AND id=$2 RETURNING id,status,current_stage,state_version,updated_at",
+      [scope.organisationId,request.params.id,body.nextStatus]
+    );
     await client.query(
       "INSERT INTO audit_events (organisation_id,actor_user_id,action,target_type,target_id,outcome) VALUES ($1,$2,'aif.workflow.transition','aif_workflow',$3,'success')",
       [scope.organisationId,user.userId,request.params.id]
