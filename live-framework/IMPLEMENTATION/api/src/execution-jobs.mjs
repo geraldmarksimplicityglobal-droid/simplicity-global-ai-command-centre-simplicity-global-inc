@@ -133,6 +133,29 @@ export async function failExecutionJob(client, {
   return safeJob(updated.rows[0]);
 }
 
+export async function blockExecutionJob(client, {
+  organisationId, jobId, workerId, errorCode = "policy_denied",
+  summary = "Task requires an approval or authorization step"
+} = {}) {
+  const org = text(organisationId, "organisationId", 100);
+  const id = text(jobId, "jobId", 100);
+  const worker = text(workerId, "workerId", 200);
+  if (!/^(approval_required|authorization_required|connector_required|policy_denied)$/.test(errorCode)) {
+    throw new TypeError("errorCode must identify a supported blocked outcome");
+  }
+  const safeSummary = text(summary, "summary", 1000);
+  const updated = await client.query(
+    `UPDATE aif_execution_jobs
+       SET status='blocked',last_error_code=$4,result=$5::jsonb,
+           worker_id=NULL,lease_until=NULL,updated_at=now(),completed_at=now()
+     WHERE organisation_id=$1 AND id=$2 AND worker_id=$3
+       AND status='running' AND lease_until > now()
+     RETURNING id,status,created_at`,
+    [org, id, worker, errorCode, JSON.stringify({ summary: safeSummary })]
+  );
+  return safeJob(updated.rows[0]);
+}
+
 export async function cancelExecutionJob(client, { organisationId, jobId, requesterId } = {}) {
   const org = text(organisationId, "organisationId", 100);
   const id = text(jobId, "jobId", 100);
