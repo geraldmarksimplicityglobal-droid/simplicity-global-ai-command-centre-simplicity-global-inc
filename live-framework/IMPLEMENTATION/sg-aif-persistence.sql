@@ -213,7 +213,7 @@ CREATE POLICY financial_route_decisions_insert ON financial_route_decisions FOR 
 
 -- Bind persisted actor columns to the authenticated API identity context.
 CREATE OR REPLACE FUNCTION public.sg_aif_validate_actor()
-RETURNS trigger LANGUAGE plpgsql AS $
+RETURNS trigger LANGUAGE plpgsql AS $aif$
 DECLARE
   session_user_id uuid;
   row_actor_id text;
@@ -230,7 +230,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$aif$;
 
 DROP TRIGGER IF EXISTS aif_workflows_actor ON aif_workflows;
 CREATE TRIGGER aif_workflows_actor BEFORE INSERT ON aif_workflows
@@ -259,7 +259,7 @@ CREATE TRIGGER financial_route_decisions_actor BEFORE INSERT ON financial_route_
 
 -- Enforce the workflow state machine at the database boundary as well as the API.
 CREATE OR REPLACE FUNCTION public.sg_aif_guard_workflow_transition()
-RETURNS trigger LANGUAGE plpgsql AS $
+RETURNS trigger LANGUAGE plpgsql AS $aif$
 DECLARE
   last_event_type text;
   last_event_actor uuid;
@@ -287,7 +287,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$aif$;
 
 DROP TRIGGER IF EXISTS aif_workflows_transition_guard ON aif_workflows;
 CREATE TRIGGER aif_workflows_transition_guard
@@ -296,7 +296,7 @@ CREATE TRIGGER aif_workflows_transition_guard
 
 -- Enforce a contiguous, previous-hash-linked workflow event stream.
 CREATE OR REPLACE FUNCTION public.sg_aif_validate_workflow_event()
-RETURNS trigger LANGUAGE plpgsql AS $
+RETURNS trigger LANGUAGE plpgsql AS $aif$
 DECLARE
   previous_sequence integer;
   previous_event_hash char(64);
@@ -319,7 +319,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$aif$;
 
 DROP TRIGGER IF EXISTS aif_workflow_events_chain ON aif_workflow_events;
 CREATE TRIGGER aif_workflow_events_chain
@@ -328,7 +328,7 @@ CREATE TRIGGER aif_workflow_events_chain
 
 -- Configuration approval and activation must remain maker/checker separated.
 CREATE OR REPLACE FUNCTION public.sg_aif_guard_config_approval()
-RETURNS trigger LANGUAGE plpgsql AS $
+RETURNS trigger LANGUAGE plpgsql AS $aif$
 DECLARE
   configuration_creator uuid;
 BEGIN
@@ -340,7 +340,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$aif$;
 
 DROP TRIGGER IF EXISTS aif_config_approval_guard ON aif_config_approvals;
 CREATE TRIGGER aif_config_approval_guard
@@ -348,7 +348,7 @@ CREATE TRIGGER aif_config_approval_guard
   FOR EACH ROW EXECUTE FUNCTION public.sg_aif_guard_config_approval();
 
 CREATE OR REPLACE FUNCTION public.sg_aif_guard_config_activation()
-RETURNS trigger LANGUAGE plpgsql AS $
+RETURNS trigger LANGUAGE plpgsql AS $aif$
 DECLARE
   configuration_creator uuid;
   latest_decision text;
@@ -368,7 +368,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$aif$;
 
 DROP TRIGGER IF EXISTS aif_config_activation_guard ON aif_config_activations;
 CREATE TRIGGER aif_config_activation_guard
@@ -379,11 +379,11 @@ CREATE TRIGGER aif_config_activation_guard
 -- decisions are append-only. Memory erasure remains an administrator/retention
 -- operation and is not exposed through the application API.
 CREATE OR REPLACE FUNCTION public.sg_aif_reject_mutation()
-RETURNS trigger LANGUAGE plpgsql AS $$
+RETURNS trigger LANGUAGE plpgsql AS $aif$
 BEGIN
   RAISE EXCEPTION 'SG AIF records are append-only' USING ERRCODE='55000';
 END;
-$$;
+$aif$;
 
 DO $$
 DECLARE target_table text;
