@@ -14,6 +14,10 @@ test("production workflows cannot exceed L3.3", () => {
     title: "Unbounded task", objective: "Run unrestricted actions",
     environment: "production", autonomyLevel: "L4.1", riskLevel: "high"
   }, "user-1"), /production autonomy ceiling/);
+  assert.throws(() => validateWorkflowInput({
+    title: "Development overreach", objective: "Run an unrestricted development task",
+    environment: "development", autonomyLevel: "L4.1", riskLevel: "medium"
+  }, "user-1"), /production autonomy ceiling/);
 });
 
 test("L5 sandbox workflows must be explicitly simulation-only", () => {
