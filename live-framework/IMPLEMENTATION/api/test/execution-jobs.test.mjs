@@ -127,7 +127,7 @@ test("idempotent replay is scoped to the same requester and identical payload", 
   assert.equal(result.id, "job-existing");
   assert.equal(result.idempotentReplay, true);
   assert.match(client.calls[1].sql, /requester_user_id/);
-  assert.match(client.calls[1].sql, /payload=\\$4::jsonb/);
+  assert.match(client.calls[1].sql, /payload=\$4::jsonb/);
   assert.equal(client.calls[1].params[1], "user-1");
   assert.equal(client.calls[1].params[2], "shared-key");
   assert.equal(client.calls[1].params[3], JSON.stringify({
