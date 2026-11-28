@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   validateWorkflowInput, assertWorkflowTransition, validateMemoryRecord,
-  validateAifConfiguration, buildFinancialRouteDecision, hashWorkflowEvent
+  validateAifConfiguration, assertAutonomyWithinCeiling, buildFinancialRouteDecision, hashWorkflowEvent
 } from "../src/aif-runtime.mjs";
 
 test("production workflows cannot exceed L3.3", () => {
@@ -104,4 +104,16 @@ test("API integration keeps AIF routes behind scoped permissions and has no exec
   assert.match(routes, /aif:read/);
   assert.match(routes, /financial-routing:prepare/);
   assert.doesNotMatch(routes, /payments\.execute_approved/);
+});
+
+test("activated autonomy ceilings can tighten but never exceed the global production cap", () => {
+  assert.equal(assertAutonomyWithinCeiling("L3.2", "L3.3"), true);
+  assert.throws(() => assertAutonomyWithinCeiling("L3.3", "L2.3"), /active configuration ceiling/);
+  assert.throws(() => assertAutonomyWithinCeiling("L4.1", "L3.3"), /active configuration ceiling/);
+});
+
+test("runtime configuration rejects unknown fields rather than silently ignoring them", () => {
+  assert.throws(() => validateAifConfiguration({
+    runtimeMode: "read_only", bankTransferEnabled: true
+  }), /unsupported key/);
 });
