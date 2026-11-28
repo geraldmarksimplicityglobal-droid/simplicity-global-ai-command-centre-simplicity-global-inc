@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { runExecutionWorkerOnce } from "../src/execution-worker.mjs";
+import { runExecutionWorkerOnce, startExecutionWorker } from "../src/execution-worker.mjs";
 
 test("worker claims, executes and completes one job through tenant-scoped adapters", async () => {
   const calls = [];
@@ -57,4 +57,18 @@ test("worker records bounded failure without exposing raw exception details", as
   assert.equal(result.status, "queued");
   assert.equal(result.jobId, "job-2");
   assert.equal(updates.length, 1);
+});
+
+test("background worker supervisor stops gracefully while idle", async () => {
+  const controller = new AbortController();
+  const worker = startExecutionWorker({
+    organisationId: "org-1", workerId: "worker-1",
+    withTenantClient: async (_org, fn) => fn({ query: async () => ({ rows: [] }) }),
+    execute: async () => ({ summary: "unused" }),
+    pollIntervalMs: 250,
+    signal: controller.signal
+  });
+  controller.abort();
+  const result = await worker.done;
+  assert.deepEqual(result, { status: "stopped" });
 });
