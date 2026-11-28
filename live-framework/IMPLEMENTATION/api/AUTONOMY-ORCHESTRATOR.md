@@ -56,3 +56,29 @@ The tests cover connector reuse, missing authorization, missing connectors, fore
 6. Complete security review and approve deployment separately.
 
 No production activation or autonomous external side effects are implied by this reference implementation.
+
+
+## Governed execution adapter (added 28 November 2026)
+
+executeAutonomousTask() now composes the existing planning and policy primitives into one host-runtime call:
+
+1. Discover the connector inventory through the injected discoverConnectors adapter.
+2. Resolve every requested capability against exact healthy, already-authorized connectors.
+3. Stop and return authorization_required or connector_required if any capability is unavailable. It does not install a plugin, start OAuth or broaden scopes.
+4. Apply the operation-specific approval policy before invoking an executor or queue.
+5. Run short tasks through the injected foreground executor.
+6. Queue long tasks only when the host explicitly reports a persistent worker as available and supplies a durable enqueueBackground adapter.
+7. Return a structured status (completed, queued, approval_required, authorization_required, connector_required, background_runtime_required or failed).
+
+The adapters are trusted host-runtime dependencies, not values supplied by the user's natural-language command. Errors are returned as bounded stage/reason codes rather than leaking connector or provider error payloads.
+
+### Host integration contract
+
+The host application must provide:
+- An authenticated, tenant-scoped connector inventory adapter.
+- A foreground executor bound to the host's approved tool registry.
+- A durable queue adapter with idempotency, leases, cancellation, retries and audit persistence.
+- A trustworthy worker-health signal; a boolean supplied by an end user is not sufficient in production.
+- An approval verifier that resolves the approver identity from authenticated context, not from caller-controlled JSON.
+
+This module remains a library seam. The current PR does not connect the API routes, provision a durable queue/worker, start a background process, or activate provider OAuth. The CI tests exercise the orchestration with deterministic in-memory adapters only.
