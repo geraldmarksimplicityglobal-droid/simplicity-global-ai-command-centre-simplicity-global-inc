@@ -118,15 +118,22 @@ export function planAutonomousTask({
  * Fail-closed operation gate. Only read-only and reversible internal work
  * are permitted without an operation-specific approval.
  */
-export function authorizeOperation({ risk, explicitApproval = false } = {}) {
+export function authorizeOperation({ risk, operationId, requesterId, approval = null } = {}) {
   if (typeof risk !== "string" || !RISKS.has(risk)) {
     return Object.freeze({ allowed: false, status: "denied", reason: "unknown-risk-class" });
   }
   if (risk === "read_only" || risk === "reversible") {
     return Object.freeze({ allowed: true, status: "allowed", reason: "within-default-autonomy" });
   }
-  if (explicitApproval === true) {
-    return Object.freeze({ allowed: true, status: "approved", reason: "explicit-operation-approval" });
+  const hasBoundApproval = approval && typeof approval === "object" &&
+    approval.approved === true &&
+    typeof operationId === "string" && operationId.trim() &&
+    approval.operationId === operationId &&
+    typeof requesterId === "string" && requesterId.trim() &&
+    typeof approval.approverId === "string" && approval.approverId.trim() &&
+    approval.approverId !== requesterId;
+  if (hasBoundApproval) {
+    return Object.freeze({ allowed: true, status: "approved", reason: "operation-bound-independent-approval" });
   }
-  return Object.freeze({ allowed: false, status: "approval_required", reason: "operation-specific-approval-required" });
+  return Object.freeze({ allowed: false, status: "approval_required", reason: "operation-specific-independent-approval-required" });
 }
