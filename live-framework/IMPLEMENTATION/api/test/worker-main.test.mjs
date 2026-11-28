@@ -33,9 +33,8 @@ test("rejects missing adapter path and invalid tenant or worker identity", () =>
 });
 
 test("refuses to start unless the trusted adapter verifies the exact worker identity", async () => {
-  const env = { ...validEnv };
-  const result = await startWorkerHost({
-    env,
+  await assert.rejects(() => startWorkerHost({
+    env: validEnv,
     loadAdapter: async () => ({
       verifyWorkerIdentity: async () => ({
         verified: true,
@@ -47,8 +46,7 @@ test("refuses to start unless the trusted adapter verifies the exact worker iden
     }),
     installSignalHandlers: false,
     signal: AbortSignal.abort()
-  });
-  assert.equal(result.status, "stopped");
+  }), /did not verify the exact worker identity/);
 });
 
 test("requires an explicit host workload identity verifier before starting", async () => {
@@ -61,4 +59,23 @@ test("requires an explicit host workload identity verifier before starting", asy
     installSignalHandlers: false,
     signal: AbortSignal.abort()
   }), /verifyWorkerIdentity/);
+});
+
+test("starts only with a matching verified workload adapter and supports graceful stop", async () => {
+  let verified = false;
+  const result = await startWorkerHost({
+    env: validEnv,
+    loadAdapter: async () => ({
+      verifyWorkerIdentity: async request => {
+        verified = true;
+        return { verified: true, organisationId: request.organisationId, workerId: request.workerId };
+      },
+      withTenantClient: async (_org, fn) => fn({ query: async () => ({ rows: [] }) }),
+      execute: async () => ({ summary: "not reached" })
+    }),
+    installSignalHandlers: false,
+    signal: AbortSignal.abort()
+  });
+  assert.equal(verified, true);
+  assert.equal(result.status, "stopped");
 });
