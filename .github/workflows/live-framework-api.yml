@@ -1,5 +1,7 @@
 name: Live Framework API checks
 
+# Includes SG-AIF persistent runtime and tenant-scoped financial routing contracts.
+
 on:
   pull_request:
     paths:
