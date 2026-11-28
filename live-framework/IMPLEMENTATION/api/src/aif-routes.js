@@ -97,6 +97,7 @@ export async function registerAifRoutes(app, requireScope) {
         (input.environment !== "sandbox" || input.simulationOnly !== true)) {
       return reply.code(400).send({ error:"simulation_mode_requires_sandbox_simulation_only" });
     }
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))",[scope.organisationId]);
     const activeCount = await client.query(
       "SELECT count(*)::int AS count FROM aif_workflows WHERE status IN ('queued','inspected','planned','awaiting_approval','approved')"
     );
@@ -292,6 +293,7 @@ export async function registerAifRoutes(app, requireScope) {
     let configuration;
     try { configuration = validateAifConfiguration(body.configuration); }
     catch (error) { return reply.code(400).send({ error:"invalid_configuration",message:error.message }); }
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))",[scope.organisationId,body.configKey]);
     const versionResult = await client.query(
       "SELECT COALESCE(MAX(version),0)+1 AS next_version FROM aif_config_versions WHERE organisation_id=$1 AND config_key=$2",
       [scope.organisationId,body.configKey]
