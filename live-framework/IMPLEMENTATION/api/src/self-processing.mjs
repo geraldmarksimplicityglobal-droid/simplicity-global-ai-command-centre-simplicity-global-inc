@@ -102,20 +102,20 @@ export function assertLoopTransition(current, next) {
   return true;
 }
 
-export function createIdempotentRecoveryPlan({ state, retryCount = 0, maxRetries = 3 } = {}) {
+export function createIdempotentRecoveryPlan({ state, retryCount = 0, maxRetries = 3, statusChecked = false, idempotencyKey } = {}) {
   if (!Number.isInteger(retryCount) || retryCount < 0 || !Number.isInteger(maxRetries) || maxRetries < 0) {
     throw new TypeError("retry counters must be non-negative integers");
   }
   if (state === "unknown" || state === "pending") {
     return Object.freeze({ action: "query_status", resend: false, reason: state === "unknown" ? "unknown-is-query-only" : "pending-status-check" });
   }
-  if (state === "failed_transient" && (arguments[0]?.statusChecked !== true ||
-      typeof arguments[0]?.idempotencyKey !== "string" || !arguments[0].idempotencyKey.trim())) {
+  if (state === "failed_transient" && (statusChecked !== true ||
+      typeof idempotencyKey !== "string" || !idempotencyKey.trim())) {
     return Object.freeze({ action: "query_status", resend: false, reason: "authoritative-status-and-idempotency-key-required" });
   }
   if (state === "failed_transient" && retryCount < maxRetries) {
     return Object.freeze({ action: "retry_same_idempotency_key", resend: true,
-      idempotencyKey: arguments[0].idempotencyKey, reason: "transient-failure-within-retry-budget" });
+      idempotencyKey, reason: "transient-failure-within-retry-budget" });
   }
   if (state === "failed_transient") {
     return Object.freeze({ action: "dead_letter", resend: false, reason: "retry-budget-exhausted" });
