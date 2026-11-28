@@ -13,6 +13,6 @@ test("autonomous task console accepts one natural-language command without askin
 });
 
 test("console explains that the worker reclassifies commands and blocks higher-risk work pending approval", () => {
-  assert.match(html, /worker independently classifies/);
+  assert.match(html, /risk classification/);
   assert.match(html, /appropriate approval/);
 });
