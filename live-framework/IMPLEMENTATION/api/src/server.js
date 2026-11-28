@@ -1,5 +1,4 @@
 import Fastify from "fastify";
-import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
