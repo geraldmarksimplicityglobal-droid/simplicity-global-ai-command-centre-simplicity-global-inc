@@ -155,3 +155,13 @@ test("AIF console exposes a one-command background job form with worker-state di
   assert.match(client, /listAifJobs:/);
   assert.match(client, /cancelAifJob:/);
 });
+
+test("AIF console inline module script parses after the import declarations are removed", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const html = await readFile(new URL("../../../aif-runtime.html", import.meta.url), "utf8");
+  const match = html.match(/<script type="module">([\s\S]*?)<\/script>/);
+  assert.ok(match, "AIF console module script exists");
+  const source = match[1].replace(/^import .*;\s*/gm, "");
+  assert.doesNotThrow(() => new Function(source));
+  assert.match(source, /pendingJobIdempotencyKey/);
+});
