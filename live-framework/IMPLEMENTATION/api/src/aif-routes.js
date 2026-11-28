@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { isUuid } from "./scope.js";
 import {
   validateWorkflowInput, assertWorkflowTransition, validateMemoryRecord,
-  validateAifConfiguration, buildFinancialRouteDecision, hashWorkflowEvent
+  validateAifConfiguration, assertAutonomyWithinCeiling, buildFinancialRouteDecision, hashWorkflowEvent
 } from "./aif-runtime.mjs";
 
 function boundedLimit(value, fallback = 100) {
@@ -45,17 +45,25 @@ async function appendWorkflowEvent(client, { organisationId, workflowId, actorId
 }
 
 export async function registerAifRoutes(app, requireScope) {
-  app.get("/api/aif/runtime", async (request, reply) => requireScope(request, reply, "aif:read", async client => {
+  app.get("/api/aif/runtime", async (request, reply) => requireScope(request, reply, "aif:read", async (client, _user, _membership, scope) => {
     const { rows } = await client.query(
       "SELECT (SELECT count(*)::int FROM aif_workflows) AS workflows, (SELECT count(*)::int FROM aif_memory_records WHERE expires_at > now()) AS memories, (SELECT count(*)::int FROM aif_plugin_registry) AS plugins, (SELECT count(*)::int FROM financial_route_decisions) AS route_decisions"
     );
+    const active = await client.query(
+      "SELECT c.id,c.version,c.configuration,a.activated_at FROM aif_config_activations a JOIN aif_config_versions c ON c.organisation_id=a.organisation_id AND c.id=a.config_version_id WHERE a.organisation_id=$1 AND c.config_key='sg-aif-runtime' ORDER BY a.activated_at DESC LIMIT 1",
+      [scope.organisationId]
+    );
+    const config = active.rows[0]?.configuration ?? {};
     return {
       systemId: "SG-AIF-001",
       financialRoutingId: "SG-FIN-ROUTE-001",
       persistence: "postgresql",
-      runtimeMode: "read_only",
-      productionAutonomyMaximum: "L3.3",
-      sandboxAutonomyMaximum: "L5.4-simulation-only",
+      runtimeMode: config.runtimeMode ?? "read_only",
+      productionAutonomyMaximum: config.maxProductionAutonomy ?? "L3.3",
+      sandboxAutonomyMaximum: (config.sandboxMaxAutonomy ?? "L5.4") + "-simulation-only",
+      maxWorkflowConcurrency: config.maxWorkflowConcurrency ?? 2,
+      memoryRetentionDays: config.memoryRetentionDays ?? 30,
+      activeConfiguration: active.rows[0] ?? null,
       financialExecutionEnabled: false,
       providerWritesEnabled: false,
       productionDeploymentEnabled: false,
@@ -75,6 +83,20 @@ export async function registerAifRoutes(app, requireScope) {
     let input;
     try { input = validateWorkflowInput(request.body, user.userId); }
     catch (error) { return reply.code(400).send({ error: "invalid_workflow", message: error.message }); }
+    const active = await client.query(
+      "SELECT c.configuration FROM aif_config_activations a JOIN aif_config_versions c ON c.organisation_id=a.organisation_id AND c.id=a.config_version_id WHERE a.organisation_id=$1 AND c.config_key='sg-aif-runtime' ORDER BY a.activated_at DESC LIMIT 1",
+      [scope.organisationId]
+    );
+    const activeConfig = active.rows[0]?.configuration ?? {};
+    const autonomyCeiling = input.environment === "sandbox"
+      ? (activeConfig.sandboxMaxAutonomy ?? "L5.4")
+      : (activeConfig.maxProductionAutonomy ?? "L3.3");
+    try { assertAutonomyWithinCeiling(input.autonomyLevel, autonomyCeiling); }
+    catch (error) { return reply.code(400).send({ error:"active_autonomy_ceiling_exceeded",message:error.message }); }
+    if (activeConfig.runtimeMode === "simulation" &&
+        (input.environment !== "sandbox" || input.simulationOnly !== true)) {
+      return reply.code(400).send({ error:"simulation_mode_requires_sandbox_simulation_only" });
+    }
     const id = randomUUID();
     const { rows } = await client.query(
       `INSERT INTO aif_workflows
