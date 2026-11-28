@@ -99,8 +99,9 @@ test("workflow event hash is deterministic and chained to previous hash", () => 
 test("API integration keeps AIF routes behind scoped permissions and has no execution endpoint", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../src/server.js", import.meta.url), "utf8");
+  const routes = await readFile(new URL("../src/aif-routes.js", import.meta.url), "utf8");
   assert.match(source, /registerAifRoutes/);
-  assert.match(source, /aif:read/);
-  assert.match(source, /financial-routing:prepare/);
-  assert.doesNotMatch(source, /payments\.execute_approved/);
+  assert.match(routes, /aif:read/);
+  assert.match(routes, /financial-routing:prepare/);
+  assert.doesNotMatch(routes, /payments\.execute_approved/);
 });
