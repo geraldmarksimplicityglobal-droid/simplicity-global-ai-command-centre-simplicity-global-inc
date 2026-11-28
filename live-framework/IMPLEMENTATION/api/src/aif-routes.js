@@ -97,6 +97,12 @@ export async function registerAifRoutes(app, requireScope) {
         (input.environment !== "sandbox" || input.simulationOnly !== true)) {
       return reply.code(400).send({ error:"simulation_mode_requires_sandbox_simulation_only" });
     }
+    const activeCount = await client.query(
+      "SELECT count(*)::int AS count FROM aif_workflows WHERE status IN ('queued','inspected','planned','awaiting_approval','approved')"
+    );
+    if (activeCount.rows[0].count >= (activeConfig.maxWorkflowConcurrency ?? 2)) {
+      return reply.code(429).send({ error:"workflow_concurrency_limit_reached" });
+    }
     const id = randomUUID();
     const { rows } = await client.query(
       `INSERT INTO aif_workflows
@@ -217,6 +223,14 @@ export async function registerAifRoutes(app, requireScope) {
     let memory;
     try { memory = validateMemoryRecord(request.body); }
     catch (error) { return reply.code(400).send({ error:"invalid_memory_record",message:error.message }); }
+    const activeConfig = await client.query(
+      "SELECT c.configuration FROM aif_config_activations a JOIN aif_config_versions c ON c.organisation_id=a.organisation_id AND c.id=a.config_version_id WHERE a.organisation_id=$1 AND c.config_key='sg-aif-runtime' ORDER BY a.activated_at DESC LIMIT 1",
+      [scope.organisationId]
+    );
+    const retentionCeiling = activeConfig.rows[0]?.configuration?.memoryRetentionDays ?? 30;
+    if (memory.ttlDays > retentionCeiling) {
+      return reply.code(400).send({ error:"memory_retention_ceiling_exceeded",maximumDays:retentionCeiling });
+    }
     const { rows } = await client.query(
       "INSERT INTO aif_memory_records (organisation_id,memory_type,memory_key,value,classification,source_reference,created_by,expires_at) VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,now()+($8::int * interval '1 day')) RETURNING id,memory_type,memory_key,classification,source_reference,expires_at,created_at",
       [scope.organisationId,memory.memoryType,memory.memoryKey,JSON.stringify(memory.value),memory.classification,memory.sourceReference,user.userId,memory.ttlDays]
