@@ -94,3 +94,20 @@ This is a security hardening of the library seam. It does not provision the veri
 
 
 The orchestrator also marks verifier-returned attestation objects in a module-private `WeakSet`. The exported policy helper rejects caller-constructed objects that merely imitate the attestation shape; only an object returned by the injected verifier during the trusted execution path is eligible for approval evaluation.
+
+
+## Durable background job queue extension
+
+The follow-on queue implementation adds tenant-scoped PostgreSQL job persistence and a tenant-bound worker adapter.
+
+- Queue payloads are strict allowlists: objective, capability identifiers and risk. Secret-bearing fields, caller-supplied approval flags and unknown keys are rejected.
+- Background jobs currently accept only `read_only` and `reversible` risk classes. Financial, production, external-write and destructive tasks cannot be placed on this queue.
+- Enqueue operations use organisation-scoped idempotency keys. Workers claim jobs with `FOR UPDATE SKIP LOCKED`, bounded leases and attempt limits.
+- Completion, failure and heartbeat updates are fenced by organisation, job ID, worker ID and lease state. Expired leases can be reclaimed. Only bounded summaries and machine-readable error codes are stored.
+- API routes require authenticated `aif:read` or `aif:write` scope. A requester may cancel only their own queued job.
+- Worker access is tenant-bound through an injected host adapter; the worker must not bypass RLS or accept organisation identity from an untrusted task payload.
+- The worker supervisor supports graceful stop and polling, but is not launched by the API process.
+
+### Activation status
+
+The source includes the queue schema, API routes, worker adapter and tests. CI applies the new migration only to ephemeral PostgreSQL. A production queue and persistent worker are not provisioned. Host integration must still supply a workload identity with tenant membership, a secure `withTenantClient` adapter, an executor that revalidates capabilities and policy, deployment supervision, observability and cancellation/recovery handling. No production or external action is enabled by this source change.
