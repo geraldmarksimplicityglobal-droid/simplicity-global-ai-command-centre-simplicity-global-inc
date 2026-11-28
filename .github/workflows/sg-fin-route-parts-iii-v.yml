@@ -1,0 +1,28 @@
+name: SG Financial Routing Parts III-V
+on:
+  pull_request:
+    paths:
+      - "live-framework/FINANCIAL-ROUTING/PART-III-V/**"
+      - "live-framework/IMPLEMENTATION/README.md"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-contract-and-policy-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run connector contract tests
+        run: node --test live-framework/FINANCIAL-ROUTING/PART-III-V/runtime/connector-contract.test.mjs
+      - name: Validate example mandate JSON
+        run: node -e "JSON.parse(require('node:fs').readFileSync('live-framework/FINANCIAL-ROUTING/PART-III-V/policy/data/mandate.example.json','utf8'))"
+      - name: Install OPA
+        run: |
+          curl -fsSL -o opa https://openpolicyagent.org/downloads/v1.0.0/opa_linux_amd64_static
+          chmod +x opa
+          sudo mv opa /usr/local/bin/opa
+      - name: Run policy tests
+        run: opa test live-framework/FINANCIAL-ROUTING/PART-III-V/policy -v
