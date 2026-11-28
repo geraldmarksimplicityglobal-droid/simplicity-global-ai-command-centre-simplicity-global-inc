@@ -131,3 +131,8 @@ The execution queue now has a terminal `blocked` state for worker-side outcomes 
 ## Cooperative cancellation of running background jobs
 
 The execution queue supports requester-owned cancellation for both queued and running jobs. Queued jobs transition immediately to `cancelled`. Running jobs receive a durable `cancel_requested_at` marker; the worker observes it on lease heartbeat, aborts the executor signal, and finalizes the job as `cancelled` under the same worker lease. The executor adapter must cooperatively honor the supplied `AbortSignal`; cancellation is not a force-kill and cannot guarantee interruption of an adapter that ignores the signal. A completion update is fenced against a concurrent cancellation request so a cancelled job is not reported as successful. The additive `sg-aif-execution-cancellation.sql` migration adds the marker and its partial index. CI applies this migration only to ephemeral PostgreSQL.
+
+
+## Worker container
+
+`Dockerfile.worker` packages the dedicated background worker as a Node.js 22 non-root container. CI builds the image as a build-only check; it does not publish or deploy it. See [WORKER-HOST-DEPLOYMENT.md](./WORKER-HOST-DEPLOYMENT.md) for the required deployment-managed host adapter, workload identity, environment configuration, operational controls and activation checklist.
