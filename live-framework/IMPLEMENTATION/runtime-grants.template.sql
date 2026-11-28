@@ -30,13 +30,29 @@ GRANT SELECT ON
   compliance_documents,
   change_requests,
   incidents,
-  audit_events
+  audit_events,
+  aif_workflows,
+  aif_workflow_events,
+  aif_memory_records,
+  aif_plugin_registry,
+  aif_config_versions,
+  aif_config_approvals,
+  aif_config_activations,
+  financial_route_decisions
 TO sg_live_framework_runtime;
 
 GRANT INSERT ON
   assets,
   change_requests,
-  audit_events
+  audit_events,
+  aif_workflows,
+  aif_workflow_events,
+  aif_memory_records,
+  aif_plugin_registry,
+  aif_config_versions,
+  aif_config_approvals,
+  aif_config_activations,
+  financial_route_decisions
 TO sg_live_framework_runtime;
 
 -- Needed for the GENERATED ALWAYS AS IDENTITY audit event primary key.
@@ -53,3 +69,15 @@ REVOKE UPDATE, DELETE, TRUNCATE ON audit_events FROM PUBLIC;
 --
 -- This template does not grant database CONNECT, create credentials, configure
 -- secrets, or provision any database or cloud resource.
+
+
+-- SG-AIF-001 runtime grants: append-only records are INSERT/SELECT only.
+-- Workflow rows are mutable only for the state machine/checkpoint fields used
+-- by the API. No DELETE, TRUNCATE, payment execution, or provider-write grants.
+GRANT UPDATE (status,current_stage,checkpoint,state_version,last_event_hash,updated_at,closed_at)
+  ON aif_workflows TO sg_live_framework_runtime;
+
+REVOKE UPDATE, DELETE, TRUNCATE ON
+  aif_workflow_events,aif_config_versions,aif_config_approvals,
+  aif_config_activations,financial_route_decisions
+FROM sg_live_framework_runtime;

@@ -131,6 +131,22 @@ export function createFrameworkApi({
       method: "POST", body: change
     }),
     listIncidents: () => request("/api/incidents"),
-    listAuditEvents: () => request("/api/audit-events")
+    listAuditEvents: () => request("/api/audit-events"),
+    getAifRuntime: () => request("/api/aif/runtime"),
+    listAifWorkflows: limit => request("/api/aif/workflows" + (limit ? "?limit=" + encodeURIComponent(limit) : "")),
+    createAifWorkflow: workflow => request("/api/aif/workflows", { method: "POST", body: workflow }),
+    getAifWorkflow: id => request("/api/aif/workflows/" + encodeURIComponent(id)),
+    transitionAifWorkflow: (id, transition) => request("/api/aif/workflows/" + encodeURIComponent(id) + "/events", { method: "POST", body: transition }),
+    saveAifCheckpoint: (id, checkpoint) => request("/api/aif/workflows/" + encodeURIComponent(id) + "/checkpoints", { method: "POST", body: checkpoint }),
+    listAifMemory: limit => request("/api/aif/memory" + (limit ? "?limit=" + encodeURIComponent(limit) : "")),
+    createAifMemory: memory => request("/api/aif/memory", { method: "POST", body: memory }),
+    listAifPlugins: limit => request("/api/aif/plugins" + (limit ? "?limit=" + encodeURIComponent(limit) : "")),
+    registerAifPlugin: plugin => request("/api/aif/plugins", { method: "POST", body: plugin }),
+    listAifConfigurations: limit => request("/api/aif/configurations" + (limit ? "?limit=" + encodeURIComponent(limit) : "")),
+    createAifConfiguration: configuration => request("/api/aif/configurations", { method: "POST", body: configuration }),
+    approveAifConfiguration: (id, decision) => request("/api/aif/configurations/" + encodeURIComponent(id) + "/approve", { method: "POST", body: decision }),
+    activateAifConfiguration: id => request("/api/aif/configurations/" + encodeURIComponent(id) + "/activate", { method: "POST", body: {} }),
+    listFinancialRouteDecisions: limit => request("/api/financial-routing/decisions" + (limit ? "?limit=" + encodeURIComponent(limit) : "")),
+    prepareFinancialRouteDecision: proposal => request("/api/financial-routing/decisions", { method: "POST", body: proposal })
   });
 }
