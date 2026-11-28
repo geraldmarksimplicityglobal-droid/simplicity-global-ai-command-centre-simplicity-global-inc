@@ -79,3 +79,25 @@ test("starts only with a matching verified workload adapter and supports gracefu
   assert.equal(verified, true);
   assert.equal(result.status, "stopped");
 });
+
+
+test("closes the host adapter pool after a worker exits during startup", async () => {
+  let closed = false;
+  const result = await startWorkerHost({
+    env: validEnv,
+    loadAdapter: async () => ({
+      verifyWorkerIdentity: async request => ({
+        verified: true,
+        organisationId: request.organisationId,
+        workerId: request.workerId
+      }),
+      withTenantClient: async (_org, fn) => fn({ query: async () => ({ rows: [] }) }),
+      execute: async () => ({ status: "completed", summary: "unused" }),
+      close: async () => { closed = true; }
+    }),
+    installSignalHandlers: false,
+    signal: AbortSignal.abort()
+  });
+  assert.deepEqual(result, { status: "stopped" });
+  assert.equal(closed, true);
+});
