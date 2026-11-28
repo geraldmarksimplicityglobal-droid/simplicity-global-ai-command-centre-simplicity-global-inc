@@ -38,6 +38,7 @@ AS $$
     FROM public.user_memberships m
     JOIN public.app_users u ON u.id = m.user_id
     WHERE m.organisation_id = target_org
+      AND target_org = NULLIF(current_setting('app.organisation_id', true), '')::uuid
       AND u.identity_issuer = current_setting('app.user_issuer', true)
       AND u.identity_subject = current_setting('app.user_subject', true)
   );
