@@ -1,6 +1,7 @@
 const EXECUTION_MODES = new Set(["foreground", "background"]);
 const RISKS = new Set(["read_only", "reversible", "external_write", "financial", "production", "destructive"]);
 const DEFAULT_BACKGROUND_THRESHOLD_MINUTES = 15;
+const VERIFIED_APPROVALS = new WeakSet();
 
 function nonEmpty(value, field, max = 500) {
   if (typeof value !== "string" || !value.trim() || value.trim().length > max) {
@@ -126,6 +127,7 @@ export function authorizeOperation({ risk, operationId, requesterId, verifiedApp
     return Object.freeze({ allowed: true, status: "allowed", reason: "within-default-autonomy" });
   }
   const hasVerifiedApproval = verifiedApproval && typeof verifiedApproval === "object" &&
+    VERIFIED_APPROVALS.has(verifiedApproval) &&
     verifiedApproval.verified === true &&
     verifiedApproval.approved === true &&
     typeof operationId === "string" && operationId.trim() &&
@@ -216,6 +218,9 @@ export async function executeAutonomousTask({
       typeof verifyApproval === "function") {
     try {
       verifiedApproval = await verifyApproval({ operationId, requesterId, risk });
+      if (verifiedApproval && typeof verifiedApproval === "object") {
+        VERIFIED_APPROVALS.add(verifiedApproval);
+      }
     } catch {
       verifiedApproval = null;
     }
