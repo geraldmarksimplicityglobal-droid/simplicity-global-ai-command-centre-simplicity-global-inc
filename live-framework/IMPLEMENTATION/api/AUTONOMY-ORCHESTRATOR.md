@@ -82,3 +82,12 @@ The host application must provide:
 - An approval verifier that resolves the approver identity from authenticated context, not from caller-controlled JSON.
 
 This module remains a library seam. The current PR does not connect the API routes, provision a durable queue/worker, start a background process, or activate provider OAuth. The CI tests exercise the orchestration with deterministic in-memory adapters only.
+
+
+## Trusted approval verification hardening
+
+High-impact execution no longer accepts an approval object supplied in the task request. The host must inject `verifyApproval({ operationId, requesterId, risk })` from a trusted server-side approval service. The returned attestation must explicitly identify itself as verified and approved, match the exact operation and requester, and identify a distinct approver. Missing, mismatched, or throwing verifiers fail closed. The natural-language command and caller-controlled JSON are never proof of approval.
+
+The verifier must derive requester and approver identities from authenticated server-side context and durable approval records; it must not trust identity claims supplied by the task payload. The orchestrator validates the returned attestation shape but does not itself authenticate the host verifier. The verifier adapter is therefore a privileged host dependency and must never be exposed as a user-controlled parameter in an HTTP request.
+
+This is a security hardening of the library seam. It does not provision the verifier service, connect the API routes, or enable high-impact execution in the current deployment.
