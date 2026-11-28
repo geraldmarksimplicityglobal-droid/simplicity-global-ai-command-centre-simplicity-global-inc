@@ -136,3 +136,23 @@ The execution queue supports requester-owned cancellation for both queued and ru
 ## Worker container
 
 `Dockerfile.worker` packages the dedicated background worker as a Node.js 22 non-root container. CI builds the image as a build-only check; it does not publish or deploy it. See [WORKER-HOST-DEPLOYMENT.md](./WORKER-HOST-DEPLOYMENT.md) for the required deployment-managed host adapter, workload identity, environment configuration, operational controls and activation checklist.
+
+
+## OIDC-verified worker host adapter
+
+`src/worker-host-adapter.mjs` is a provider-neutral host adapter for the durable worker. It verifies a signed workload JWT against an HTTPS OIDC issuer/JWKS and exact audience, organisation and worker claims. The token is read from a deployment-managed file and is never returned or logged.
+
+Required deployment settings (names only; never commit values):
+- `DATABASE_URL`: PostgreSQL connection string.
+- `SG_WORKER_OIDC_ISSUER`: exact HTTPS token issuer.
+- `SG_WORKER_OIDC_JWKS_URL`: HTTPS JWKS endpoint.
+- `SG_WORKER_OIDC_AUDIENCE`: exact workload-token audience.
+- `SG_WORKER_IDENTITY_TOKEN_FILE`: absolute path to a rotated workload-token file.
+- `SG_WORKER_EXECUTOR_MODULE`: absolute path to a separately reviewed host executor module.
+- `SG_WORKER_ORGANISATION_ID` and `SG_WORKER_ID`: same exact worker assignment passed to the worker entrypoint.
+
+The JWT must contain `sub`, `iss`, `sg_organisation_id`, and `sg_worker_id`; its audience is verified by jose. The `sub` must map to an active `app_users` OIDC identity with membership in the assigned organisation. Each tenant database transaction revalidates the signed token and membership, sets transaction-local identity context for existing RLS policies, and rejects database logins that are superusers, have BYPASSRLS, or own the execution-jobs table. Use a dedicated non-owner runtime login with the reviewed least-privilege grants.
+
+The separately deployed executor module must export `execute(task)`. It is a privileged host dependency and must independently revalidate the original requester's current permissions, connector health/scopes, task intent and risk, and cancellation signal before invoking any tool. It must return one of the explicit governed outcomes: `completed`, `approval_required`, `authorization_required`, `connector_required`, or `policy_denied`. Only `completed` with a bounded non-empty summary is accepted as success. No provider connector or ChatGPT tool bridge is bundled or activated by this adapter.
+
+This adapter is source code only. It does not provision an OIDC provider, service-principal membership, database, secrets, executor module, Render service, or worker. The hosting workspace currently has no services, Postgres databases, Key Value stores or workflows. Provisioning remains blocked until the hosting provider, region, data location and any recurring costs are explicitly approved.
