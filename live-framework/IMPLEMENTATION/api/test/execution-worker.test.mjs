@@ -122,3 +122,36 @@ test("worker finalizes a concurrent requester cancellation instead of reporting 
   assert.match(updates[0], /cancel_requested_at IS NULL/);
   assert.match(updates[1], /cancel_requested_at IS NOT NULL/);
 });
+
+
+test("worker aborts an active executor when the requester cancels the running job", async () => {
+  const queries = [];
+  let executorAborted = false;
+  const result = await runExecutionWorkerOnce({
+    organisationId: "org-1",
+    workerId: "worker-1",
+    leaseSeconds: 10,
+    withTenantClient: async (org, fn) => fn({ query: async sql => {
+      queries.push(sql);
+      if (sql.includes("WITH candidate")) return { rows: [{
+        id: "job-running-cancel", organisation_id: org, requester_user_id: "user-1",
+        payload: { objective: "Long report", capabilities: [], risk: "read_only" }, attempts: 1
+      }] };
+      if (sql.includes("cancel_requested_at IS NOT NULL")) return { rows: [{ id: "job-running-cancel", status: "cancelled" }] };
+      if (sql.includes("RETURNING id,status,lease_until,cancel_requested_at")) return { rows: [{
+        id: "job-running-cancel", status: "running", cancel_requested_at: "2026-11-28T16:00:00Z"
+      }] };
+      return { rows: [] };
+    }}),
+    execute: async ({ signal }) => new Promise((resolve, reject) => {
+      signal.addEventListener("abort", () => {
+        executorAborted = true;
+        reject(new Error("executor stopped by cancellation"));
+      }, { once: true });
+    })
+  });
+  assert.equal(executorAborted, true);
+  assert.equal(result.status, "cancelled");
+  assert.equal(result.jobId, "job-running-cancel");
+  assert.ok(queries.some(sql => sql.includes("cancel_requested_at IS NOT NULL")));
+});
