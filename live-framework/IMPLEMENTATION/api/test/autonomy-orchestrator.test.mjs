@@ -182,7 +182,7 @@ test("does not pretend to queue background work when no persistent worker exists
   assert.equal(result.status, "background_runtime_required");
 });
 
-test("requires operation-bound independent approval before external writes", async () => {
+test("requires host-verified operation-bound independent approval before external writes", async () => {
   const { executeAutonomousTask } = await import("../src/autonomy-orchestrator.mjs");
   let ran = false;
   const input = {
@@ -201,7 +201,13 @@ test("requires operation-bound independent approval before external writes", asy
   assert.equal(ran, false);
   const approved = await executeAutonomousTask({
     ...input,
-    approval: { operationId: "provider-change-7", approverId: "reviewer-2", approved: true }
+    verifyApproval: async request => ({
+      verified: true,
+      approved: true,
+      operationId: request.operationId,
+      requesterId: request.requesterId,
+      approverId: "reviewer-2"
+    })
   });
   assert.equal(approved.status, "completed");
   assert.equal(ran, true);
