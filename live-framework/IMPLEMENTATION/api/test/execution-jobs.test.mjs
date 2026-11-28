@@ -85,6 +85,7 @@ test("failure stores a bounded safe error code rather than raw exception text", 
   const client = fakeClient([{ rows: [{ id: "job-2", status: "queued" }], rowCount: 1 }]);
   const result = await failExecutionJob(client, { organisationId: "org-1", jobId: "job-2", workerId: "worker-1", errorCode: "provider_unavailable" });
   assert.equal(result.status, "queued");
+  assert.match(client.calls[0].sql, /lease_until > now\(\)/);
   assert.doesNotMatch(client.calls[0].params.join(" "), /password|token|secret/i);
 });
 
