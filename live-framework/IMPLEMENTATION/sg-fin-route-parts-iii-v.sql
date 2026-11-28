@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS aif_agent_registry (
   created_by uuid NOT NULL REFERENCES app_users(id),
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (organisation_id,agent_key),
-  UNIQUE (organisation_id,workload_identity)
+  UNIQUE (organisation_id,workload_identity),
+  UNIQUE (organisation_id,id)
 );
 
 CREATE TABLE IF NOT EXISTS aif_agent_messages (
@@ -29,7 +30,9 @@ CREATE TABLE IF NOT EXISTS aif_agent_messages (
   signature text NOT NULL,
   expires_at timestamptz NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CHECK (from_agent_id <> to_agent_id)
+  CHECK (from_agent_id <> to_agent_id),
+  FOREIGN KEY (organisation_id,from_agent_id) REFERENCES aif_agent_registry(organisation_id,id),
+  FOREIGN KEY (organisation_id,to_agent_id) REFERENCES aif_agent_registry(organisation_id,id)
 );
 CREATE INDEX IF NOT EXISTS idx_aif_agent_messages_trace
   ON aif_agent_messages(organisation_id,trace_id,created_at);
@@ -54,39 +57,42 @@ CREATE TABLE IF NOT EXISTS fin_payment_intents (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (organisation_id,request_id),
-  UNIQUE (organisation_id,idempotency_key)
+  UNIQUE (organisation_id,idempotency_key),
+  UNIQUE (organisation_id,id)
 );
 
 CREATE TABLE IF NOT EXISTS fin_payment_outbox (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organisation_id uuid NOT NULL REFERENCES organisations(id),
-  payment_intent_id uuid NOT NULL REFERENCES fin_payment_intents(id),
+  payment_intent_id uuid NOT NULL,
   message_type text NOT NULL,
   payload_hash char(64) NOT NULL CHECK (payload_hash ~ '^[a-f0-9]{64}$'),
   dispatch_enabled boolean NOT NULL DEFAULT false CHECK (dispatch_enabled = false),
   dispatch_state text NOT NULL DEFAULT 'held'
     CHECK (dispatch_state IN ('held','cancelled')),
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (organisation_id,payment_intent_id,message_type)
+  UNIQUE (organisation_id,payment_intent_id,message_type),
+  FOREIGN KEY (organisation_id,payment_intent_id) REFERENCES fin_payment_intents(organisation_id,id)
 );
 
 CREATE TABLE IF NOT EXISTS fin_ledger_evidence_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organisation_id uuid NOT NULL REFERENCES organisations(id),
-  payment_intent_id uuid REFERENCES fin_payment_intents(id),
+  payment_intent_id uuid,
   event_type text NOT NULL CHECK (event_type IN ('intent_recorded','proposal_approved','submission_evidence','settlement_evidence','return_evidence','reconciliation_evidence','adjustment_reference')),
   source_reference text,
   evidence_hash char(64) NOT NULL CHECK (evidence_hash ~ '^[a-f0-9]{64}$'),
   posted_to_ledger boolean NOT NULL DEFAULT false CHECK (posted_to_ledger = false),
   payload jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_by uuid NOT NULL REFERENCES app_users(id),
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (organisation_id,payment_intent_id) REFERENCES fin_payment_intents(organisation_id,id)
 );
 
 CREATE TABLE IF NOT EXISTS fin_reconciliation_breaks (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organisation_id uuid NOT NULL REFERENCES organisations(id),
-  payment_intent_id uuid REFERENCES fin_payment_intents(id),
+  payment_intent_id uuid,
   break_type text NOT NULL CHECK (break_type IN ('timing','amount','missing','duplicate','counterparty','currency','reference_data','confirmation_lag','wrong_chain','address_mismatch','reorg','travel_rule_hold')),
   severity text NOT NULL DEFAULT 'medium' CHECK (severity IN ('low','medium','high','critical')),
   status text NOT NULL DEFAULT 'open' CHECK (status IN ('open','investigating','resolved','accepted_risk')),
@@ -95,7 +101,8 @@ CREATE TABLE IF NOT EXISTS fin_reconciliation_breaks (
   resolution_reference text,
   created_by uuid NOT NULL REFERENCES app_users(id),
   created_at timestamptz NOT NULL DEFAULT now(),
-  resolved_at timestamptz
+  resolved_at timestamptz,
+  FOREIGN KEY (organisation_id,payment_intent_id) REFERENCES fin_payment_intents(organisation_id,id)
 );
 CREATE INDEX IF NOT EXISTS idx_fin_recon_breaks_open
   ON fin_reconciliation_breaks(organisation_id,status,created_at);
@@ -160,14 +167,15 @@ CREATE TABLE IF NOT EXISTS fin_dispute_cases (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organisation_id uuid NOT NULL REFERENCES organisations(id),
   provider_case_reference text,
-  payment_intent_id uuid REFERENCES fin_payment_intents(id),
+  payment_intent_id uuid,
   stage text NOT NULL CHECK (stage IN ('inquiry','chargeback_or_return','representment_draft','arbitration','write_off','closed')),
   due_at timestamptz,
   evidence_manifest jsonb NOT NULL DEFAULT '[]'::jsonb,
   evidence_hash char(64) CHECK (evidence_hash IS NULL OR evidence_hash ~ '^[a-f0-9]{64}$'),
   human_filing_approval uuid REFERENCES app_users(id),
   created_by uuid NOT NULL REFERENCES app_users(id),
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (organisation_id,payment_intent_id) REFERENCES fin_payment_intents(organisation_id,id)
 );
 
 CREATE TABLE IF NOT EXISTS fin_provider_certifications (
