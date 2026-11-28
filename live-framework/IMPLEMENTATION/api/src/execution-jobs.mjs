@@ -208,7 +208,7 @@ export async function heartbeatExecutionJob(client, {
     `UPDATE aif_execution_jobs
        SET lease_until=now() + ($4::int * interval '1 second'),updated_at=now()
      WHERE organisation_id=$1 AND id=$2 AND worker_id=$3 AND status='running' AND lease_until > now()
-     RETURNING id,status,lease_until`,
+     RETURNING id,status,lease_until,cancel_requested_at`,
     [org, id, worker, leaseSeconds]
   );
   return updated.rows[0] ?? null;
