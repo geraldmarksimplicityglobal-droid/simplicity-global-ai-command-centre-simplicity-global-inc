@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import {
   validateLoopConfig, consumeLoopBudget, assertLoopInterlocks,
   scheduleWithinPriority, clampAdaptation, assertLoopTransition,
-  createIdempotentRecoveryPlan, withKeyedLock
+  createIdempotentRecoveryPlan, withKeyedLock, planConcurrencyAdmission,
+  applyQueueBackpressure
 } from "../src/self-processing.mjs";
 
 test("loop configuration requires finite iteration and resource ceilings", () => {
@@ -37,6 +38,7 @@ test("scheduler reorders within priority classes but never promotes lower priori
   ];
   assert.deepEqual(scheduleWithinPriority(tasks).map(x => x.id), ["urgent-p0", "later-p0", "p1", "p2"]);
   assert.throws(() => scheduleWithinPriority([{ id: "x", priority: "P2", promoteTo: "P0" }]), /promotion/);
+  assert.throws(() => scheduleWithinPriority([{ id: "x", priority: "P2", promoteTo: "INVALID" }]), /promoteTo/);
 });
 
 test("bounded adaptation clamps to human-approved bounds and rejects invalid bounds", () => {
@@ -56,8 +58,10 @@ test("recovery plan for UNKNOWN is query-only and never schedules resend", () =>
   assert.deepEqual(createIdempotentRecoveryPlan({ state: "unknown", retryCount: 0, maxRetries: 3 }), {
     action: "query_status", resend: false, reason: "unknown-is-query-only"
   });
-  assert.equal(createIdempotentRecoveryPlan({ state: "failed_transient", retryCount: 1, maxRetries: 3 }).action, "retry_same_idempotency_key");
-  assert.equal(createIdempotentRecoveryPlan({ state: "failed_transient", retryCount: 3, maxRetries: 3 }).action, "dead_letter");
+  assert.equal(createIdempotentRecoveryPlan({ state: "failed_transient", retryCount: 1, maxRetries: 3 }).action, "query_status");
+  assert.equal(createIdempotentRecoveryPlan({ state: "failed_transient", statusChecked: true, idempotencyKey: "idem-123", retryCount: 1, maxRetries: 3 }).action, "retry_same_idempotency_key");
+  assert.equal(createIdempotentRecoveryPlan({ state: "failed_transient", statusChecked: true, idempotencyKey: "idem-123", retryCount: 1, maxRetries: 3 }).idempotencyKey, "idem-123");
+  assert.equal(createIdempotentRecoveryPlan({ state: "failed_transient", statusChecked: true, idempotencyKey: "idem-123", retryCount: 3, maxRetries: 3 }).action, "dead_letter");
 });
 
 test("keyed lock serializes same resource while allowing different resources concurrently", async () => {
@@ -69,4 +73,39 @@ test("keyed lock serializes same resource while allowing different resources con
   ]);
   assert.ok(order.indexOf("A1-end") < order.indexOf("A2"));
   assert.ok(order.indexOf("B") < order.indexOf("A1-end"));
+});
+
+
+test("concurrency admission enforces global, per-rail and per-resource ceilings", () => {
+  assert.deepEqual(planConcurrencyAdmission({
+    globalInFlight: 1, globalMax: 3, railInFlight: 0, railMax: 2, resourceLocked: false
+  }), { admitted: true, reasons: [] });
+  assert.deepEqual(planConcurrencyAdmission({
+    globalInFlight: 3, globalMax: 3, railInFlight: 0, railMax: 2, resourceLocked: false
+  }), { admitted: false, reasons: ["global_in_flight_limit"] });
+  assert.deepEqual(planConcurrencyAdmission({
+    globalInFlight: 1, globalMax: 3, railInFlight: 2, railMax: 2, resourceLocked: false
+  }), { admitted: false, reasons: ["rail_concurrency_limit"] });
+  assert.deepEqual(planConcurrencyAdmission({
+    globalInFlight: 1, globalMax: 3, railInFlight: 0, railMax: 2, resourceLocked: true
+  }), { admitted: false, reasons: ["resource_serialization_lock"] });
+});
+
+test("backpressure defers P2/P3 without dropping or demoting P0/P1", () => {
+  const tasks = [
+    { id: "p3", priority: "P3" },
+    { id: "p0", priority: "P0" },
+    { id: "p2", priority: "P2" },
+    { id: "p1", priority: "P1" }
+  ];
+  const result = applyQueueBackpressure(tasks, { queueDepth: 11, maxQueueDepth: 10 });
+  assert.deepEqual(result.ready.map(x => x.id), ["p0", "p1"]);
+  assert.deepEqual(result.deferred.map(x => x.id), ["p3", "p2"]);
+  assert.equal(result.ready.length + result.deferred.length, tasks.length);
+});
+
+test("recovery never retries a transient failure until authoritative status was checked", () => {
+  const plan = createIdempotentRecoveryPlan({ state: "failed_transient", retryCount: 0, maxRetries: 2 });
+  assert.equal(plan.action, "query_status");
+  assert.equal(plan.resend, false);
 });
