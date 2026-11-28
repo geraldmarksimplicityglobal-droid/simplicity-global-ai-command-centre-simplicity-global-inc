@@ -111,3 +111,10 @@ The follow-on queue implementation adds tenant-scoped PostgreSQL job persistence
 ### Activation status
 
 The source includes the queue schema, API routes, worker adapter and tests. CI applies the new migration only to ephemeral PostgreSQL. A production queue and persistent worker are not provisioned. Host integration must still supply a workload identity with tenant membership, a secure `withTenantClient` adapter, an executor that revalidates capabilities and policy, deployment supervision, observability and cancellation/recovery handling. No production or external action is enabled by this source change.
+
+
+## Worker host bootstrap and blocked outcomes
+
+`npm run worker` starts `src/worker-main.mjs`. It requires a trusted deployment-managed host adapter and verifies the exact organisation and worker identity before polling. The adapter must provide tenant-scoped database access and a policy-enforcing executor. The entrypoint does not provision credentials, database infrastructure, OIDC trust, provider connectors, or a persistent service supervisor.
+
+The console accepts one natural-language objective. Its queue risk value is a least-privilege ceiling only; the worker adapter must independently classify the actual objective and derive required capabilities before invoking any tool. It must never downgrade the actual task risk to fit the queue. Higher-risk or unavailable-capability outcomes are persisted as terminal `blocked` jobs with one of `approval_required`, `authorization_required`, `connector_required`, or `policy_denied`. They release their lease and are not retried or reported as successful.
