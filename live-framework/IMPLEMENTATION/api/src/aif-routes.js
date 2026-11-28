@@ -168,7 +168,7 @@ export async function registerAifRoutes(app, requireScope) {
       checkpoint = validateMemoryRecord({ memoryType:"working",memoryKey:"workflow-checkpoint",value:body.checkpoint,classification:"internal",ttlDays:30 }).value;
     } catch (error) { return reply.code(400).send({ error:"invalid_checkpoint",message:error.message }); }
     const updated = await client.query(
-      "UPDATE aif_workflows SET checkpoint=$4::jsonb,state_version=state_version+1,updated_at=now() WHERE organisation_id=$1 AND id=$2 AND state_version=$3 RETURNING id,state_version,updated_at",
+      "UPDATE aif_workflows SET checkpoint=$4::jsonb,state_version=state_version+1,updated_at=now() WHERE organisation_id=$1 AND id=$2 AND state_version=$3 AND status NOT IN ('rejected','cancelled','simulated') RETURNING id,state_version,updated_at",
       [scope.organisationId,request.params.id,body.expectedVersion,JSON.stringify(checkpoint)]
     );
     if (!updated.rows[0]) {
@@ -222,7 +222,9 @@ export async function registerAifRoutes(app, requireScope) {
         typeof body.version !== "string" || !/^\d+\.\d+\.\d+([+-][a-z0-9.-]+)?$/i.test(body.version) ||
         typeof body.manifestSha256 !== "string" || !/^[a-f0-9]{64}$/i.test(body.manifestSha256) ||
         !Array.isArray(body.capabilities) || body.capabilities.length > 100 ||
-        !Array.isArray(body.requestedScopes) || body.requestedScopes.length > 50) {
+        body.capabilities.some(value => typeof value !== "string" || !value.trim() || value.length > 120) ||
+        !Array.isArray(body.requestedScopes) || body.requestedScopes.length > 50 ||
+        body.requestedScopes.some(value => typeof value !== "string" || !value.trim() || value.length > 120)) {
       return reply.code(400).send({ error:"invalid_plugin_registration" });
     }
     const { rows } = await client.query(
@@ -289,10 +291,11 @@ export async function registerAifRoutes(app, requireScope) {
     const config = await client.query("SELECT id,created_by FROM aif_config_versions WHERE organisation_id=$1 AND id=$2",[scope.organisationId,request.params.id]);
     if (!config.rows[0]) return reply.code(404).send({ error:"configuration_not_found" });
     const approval = await client.query(
-      "SELECT approver_user_id FROM aif_config_approvals WHERE organisation_id=$1 AND config_version_id=$2 AND decision='approved' ORDER BY created_at DESC LIMIT 1",
+      "SELECT decision,approver_user_id FROM aif_config_approvals WHERE organisation_id=$1 AND config_version_id=$2 ORDER BY created_at DESC LIMIT 1",
       [scope.organisationId,request.params.id]
     );
-    if (!approval.rows[0] || approval.rows[0].approver_user_id === config.rows[0].created_by ||
+    if (!approval.rows[0] || approval.rows[0].decision !== "approved" ||
+        approval.rows[0].approver_user_id === config.rows[0].created_by ||
         user.userId === config.rows[0].created_by) {
       return reply.code(403).send({ error:"independent_configuration_approval_required" });
     }
