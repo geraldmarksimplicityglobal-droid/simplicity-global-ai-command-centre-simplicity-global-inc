@@ -31,7 +31,7 @@ function requiredText(value, field, max = 5000) {
   return value.trim();
 }
 function autonomyValue(level) {
-  if (typeof level !== "string" || !(level in AUTONOMY)) throw new TypeError("invalid autonomy level");
+  if (typeof level !== "string" || !Object.hasOwn(AUTONOMY, level)) throw new TypeError("invalid autonomy level");
   return AUTONOMY[level];
 }
 export function assertAutonomyWithinCeiling(level, ceiling) {
