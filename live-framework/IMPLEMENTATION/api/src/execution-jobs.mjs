@@ -162,10 +162,35 @@ export async function cancelExecutionJob(client, { organisationId, jobId, reques
   const requester = text(requesterId, "requesterId", 100);
   const updated = await client.query(
     `UPDATE aif_execution_jobs
-       SET status='cancelled',updated_at=now(),completed_at=now()
-     WHERE organisation_id=$1 AND id=$2 AND requester_user_id=$3 AND status='queued'
-     RETURNING id,status,created_at`,
+       SET status=CASE WHEN status='queued' THEN 'cancelled' ELSE status END,
+           cancel_requested_at=CASE WHEN status='running' THEN COALESCE(cancel_requested_at,now()) ELSE cancel_requested_at END,
+           worker_id=CASE WHEN status='queued' THEN NULL ELSE worker_id END,
+           lease_until=CASE WHEN status='queued' THEN NULL ELSE lease_until END,
+           updated_at=now(),
+           completed_at=CASE WHEN status='queued' THEN now() ELSE completed_at END
+     WHERE organisation_id=$1 AND id=$2 AND requester_user_id=$3
+       AND (status='queued' OR (status='running' AND cancel_requested_at IS NULL))
+     RETURNING id,CASE WHEN status='running' AND cancel_requested_at IS NOT NULL
+                       THEN 'cancellation_requested' ELSE status END AS status,created_at`,
     [org, id, requester]
+  );
+  return safeJob(updated.rows[0]);
+}
+
+export async function finishCancelledExecutionJob(client, {
+  organisationId, jobId, workerId
+} = {}) {
+  const org = text(organisationId, "organisationId", 100);
+  const id = text(jobId, "jobId", 100);
+  const worker = text(workerId, "workerId", 200);
+  const updated = await client.query(
+    `UPDATE aif_execution_jobs
+       SET status='cancelled',worker_id=NULL,lease_until=NULL,updated_at=now(),completed_at=now(),
+           result=\x27{"summary":"Cancelled by requester"}\x27::jsonb
+     WHERE organisation_id=$1 AND id=$2 AND worker_id=$3
+       AND status='running' AND cancel_requested_at IS NOT NULL AND lease_until > now()
+     RETURNING id,status,created_at`,
+    [org, id, worker]
   );
   return safeJob(updated.rows[0]);
 }
