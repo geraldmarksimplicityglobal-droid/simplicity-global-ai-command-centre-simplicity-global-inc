@@ -77,7 +77,7 @@ test("configuration cannot raise autonomy or enable financial execution", () => 
   }), /production autonomy ceiling/);
   assert.throws(() => validateAifConfiguration({
     runtimeMode: "read_only", financialExecutionEnabled: true
-  }), /financial execution is not configurable/);
+  }), /financial execution.*not configurable/);
   const config = validateAifConfiguration({
     runtimeMode: "read_only", maxProductionAutonomy: "L3.3",
     sandboxMaxAutonomy: "L5.4", memoryRetentionDays: 90
