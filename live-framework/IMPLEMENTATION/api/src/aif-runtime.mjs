@@ -13,7 +13,7 @@ const TRANSITIONS = Object.freeze({
   inspected: new Set(["planned", "cancelled"]),
   planned: new Set(["awaiting_approval", "cancelled"]),
   awaiting_approval: new Set(["approved", "rejected", "cancelled"]),
-  approved: new Set(["simulated", "cancelled"]),
+  approved: new Set(["cancelled"]),
   failed: new Set(["planned", "cancelled"]),
   rejected: new Set(),
   simulated: new Set(),
