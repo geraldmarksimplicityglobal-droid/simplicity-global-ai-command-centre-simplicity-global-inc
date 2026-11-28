@@ -87,6 +87,7 @@ BEGIN
     RAISE EXCEPTION 'Unimplemented simulation status unexpectedly succeeded';
   EXCEPTION
     WHEN check_violation THEN NULL;
+    WHEN SQLSTATE '55000' THEN NULL;
   END;
 
   BEGIN
