@@ -38,6 +38,8 @@ Use test-only values in a local ignored environment file. Do not point this scaf
 - GET /api/incidents
 - GET /api/audit-events
 - GET /api/aif/runtime
+- GET/POST /api/aif/jobs (durable queue; read-only/reversible jobs only)
+- POST /api/aif/jobs/:id/cancel (requester may cancel their own queued job)
 - GET/POST /api/aif/workflows
 - GET /api/aif/workflows/:id
 - POST /api/aif/workflows/:id/events
@@ -80,3 +82,18 @@ The separate `sg-aif-persistence.sql` migration adds organisation-scoped Postgre
 ## Runtime activation prerequisites
 
 The implementation is committed to a feature branch, not deployed. Before any persistent service is activated, select and approve a PostgreSQL provider/region, provision a non-production database, apply reviewed migrations using an administrator role, create a non-owner NOBYPASSRLS runtime login, configure the OIDC issuer/JWKS/audience and secret manager, assign permissions through a separate identity-admin process, and test backup/restore. No production database has been created or modified by this change.
+
+
+## SG-AUTO-001 durable background queue (implementation scaffold)
+
+The `sg-aif-execution-jobs.sql` migration adds a tenant-isolated PostgreSQL queue with idempotency keys, attempt counters, worker leases, lease expiry/reclaim, bounded error codes and cancellation for a requester's own queued jobs.
+
+- `POST /api/aif/jobs` queues a read-only or reversible job under the authenticated user's organisation scope.
+- `GET /api/aif/jobs` lists tenant-scoped job state.
+- `POST /api/aif/jobs/:id/cancel` cancels only the requester's own queued job.
+- The queue rejects high-impact risk classes and unknown fields; caller-supplied approval flags are not accepted.
+- `execution-worker.mjs` provides a tenant-bound worker adapter and graceful polling supervisor. The host must supply a trusted `withTenantClient` adapter that establishes authenticated workload identity and organisation membership, plus an `execute` adapter that revalidates connector scopes and policy.
+- The worker processes one tenant at a time and does not bypass row-level security. It uses `FOR UPDATE SKIP LOCKED`, expiring leases and worker-fenced completion.
+- Only bounded result summaries and machine-readable error codes are persisted. Secrets and raw provider exception details are not stored.
+
+This adds source code and CI coverage only. The migration is applied to ephemeral CI PostgreSQL, not production. No database, worker process, scheduler, OAuth connection, connector or external service is provisioned or activated by this change. Production worker credentials, service-principal membership, deployment supervision, monitoring, alerting, cancellation propagation and operational recovery still require host integration and separate approval.
