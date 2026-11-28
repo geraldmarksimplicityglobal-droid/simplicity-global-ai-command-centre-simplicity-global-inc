@@ -61,4 +61,5 @@ test("schema enforces organisation-consistent role, entity and document referenc
 test("organisation RLS binds row scope to the API transaction organisation context", async () => {
   const security = await readFile(new URL("../../security-and-rls.sql", import.meta.url), "utf8");
   assert.match(security, /target_org = NULLIF\(current_setting\('app\.organisation_id', true\), ''\)::uuid/);
+  assert.equal(security.split("target_org = NULLIF(current_setting('app.organisation_id', true), '')::uuid").length - 1, 2);
 });
