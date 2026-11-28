@@ -42,10 +42,10 @@ test("workflow transitions are constrained and high-risk approval separates requ
   }), /invalid workflow transition/);
   assert.throws(() => assertWorkflowTransition("awaiting_approval", "approved", {
     requesterId: "user-1", actorId: "user-1", riskLevel: "critical"
-  }), /reviewer\\/requester separation/);
+  }), new RegExp("reviewer/requester separation"));
   assert.throws(() => assertWorkflowTransition("awaiting_approval", "approved", {
     requesterId: "user-1", actorId: "user-1", riskLevel: "low"
-  }), /reviewer\\/requester separation/);
+  }), new RegExp("reviewer/requester separation"));
   assert.equal(assertWorkflowTransition("awaiting_approval", "approved", {
     requesterId: "user-1", actorId: "reviewer-2", riskLevel: "critical"
   }), true);
