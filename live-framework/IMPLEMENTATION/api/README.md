@@ -10,6 +10,7 @@
 - Explicit legal-entity scope for asset routes; entity-only memberships cannot silently expand to organisation-wide access.
 - Organisation context set inside each transaction for database RLS.
 - Health, identity, assets, compliance documents, change requests, incidents and audit read endpoints.
+- Persistent organisation-scoped workflow tasks, locked state transitions, independent review decisions and separately scoped execution authorisations.
 - Asset and change-request creation endpoints with validation and audit events.
 - Security headers, explicit CORS allowlist and rate limiting.
 - No infrastructure provisioning, external write connector, deployment or billing operation.
@@ -35,8 +36,13 @@ Use test-only values in a local ignored environment file. Do not point this scaf
 - GET/POST /api/change-requests
 - GET /api/incidents
 - GET /api/audit-events
+- GET/POST /api/workflow/tasks
+- GET /api/workflow/tasks/:taskId
+- POST /api/workflow/tasks/:taskId/transition
+- POST /api/workflow/tasks/:taskId/approve
+- POST /api/workflow/tasks/:taskId/authorize
 
-Every scoped request requires a valid UUID in x-organisation-id. Asset routes optionally accept x-legal-entity-id; entity-only memberships must match that entity, while organisation-wide access requires an organisation-wide membership. Other domains remain organisation-scoped until their records support legal-entity isolation. Authorization is enforced server-side. An approval record is never an execution command.
+Every scoped request requires a valid UUID in x-organisation-id. Asset routes optionally accept x-legal-entity-id; entity-only memberships must match that entity, while organisation-wide access requires an organisation-wide membership. Other domains remain organisation-scoped until their records support legal-entity isolation. Authorization is enforced server-side. Workflow permissions are separate: workflow:read, workflow:request, workflow:manage, workflow:approve and workflow:authorize. Assign these permissions only to approved organisation roles. High-risk review and execution authorisation require different users. Task state and snapshots are stored in PostgreSQL; task events are append-only and tenant-scoped. Recording execution_authorized or executing is a workflow state change only: this API does not run shell commands, deploy software or move money. An approval record is never an execution command.
 
 ## Known limitations
 - No UI integration yet.
@@ -47,3 +53,7 @@ Every scoped request requires a valid UUID in x-organisation-id. Asset routes op
 - Audit immutability depends on the separate database security migration, runtime grants and owner separation.
 - Asset endpoints support optional legal-entity scoping; other domain tables remain organisation-scoped until entity ownership is added to their schema.
 - Production use is blocked until all release gates are evidenced and explicitly approved.
+
+
+## Durable workflow migration
+Apply `workflow-persistence.sql` after the base schema and `security-and-rls.sql`, then apply the reviewed runtime grants. The migration adds tenant-scoped task snapshots and append-only event history. The current connected Supabase account has no project available; this migration is validated only through the disposable PostgreSQL CI workflow until an approved database is selected and provisioned.
