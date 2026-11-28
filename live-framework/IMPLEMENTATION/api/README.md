@@ -38,6 +38,7 @@ Use test-only values in a local ignored environment file. Do not point this scaf
 - GET /api/audit-events
 - GET/POST /api/workflow/tasks
 - GET /api/workflow/tasks/:taskId
+- GET /api/workflow/tasks/:taskId/events
 - POST /api/workflow/tasks/:taskId/transition
 - POST /api/workflow/tasks/:taskId/approve
 - POST /api/workflow/tasks/:taskId/authorize
