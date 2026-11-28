@@ -35,14 +35,11 @@
 
 <section class="panel">
  <div class="row"><h2 style="flex:2">One-command background task</h2><button class="btn" id="reload-jobs">Refresh jobs</button></div>
- <p class="small">Enter the outcome once. The API stores a tenant-scoped job for an authorised worker. Background queueing currently accepts read-only and reversible work only. A deployed worker is required before queued work can execute.</p>
+ <p class="small">Enter the outcome once. GEN SYSTEM handles capability discovery and risk classification in its trusted worker adapter. The queue is restricted to read-only and reversible tasks; if a command requires higher-risk access, the worker must stop and request the appropriate approval instead of executing it. A deployed worker is required before queued work can execute.</p>
  <form id="job-form">
-  <div class="field"><label>What should GEN SYSTEM complete?</label><textarea name="objective" required maxlength="4000" placeholder="Describe the desired outcome in one command"></textarea></div>
-  <div class="row">
-   <div class="field"><label>Risk class</label><select name="risk"><option value="read_only">Read-only</option><option value="reversible">Reversible internal change</option></select></div>
-   <div class="field"><label>Execution</label><input value="Background queue · approval-gated" disabled></div>
-  </div>
-  <button class="btn primary" type="submit">Queue task</button>
+  <div class="field"><label>What should GEN SYSTEM complete?</label><textarea name="objective" required maxlength="4000" placeholder="One command — describe the finished outcome you want"></textarea></div>
+  <div class="field"><label>Execution</label><input value="Automatic · foreground or background as available" disabled></div>
+  <button class="btn primary" type="submit">Queue command</button>
  </form>
  <div id="job-message" class="small">No task submitted.</div>
  <pre id="job-json">No jobs loaded.</pre>
@@ -227,7 +224,7 @@ $("job-form").addEventListener("submit", async event => {
     const result = await api.createAifJob({
       objective: form.objective,
       capabilities: [],
-      risk: form.risk,
+      risk: "read_only",
       idempotencyKey: pendingJobIdempotencyKey
     });
     pendingJobIdempotencyKey = null;
