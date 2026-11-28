@@ -17,7 +17,8 @@ import {
   heartbeatExecutionJob,
   completeExecutionJob,
   failExecutionJob,
-  blockExecutionJob
+  blockExecutionJob,
+  finishCancelledExecutionJob
 } from "./execution-jobs.mjs";
 
 /**
@@ -48,6 +49,7 @@ export async function runExecutionWorkerOnce({
 
   const controller = new AbortController();
   let heartbeatLost = false;
+  let cancellationRequested = false;
   const heartbeatTask = (async () => {
     const intervalMs = Math.max(3000, Math.floor(leaseSeconds * 1000 / 3));
     while (!controller.signal.aborted) {
@@ -61,6 +63,11 @@ export async function runExecutionWorkerOnce({
         );
         if (!renewed) {
           heartbeatLost = true;
+          controller.abort();
+          break;
+        }
+        if (renewed.cancel_requested_at) {
+          cancellationRequested = true;
           controller.abort();
           break;
         }
@@ -86,6 +93,12 @@ export async function runExecutionWorkerOnce({
     controller.abort();
     await heartbeatTask;
     if (heartbeatLost) return Object.freeze({ status: "lease_lost", jobId: job.id });
+    if (cancellationRequested) {
+      const cancelled = await withTenantClient(org, client =>
+        finishCancelledExecutionJob(client, { organisationId: org, jobId: job.id, workerId: worker })
+      );
+      return Object.freeze({ status: cancelled?.status ?? "lease_lost", jobId: job.id });
+    }
     const failed = await withTenantClient(org, client =>
       failExecutionJob(client, {
         organisationId: org, jobId: job.id, workerId: worker,
@@ -97,6 +110,12 @@ export async function runExecutionWorkerOnce({
   controller.abort();
   await heartbeatTask;
   if (heartbeatLost) return Object.freeze({ status: "lease_lost", jobId: job.id });
+  if (cancellationRequested) {
+    const cancelled = await withTenantClient(org, client =>
+      finishCancelledExecutionJob(client, { organisationId: org, jobId: job.id, workerId: worker })
+    );
+    return Object.freeze({ status: cancelled?.status ?? "lease_lost", jobId: job.id });
+  }
 
   const blockedStatuses = new Set([
     "approval_required", "authorization_required", "connector_required", "policy_denied"
@@ -135,7 +154,11 @@ export async function runExecutionWorkerOnce({
       result: { summary: typeof result?.summary === "string" ? result.summary : "completed" }
     })
   );
-  return Object.freeze({ status: completed?.status ?? "lease_lost", jobId: job.id });
+  if (completed) return Object.freeze({ status: completed.status, jobId: job.id });
+  const cancelled = await withTenantClient(org, client =>
+    finishCancelledExecutionJob(client, { organisationId: org, jobId: job.id, workerId: worker })
+  );
+  return Object.freeze({ status: cancelled?.status ?? "lease_lost", jobId: job.id });
 }
 
 /**
