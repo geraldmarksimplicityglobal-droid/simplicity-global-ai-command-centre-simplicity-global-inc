@@ -41,12 +41,12 @@
 - Missing, throwing, or invalid verifiers fail closed.
 - `authorizeOperation()` accepts only a verified attestation, never a raw caller approval object.
 
-- [ ] Add regression tests for missing verifier, verifier failure, invalid attestation, spoofed caller approval and valid attestation.
-- [ ] Run the focused test and verify it fails for the expected reason.
-- [ ] Implement the trusted verifier contract and fail-closed behavior.
-- [ ] Run focused and full API tests.
-- [ ] Update documentation to distinguish host verification from user request data.
-- [ ] Commit the change on the existing isolated PR branch.
+- [x] Add regression tests for missing verifier, verifier failure, invalid attestation, spoofed caller approval and valid attestation.
+- [x] Run the focused test and verify it fails for the expected reason.
+- [x] Implement the trusted verifier contract and fail-closed behavior.
+- [x] Run focused and full API tests.
+- [x] Update documentation to distinguish host verification from user request data.
+- [x] Commit the change on the existing isolated PR branch.
 
 ## Verification
 
@@ -59,3 +59,13 @@ node --check src/autonomy-orchestrator.mjs
 ```
 
 Expected: all tests pass, with no test able to authorize a high-impact operation using caller-controlled approval data.
+
+
+## Execution record
+
+- Regression tests were committed before the implementation change and observed failing in GitHub Actions.
+- Root cause found: the task executor still destructured the legacy caller-supplied `approval` property, leaving the trusted `verifyApproval` adapter undefined.
+- Corrected the executor contract and updated the existing external-write test to use the host verifier.
+- Added a second regression test proving a caller-constructed attestation object cannot authorize the exported policy helper; the test was observed failing before the WeakSet capability check was implemented.
+- Final CI verification: GitHub Actions run #169 — 49 tests passed, 0 failed; Node syntax checks passed; PostgreSQL 16 ephemeral migrations and tenant-isolation/append-only audit contract checks passed.
+- Final review: self-review (no subagent tool). No critical or important defect found in the bounded library change. Live host integration, persistent worker/queue, connector inventory, consent handoff and production deployment remain out of scope and explicitly unclaimed.
