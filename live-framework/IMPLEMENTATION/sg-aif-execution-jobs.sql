@@ -42,7 +42,7 @@ CREATE POLICY aif_execution_jobs_select ON aif_execution_jobs FOR SELECT
 CREATE POLICY aif_execution_jobs_insert ON aif_execution_jobs FOR INSERT
   WITH CHECK (
     public.sg_has_organisation_membership(organisation_id)
-    AND requester_user_id = public.sg_current_user_id()
+    AND requester_user_id = (SELECT u.id FROM public.app_users u WHERE u.identity_issuer = current_setting('app.user_issuer', true) AND u.identity_subject = current_setting('app.user_subject', true) AND u.status='active' LIMIT 1)
   );
 CREATE POLICY aif_execution_jobs_update ON aif_execution_jobs FOR UPDATE
   USING (public.sg_has_organisation_membership(organisation_id))
