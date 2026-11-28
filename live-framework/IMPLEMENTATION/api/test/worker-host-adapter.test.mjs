@@ -21,7 +21,7 @@ function makeDependencies({ claims, role = { rolsuper: false, rolbypassrls: fals
       statements.push({ sql, params });
       if (sql === "BEGIN" || sql === "COMMIT" || sql === "ROLLBACK") return { rows: [] };
       if (sql.includes("FROM pg_roles")) return { rows: [role] };
-      if (sql.includes("FROM app_users u JOIN user_memberships")) {
+      if (sql.includes("app_users u") && sql.includes("user_memberships")) {
         return { rows: member ? [{ id: "service-user-1" }] : [] };
       }
       if (sql.includes("set_config")) return { rows: [] };
