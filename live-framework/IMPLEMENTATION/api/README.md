@@ -126,3 +126,8 @@ The runtime console now accepts only the user's natural-language objective for b
 ### Blocked background task outcomes
 
 The execution queue now has a terminal `blocked` state for worker-side outcomes `approval_required`, `authorization_required`, `connector_required`, and `policy_denied`. A blocked task releases its worker lease, stores only a bounded safe summary and machine-readable reason code, and is not retried as if it were a transient failure. The worker must not mark a policy-blocked command as succeeded. The requester can inspect the status through the existing jobs endpoint and submit again after the required authorization or connector is resolved.
+
+
+## Cooperative cancellation of running background jobs
+
+The execution queue supports requester-owned cancellation for both queued and running jobs. Queued jobs transition immediately to `cancelled`. Running jobs receive a durable `cancel_requested_at` marker; the worker observes it on lease heartbeat, aborts the executor signal, and finalizes the job as `cancelled` under the same worker lease. The executor adapter must cooperatively honor the supplied `AbortSignal`; cancellation is not a force-kill and cannot guarantee interruption of an adapter that ignores the signal. A completion update is fenced against a concurrent cancellation request so a cancelled job is not reported as successful. The additive `sg-aif-execution-cancellation.sql` migration adds the marker and its partial index. CI applies this migration only to ephemeral PostgreSQL.
