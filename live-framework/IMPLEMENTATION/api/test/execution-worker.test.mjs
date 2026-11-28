@@ -155,3 +155,25 @@ test("worker aborts an active executor when the requester cancels the running jo
   assert.equal(result.jobId, "job-running-cancel");
   assert.ok(queries.some(sql => sql.includes("cancel_requested_at IS NOT NULL")));
 });
+
+
+test("worker supervisor recovers from transient polling failures with bounded backoff", async () => {
+  const controller = new AbortController();
+  let attempts = 0;
+  const worker = startExecutionWorker({
+    organisationId: "org-1",
+    workerId: "worker-recover",
+    pollIntervalMs: 250,
+    signal: controller.signal,
+    withTenantClient: async (_org, fn) => {
+      attempts += 1;
+      if (attempts === 1) throw new Error("database credentials must not be logged");
+      controller.abort();
+      return fn({ query: async () => ({ rows: [] }) });
+    },
+    execute: async () => ({ summary: "unused" })
+  });
+  const result = await worker.done;
+  assert.equal(result.status, "stopped");
+  assert.equal(attempts, 2);
+});
