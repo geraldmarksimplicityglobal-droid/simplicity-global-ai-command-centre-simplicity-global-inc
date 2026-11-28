@@ -1,0 +1,63 @@
+self_processing:
+  loop:
+    stages: [intake, classification, screening, router, executor, reconciler]
+    max_iterations: 5
+    budget:
+      tokens: 12000
+      usd: 1.20
+      seconds: 30
+  concurrency:
+    per_payee_lock: true
+    per_account_lock: true
+    per_address_lock: true
+    per_rail_cap: 2
+    in_flight_max: 4
+    lock_order: [payee, account, rail]
+    lease_ttl_seconds: 30
+  scheduling:
+    priority_classes: [P0, P1, P2, P3]
+    reorder_within_class: true
+    promote_across_class: false
+    cutoff_calendar: versioned
+    silent_drop: false
+  memory:
+    write_tiers: [working, episodic]
+    read_only: [semantic, procedural]
+    append_only: [ledger, audit]
+    semantic_signed: true
+    proposal_queue: true
+    pii_redaction_required: true
+  learning:
+    scope: weights_within_human_approved_bounds
+    auto_deploy: false
+    exploration_max_pct: 5
+    pause_on_drift: true
+    live_outcome_learning: false
+    review_frequency: weekly
+  recovery:
+    retry_transient: 3
+    irreversible_retry: 0
+    unknown_policy: query_only
+    quarantine_threshold: 3
+    circuit_breaker: enabled
+  interlocks:
+    - kill_switch_clear
+    - policy_engine_available
+    - policy_version_match
+    - single_use_hash_bound_approval
+    - screening_clear
+    - caps_allowlists_chain_binding
+    - scoped_credential_valid
+    - budget_available
+    - iteration_within_cap
+  fail_mode: closed
+  forensics:
+    trace_all_stages: true
+    hash_chained: true
+    retention_years: jurisdiction_defined
+    read_only_access: true
+  adaptation_log_review: weekly
+  execution:
+    payment_dispatch_enabled: false
+    withdrawal_enabled: false
+    signing_enabled: false
