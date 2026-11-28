@@ -137,3 +137,175 @@ export function authorizeOperation({ risk, operationId, requesterId, approval = 
   }
   return Object.freeze({ allowed: false, status: "approval_required", reason: "operation-specific-independent-approval-required" });
 }
+
+
+/**
+ * Execute a one-command task through trusted runtime adapters.
+ *
+ * Discovery is automatic, but connector installation/OAuth is never initiated
+ * here. Foreground execution requires an injected executor. Background work is
+ * queued only when both an explicitly healthy persistent worker and a durable
+ * queue adapter are supplied by the host runtime.
+ */
+export async function executeAutonomousTask({
+  objective,
+  capabilities = [],
+  risk = "read_only",
+  operationId,
+  requesterId,
+  approval = null,
+  estimatedDurationMinutes,
+  requestedMode,
+  backgroundWorkerAvailable = false,
+  backgroundThresholdMinutes = DEFAULT_BACKGROUND_THRESHOLD_MINUTES,
+  discoverConnectors,
+  runForeground,
+  enqueueBackground
+} = {}) {
+  const taskObjective = nonEmpty(objective, "objective", 4000);
+  if (!Array.isArray(capabilities) || capabilities.length > 100) {
+    throw new TypeError("capabilities must be an array of at most 100 entries");
+  }
+  const requestedCapabilities = [...new Set(capabilities.map(value =>
+    nonEmpty(value, "capability", 200)
+  ))];
+  if (typeof discoverConnectors !== "function") {
+    throw new TypeError("discoverConnectors adapter is required");
+  }
+
+  let connectors;
+  try {
+    connectors = await discoverConnectors();
+  } catch {
+    return Object.freeze({
+      status: "failed",
+      stage: "connector_discovery",
+      reason: "connector_discovery_failed",
+      requiresUserAction: false
+    });
+  }
+  if (!Array.isArray(connectors)) {
+    return Object.freeze({
+      status: "failed",
+      stage: "connector_discovery",
+      reason: "invalid_connector_inventory",
+      requiresUserAction: false
+    });
+  }
+
+  const resolutions = requestedCapabilities.map(capability =>
+    resolveCapability({ capability, connectors })
+  );
+  const blocked = resolutions.find(item => item.status !== "ready");
+  if (blocked) {
+    return Object.freeze({
+      status: blocked.status,
+      stage: "capability_resolution",
+      capability: blocked.capability,
+      requiresUserAction: true,
+      connectionAttempted: false,
+      permissionEscalation: false,
+      capabilityResolutions: Object.freeze(resolutions)
+    });
+  }
+
+  const authorization = authorizeOperation({ risk, operationId, requesterId, approval });
+  if (!authorization.allowed) {
+    return Object.freeze({
+      status: authorization.status,
+      stage: "authorization",
+      reason: authorization.reason,
+      requiresUserAction: true,
+      capabilityResolutions: Object.freeze(resolutions)
+    });
+  }
+
+  const workerReady = backgroundWorkerAvailable === true && typeof enqueueBackground === "function";
+  const plan = planAutonomousTask({
+    objective: taskObjective,
+    estimatedDurationMinutes,
+    backgroundThresholdMinutes,
+    backgroundWorkerAvailable: workerReady,
+    requestedMode
+  });
+  const connectorIds = resolutions.map(item => item.connectorId);
+
+  if (plan.executionMode === "background") {
+    if (!workerReady) {
+      return Object.freeze({
+        status: "background_runtime_required",
+        stage: "execution_planning",
+        executionMode: "background",
+        requiresPersistentWorker: true,
+        requiresUserAction: true,
+        note: "A persistent worker and durable queue must be provisioned before background execution.",
+        capabilityResolutions: Object.freeze(resolutions)
+      });
+    }
+    try {
+      const queued = await enqueueBackground({
+        objective: taskObjective,
+        capabilities: requestedCapabilities,
+        connectorIds,
+        risk,
+        operationId: operationId ?? null,
+        requesterId: requesterId ?? null
+      });
+      if (!queued || typeof queued.jobId !== "string" || !queued.jobId.trim()) {
+        return Object.freeze({
+          status: "failed",
+          stage: "background_enqueue",
+          reason: "queue_did_not_return_job_id",
+          executionMode: "background"
+        });
+      }
+      return Object.freeze({
+        status: "queued",
+        executionMode: "background",
+        jobId: queued.jobId,
+        requiresPersistentWorker: true,
+        capabilityResolutions: Object.freeze(resolutions)
+      });
+    } catch {
+      return Object.freeze({
+        status: "failed",
+        stage: "background_enqueue",
+        reason: "background_enqueue_failed",
+        executionMode: "background"
+      });
+    }
+  }
+
+  if (typeof runForeground !== "function") {
+    return Object.freeze({
+      status: "foreground_executor_required",
+      stage: "execution",
+      executionMode: "foreground",
+      requiresUserAction: true,
+      capabilityResolutions: Object.freeze(resolutions)
+    });
+  }
+  try {
+    const result = await runForeground({
+      objective: taskObjective,
+      capabilities: requestedCapabilities,
+      connectorIds,
+      risk,
+      operationId: operationId ?? null,
+      requesterId: requesterId ?? null
+    });
+    return Object.freeze({
+      status: "completed",
+      executionMode: "foreground",
+      result,
+      capabilityResolutions: Object.freeze(resolutions)
+    });
+  } catch {
+    return Object.freeze({
+      status: "failed",
+      stage: "foreground_execution",
+      reason: "foreground_execution_failed",
+      executionMode: "foreground"
+    });
+  }
+}
