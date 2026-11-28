@@ -74,6 +74,9 @@ export function scheduleWithinPriority(tasks) {
   return tasks.map((task, index) => {
     if (!task || typeof task !== "object" || typeof task.id !== "string" || !task.id.trim()) throw new TypeError("each task requires an id");
     if (!Object.hasOwn(PRIORITY, task.priority)) throw new TypeError("invalid priority class");
+    if (task.promoteTo != null && !Object.hasOwn(PRIORITY, task.promoteTo)) {
+      throw new TypeError("invalid promoteTo priority class");
+    }
     if (task.promoteTo != null && PRIORITY[task.promoteTo] < PRIORITY[task.priority]) {
       throw new Error("priority promotion across classes is prohibited");
     }
@@ -99,15 +102,20 @@ export function assertLoopTransition(current, next) {
   return true;
 }
 
-export function createIdempotentRecoveryPlan({ state, retryCount = 0, maxRetries = 3 } = {}) {
+export function createIdempotentRecoveryPlan({ state, retryCount = 0, maxRetries = 3, statusChecked = false, idempotencyKey } = {}) {
   if (!Number.isInteger(retryCount) || retryCount < 0 || !Number.isInteger(maxRetries) || maxRetries < 0) {
     throw new TypeError("retry counters must be non-negative integers");
   }
   if (state === "unknown" || state === "pending") {
     return Object.freeze({ action: "query_status", resend: false, reason: state === "unknown" ? "unknown-is-query-only" : "pending-status-check" });
   }
+  if (state === "failed_transient" && (statusChecked !== true ||
+      typeof idempotencyKey !== "string" || !idempotencyKey.trim())) {
+    return Object.freeze({ action: "query_status", resend: false, reason: "authoritative-status-and-idempotency-key-required" });
+  }
   if (state === "failed_transient" && retryCount < maxRetries) {
-    return Object.freeze({ action: "retry_same_idempotency_key", resend: true, reason: "transient-failure-within-retry-budget" });
+    return Object.freeze({ action: "retry_same_idempotency_key", resend: true,
+      idempotencyKey, reason: "transient-failure-within-retry-budget" });
   }
   if (state === "failed_transient") {
     return Object.freeze({ action: "dead_letter", resend: false, reason: "retry-budget-exhausted" });
@@ -129,4 +137,45 @@ export async function withKeyedLock(key, operation) {
     release();
     if (lockTails.get(key) === tail) lockTails.delete(key);
   }
+}
+
+
+export function planConcurrencyAdmission({
+  globalInFlight, globalMax, railInFlight, railMax, resourceLocked = false
+} = {}) {
+  for (const [name, value] of Object.entries({ globalInFlight, globalMax, railInFlight, railMax })) {
+    if (!Number.isInteger(value) || value < 0) throw new TypeError(name + " must be a non-negative integer");
+  }
+  if (globalMax < 1 || railMax < 1) throw new RangeError("concurrency maxima must be positive");
+  if (typeof resourceLocked !== "boolean") throw new TypeError("resourceLocked must be boolean");
+  const reasons = [];
+  if (resourceLocked) reasons.push("resource_serialization_lock");
+  if (railInFlight >= railMax) reasons.push("rail_concurrency_limit");
+  if (globalInFlight >= globalMax) reasons.push("global_in_flight_limit");
+  return Object.freeze({ admitted: reasons.length === 0, reasons: Object.freeze(reasons) });
+}
+
+export function applyQueueBackpressure(tasks, { queueDepth, maxQueueDepth } = {}) {
+  if (!Array.isArray(tasks)) throw new TypeError("tasks must be an array");
+  if (!Number.isInteger(queueDepth) || queueDepth < 0 ||
+      !Number.isInteger(maxQueueDepth) || maxQueueDepth < 1) {
+    throw new TypeError("queueDepth and positive maxQueueDepth are required");
+  }
+  const ready = [];
+  const deferred = [];
+  for (const task of tasks) {
+    if (!task || typeof task !== "object" || !Object.hasOwn(PRIORITY, task.priority)) {
+      throw new TypeError("each task requires a valid priority class");
+    }
+    if (queueDepth > maxQueueDepth && (task.priority === "P2" || task.priority === "P3")) {
+      deferred.push(Object.freeze({ ...task, schedulingState: "deferred_backpressure" }));
+    } else {
+      ready.push(Object.freeze({ ...task, schedulingState: "ready" }));
+    }
+  }
+  return Object.freeze({
+    ready: Object.freeze(ready),
+    deferred: Object.freeze(deferred),
+    intakeThrottled: queueDepth > maxQueueDepth
+  });
 }
