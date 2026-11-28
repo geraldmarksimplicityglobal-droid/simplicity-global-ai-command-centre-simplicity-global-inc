@@ -1,3 +1,17 @@
+function delay(ms, signal) {
+  return new Promise(resolve => {
+    if (signal.aborted) return resolve();
+    let timer;
+    const finish = () => {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", finish);
+      resolve();
+    };
+    timer = setTimeout(finish, ms);
+    signal.addEventListener("abort", finish, { once: true });
+  });
+}
+
 import {
   claimExecutionJob,
   heartbeatExecutionJob,
