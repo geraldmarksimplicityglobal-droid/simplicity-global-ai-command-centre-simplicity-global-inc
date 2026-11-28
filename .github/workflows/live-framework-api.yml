@@ -70,6 +70,9 @@ jobs:
       - run: node --check src/scope.js
       - run: node --check src/aif-runtime.mjs
       - run: node --check src/aif-routes.js
+      - run: node --check src/autonomy-orchestrator.mjs
+      - run: node --check src/execution-jobs.mjs
+      - run: node --check src/execution-worker.mjs
       - run: node --check ../web/api-client.js
       - run: node --check ../web/github-enterprise-login.js
       - run: node --check ../web/auth-config.js
