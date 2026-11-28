@@ -34,6 +34,8 @@ test("API embeds persistent workflow routes behind organisation scope", async ()
   assert.match(routes, /workflow:authorize/);
   assert.match(routes, /FOR UPDATE/);
   assert.match(routes, /workflow_task_events/);
+  assert.match(routes, /workflow\/tasks\/:taskId\/events/);
+  assert.match(routes, /WHERE organisation_id=\$1 AND id=\$2/);
 });
 
 test("runtime grants include durable workflow state without granting event mutation", async () => {
