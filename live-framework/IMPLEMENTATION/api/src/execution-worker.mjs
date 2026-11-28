@@ -186,20 +186,23 @@ export function startExecutionWorker({
     else signal.addEventListener("abort", stop, { once: true });
   }
   const done = (async () => {
+    let consecutiveErrors = 0;
     while (!controller.signal.aborted) {
-      const result = await runExecutionWorkerOnce({
-        organisationId, workerId, withTenantClient, execute, leaseSeconds, maxAttempts
-      });
-      if (result.status === "idle") {
-        await new Promise(resolve => {
-          const timer = setTimeout(resolve, pollIntervalMs);
-          controller.signal.addEventListener("abort", () => {
-            clearTimeout(timer);
-            resolve();
-          }, { once: true });
+      let result;
+      try {
+        result = await runExecutionWorkerOnce({
+          organisationId, workerId, withTenantClient, execute, leaseSeconds, maxAttempts
         });
+        consecutiveErrors = 0;
+      } catch {
+        consecutiveErrors = Math.min(consecutiveErrors + 1, 8);
+        const backoffMs = Math.min(30000, pollIntervalMs * (2 ** consecutiveErrors));
+        await delay(backoffMs, controller.signal);
+        continue;
       }
+      if (result.status === "idle") await delay(pollIntervalMs, controller.signal);
     }
+    if (signal) signal.removeEventListener("abort", stop);
     return Object.freeze({ status: "stopped" });
   })();
   return Object.freeze({ stop, done });
