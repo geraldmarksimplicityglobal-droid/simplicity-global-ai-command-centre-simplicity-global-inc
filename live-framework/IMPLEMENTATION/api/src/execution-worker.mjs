@@ -57,3 +57,47 @@ export async function runExecutionWorkerOnce({
   );
   return Object.freeze({ status: completed?.status ?? "lease_lost", jobId: job.id });
 }
+
+/**
+ * Start a tenant-bound polling worker. The returned stop function requests a
+ * graceful stop; deployment/supervision and workload identity provisioning
+ * remain responsibilities of the host runtime.
+ */
+export function startExecutionWorker({
+  organisationId,
+  workerId,
+  withTenantClient,
+  execute,
+  pollIntervalMs = 1500,
+  leaseSeconds = 60,
+  maxAttempts = 5,
+  signal
+} = {}) {
+  if (!Number.isInteger(pollIntervalMs) || pollIntervalMs < 250 || pollIntervalMs > 60000) {
+    throw new RangeError("pollIntervalMs must be an integer from 250 to 60000");
+  }
+  const controller = new AbortController();
+  const stop = () => controller.abort();
+  if (signal) {
+    if (signal.aborted) stop();
+    else signal.addEventListener("abort", stop, { once: true });
+  }
+  const done = (async () => {
+    while (!controller.signal.aborted) {
+      const result = await runExecutionWorkerOnce({
+        organisationId, workerId, withTenantClient, execute, leaseSeconds, maxAttempts
+      });
+      if (result.status === "idle") {
+        await new Promise(resolve => {
+          const timer = setTimeout(resolve, pollIntervalMs);
+          controller.signal.addEventListener("abort", () => {
+            clearTimeout(timer);
+            resolve();
+          }, { once: true });
+        });
+      }
+    }
+    return Object.freeze({ status: "stopped" });
+  })();
+  return Object.freeze({ stop, done });
+}
