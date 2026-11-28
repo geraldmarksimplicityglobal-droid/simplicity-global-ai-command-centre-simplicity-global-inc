@@ -60,7 +60,7 @@ test("enqueue persists tenant-scoped job and returns only safe job metadata", as
 
 test("claim uses SKIP LOCKED and bounded leases", async () => {
   const client = fakeClient([{ rows: [{ id: "job-2", organisation_id: "org-1", payload: { objective: "x" }, attempts: 1 }], rowCount: 1 }]);
-  const result = await claimExecutionJob(client, { workerId: "worker-1", leaseSeconds: 60 });
+  const result = await claimExecutionJob(client, { organisationId: "org-1", workerId: "worker-1", leaseSeconds: 60 });
   assert.equal(result.id, "job-2");
   assert.match(client.calls[0].sql, /FOR UPDATE SKIP LOCKED/);
   assert.match(client.calls[0].sql, /lease_until/);
@@ -71,7 +71,7 @@ test("claim uses SKIP LOCKED and bounded leases", async () => {
 
 test("completion is fenced to the owning worker lease", async () => {
   const client = fakeClient([{ rows: [{ id: "job-2", status: "succeeded" }], rowCount: 1 }]);
-  const result = await completeExecutionJob(client, { jobId: "job-2", workerId: "worker-1", result: { summary: "done" } });
+  const result = await completeExecutionJob(client, { organisationId: "org-1", jobId: "job-2", workerId: "worker-1", result: { summary: "done" } });
   assert.equal(result.status, "succeeded");
   assert.match(client.calls[0].sql, /worker_id/);
   assert.match(client.calls[0].sql, /status='running'/);
@@ -79,7 +79,7 @@ test("completion is fenced to the owning worker lease", async () => {
 
 test("failure stores a bounded safe error code rather than raw exception text", async () => {
   const client = fakeClient([{ rows: [{ id: "job-2", status: "queued" }], rowCount: 1 }]);
-  const result = await failExecutionJob(client, { jobId: "job-2", workerId: "worker-1", errorCode: "provider_unavailable" });
+  const result = await failExecutionJob(client, { organisationId: "org-1", jobId: "job-2", workerId: "worker-1", errorCode: "provider_unavailable" });
   assert.equal(result.status, "queued");
   assert.doesNotMatch(client.calls[0].params.join(" "), /password|token|secret/i);
 });
@@ -95,7 +95,7 @@ test("cancellation is tenant-scoped and only cancels queued jobs", async () => {
 
 test("claim fails closed on invalid lease parameters", async () => {
   const client = fakeClient();
-  await assert.rejects(() => claimExecutionJob(client, { workerId: "worker-1", leaseSeconds: 0 }), /leaseSeconds/);
+  await assert.rejects(() => claimExecutionJob(client, { organisationId: "org-1", workerId: "worker-1", leaseSeconds: 0 }), /leaseSeconds/);
   assert.equal(client.calls.length, 0);
 });
 
