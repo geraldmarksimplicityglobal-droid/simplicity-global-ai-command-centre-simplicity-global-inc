@@ -104,7 +104,7 @@ export async function completeExecutionJob(client, { organisationId, jobId, work
   const updated = await client.query(
     `UPDATE aif_execution_jobs
        SET status='succeeded',result=$4::jsonb,worker_id=NULL,lease_until=NULL,updated_at=now(),completed_at=now()
-     WHERE organisation_id=$1 AND id=$2 AND worker_id=$3 AND status='running' AND lease_until > now()
+     WHERE organisation_id=$1 AND id=$2 AND worker_id=$3 AND status='running' AND cancel_requested_at IS NULL AND lease_until > now()
      RETURNING id,status`,
     [org, id, worker, JSON.stringify({ summary })]
   );
