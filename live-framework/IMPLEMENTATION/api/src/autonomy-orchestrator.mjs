@@ -118,24 +118,26 @@ export function planAutonomousTask({
  * Fail-closed operation gate. Only read-only and reversible internal work
  * are permitted without an operation-specific approval.
  */
-export function authorizeOperation({ risk, operationId, requesterId, approval = null } = {}) {
+export function authorizeOperation({ risk, operationId, requesterId, verifiedApproval = null } = {}) {
   if (typeof risk !== "string" || !RISKS.has(risk)) {
     return Object.freeze({ allowed: false, status: "denied", reason: "unknown-risk-class" });
   }
   if (risk === "read_only" || risk === "reversible") {
     return Object.freeze({ allowed: true, status: "allowed", reason: "within-default-autonomy" });
   }
-  const hasBoundApproval = approval && typeof approval === "object" &&
-    approval.approved === true &&
+  const hasVerifiedApproval = verifiedApproval && typeof verifiedApproval === "object" &&
+    verifiedApproval.verified === true &&
+    verifiedApproval.approved === true &&
     typeof operationId === "string" && operationId.trim() &&
-    approval.operationId === operationId &&
+    verifiedApproval.operationId === operationId &&
     typeof requesterId === "string" && requesterId.trim() &&
-    typeof approval.approverId === "string" && approval.approverId.trim() &&
-    approval.approverId !== requesterId;
-  if (hasBoundApproval) {
-    return Object.freeze({ allowed: true, status: "approved", reason: "operation-bound-independent-approval" });
+    verifiedApproval.requesterId === requesterId &&
+    typeof verifiedApproval.approverId === "string" && verifiedApproval.approverId.trim() &&
+    verifiedApproval.approverId !== requesterId;
+  if (hasVerifiedApproval) {
+    return Object.freeze({ allowed: true, status: "approved", reason: "host-verified-operation-bound-independent-approval" });
   }
-  return Object.freeze({ allowed: false, status: "approval_required", reason: "operation-specific-independent-approval-required" });
+  return Object.freeze({ allowed: false, status: "approval_required", reason: "trusted-operation-specific-approval-verification-required" });
 }
 
 
@@ -209,7 +211,16 @@ export async function executeAutonomousTask({
     });
   }
 
-  const authorization = authorizeOperation({ risk, operationId, requesterId, approval });
+  let verifiedApproval = null;
+  if (risk !== "read_only" && risk !== "reversible" && RISKS.has(risk) &&
+      typeof verifyApproval === "function") {
+    try {
+      verifiedApproval = await verifyApproval({ operationId, requesterId, risk });
+    } catch {
+      verifiedApproval = null;
+    }
+  }
+  const authorization = authorizeOperation({ risk, operationId, requesterId, verifiedApproval });
   if (!authorization.allowed) {
     return Object.freeze({
       status: authorization.status,
