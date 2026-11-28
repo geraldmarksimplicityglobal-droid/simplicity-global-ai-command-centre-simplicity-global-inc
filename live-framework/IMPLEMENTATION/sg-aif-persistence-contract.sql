@@ -115,6 +115,11 @@ BEGIN
   VALUES
    ('10000000-0000-4000-8000-000000000303','10000000-0000-4000-8000-000000000001','Runtime insert','Permission boundary','development','L2.1','low','10000000-0000-4000-8000-000000000102');
 
+  INSERT INTO aif_workflow_events
+   (organisation_id,workflow_id,sequence,event_type,actor_user_id,payload,previous_hash,event_hash)
+  VALUES
+   ('10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000303',1,'workflow.inspected','10000000-0000-4000-8000-000000000102','{}',NULL,repeat('e',64));
+
   UPDATE aif_workflows SET status='inspected',current_stage='inspected',state_version=2
   WHERE id='10000000-0000-4000-8000-000000000303';
   SELECT count(*) INTO n FROM aif_workflows
