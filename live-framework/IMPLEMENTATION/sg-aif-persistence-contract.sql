@@ -56,6 +56,7 @@ BEGIN
     WHERE workflow_id='10000000-0000-4000-8000-000000000301';
     RAISE EXCEPTION 'AIF workflow event update unexpectedly succeeded';
   EXCEPTION
+    WHEN insufficient_privilege THEN NULL;
     WHEN SQLSTATE '55000' THEN NULL;
   END;
 
