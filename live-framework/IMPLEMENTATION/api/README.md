@@ -97,3 +97,22 @@ The `sg-aif-execution-jobs.sql` migration adds a tenant-isolated PostgreSQL queu
 - Only bounded result summaries and machine-readable error codes are persisted. Secrets and raw provider exception details are not stored.
 
 This adds source code and CI coverage only. The migration is applied to ephemeral CI PostgreSQL, not production. No database, worker process, scheduler, OAuth connection, connector or external service is provisioned or activated by this change. Production worker credentials, service-principal membership, deployment supervision, monitoring, alerting, cancellation propagation and operational recovery still require host integration and separate approval.
+
+
+## Worker host entrypoint
+
+The API package now includes `npm run worker`, which starts `src/worker-main.mjs`. The process requires deployment-provided settings:
+
+- `SG_WORKER_ADAPTER_MODULE`: absolute path to a trusted, deployment-managed ES module outside the repository checkout.
+- `SG_WORKER_ORGANISATION_ID`: the single organisation this worker is allowed to service.
+- `SG_WORKER_ID`: stable worker identifier.
+- Optional bounded tuning: `SG_WORKER_POLL_INTERVAL_MS` (250–60000, default 1500), `SG_WORKER_LEASE_SECONDS` (10–900, default 60), and `SG_WORKER_MAX_ATTEMPTS` (1–20, default 5).
+
+The trusted host adapter must export:
+- `verifyWorkerIdentity({ organisationId, workerId })`, returning a verified identity matching both requested values.
+- `withTenantClient(organisationId, callback)`, opening a transaction with authenticated workload identity and tenant membership, without RLS bypass.
+- `execute({ organisationId, jobId, requesterId, payload, attempt, signal })`, revalidating requester permissions, exact connector capabilities, current scopes, task risk and cancellation before tool invocation.
+
+The worker refuses to start if the adapter or exact workload identity cannot be verified. The adapter is a privileged deployment dependency: keep it outside source control, load its credentials from a secret manager or workload identity, and restrict file access to the worker service account. Run one worker deployment per explicitly configured tenant unless a separately reviewed tenant scheduler is implemented. Use an external supervisor (for example, a container orchestrator or system service) for restart policy, health checks, logs, alerts and graceful termination.
+
+Example environment variable names and values belong in the deployment secret/configuration manager, not in committed files. No real secrets, database URLs, OIDC tokens or provider credentials are included in this repository. This entrypoint does not provision a database, identity provider, adapter module, deployment or worker process. Background processing becomes operational only after those host dependencies are deployed and verified.
