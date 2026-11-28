@@ -72,3 +72,28 @@ test("background worker supervisor stops gracefully while idle", async () => {
   const result = await worker.done;
   assert.deepEqual(result, { status: "stopped" });
 });
+
+test("worker persists a policy block instead of reporting a blocked task as completed", async () => {
+  const updates = [];
+  const result = await runExecutionWorkerOnce({
+    organisationId: "org-1",
+    workerId: "worker-1",
+    withTenantClient: async (org, fn) => fn({ query: async sql => {
+      if (sql.includes("WITH candidate")) return { rows: [{
+        id: "job-blocked", organisation_id: org, requester_user_id: "user-1",
+        payload: { objective: "Send a payout", capabilities: [], risk: "read_only" },
+        attempts: 1
+      }] };
+      updates.push(sql);
+      return { rows: [{ id: "job-blocked", status: "blocked" }] };
+    }}),
+    execute: async () => ({
+      status: "approval_required",
+      summary: "A financial operation requires independent approval"
+    })
+  });
+  assert.equal(result.status, "blocked");
+  assert.equal(result.reasonCode, "approval_required");
+  assert.equal(updates.length, 1);
+  assert.match(updates[0], /status='blocked'/);
+});
