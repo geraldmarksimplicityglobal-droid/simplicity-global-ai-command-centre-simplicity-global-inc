@@ -72,8 +72,8 @@ export function validateWorkflowInput(input, requesterId) {
   const autonomy = autonomyValue(autonomyLevel);
   const riskLevel = input.riskLevel ?? "medium";
   if (!RISKS.has(riskLevel)) throw new TypeError("invalid workflow risk level");
-  if (environment === "production" && autonomy > AUTONOMY["L3.3"]) {
-    throw new Error("production autonomy ceiling is L3.3");
+  if (environment !== "sandbox" && autonomy > AUTONOMY["L3.3"]) {
+    throw new Error("production autonomy ceiling is L3.3 outside the isolated sandbox");
   }
   const simulationOnly = input.simulationOnly === true;
   if (environment === "sandbox" && autonomy > AUTONOMY["L3.3"] && !simulationOnly) {
