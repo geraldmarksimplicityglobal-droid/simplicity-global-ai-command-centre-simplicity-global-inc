@@ -131,9 +131,9 @@ BEGIN
   ] LOOP
     EXECUTE format('CREATE POLICY %I ON %I FOR UPDATE USING (public.sg_has_organisation_membership(organisation_id)) WITH CHECK (public.sg_has_organisation_membership(organisation_id))',t || '_org_update',t);
   END LOOP;
-END $;
+END $$;
 
-DO $
+DO $$
 DECLARE item record;
 BEGIN
   FOR item IN SELECT * FROM (VALUES
