@@ -46,10 +46,10 @@ async function appendWorkflowEvent(client, { organisationId, workflowId, actorId
 }
 
 export async function registerAifRoutes(app, requireScope) {
-  app.get("/api/aif/jobs", async (request, reply) => requireScope(request, reply, "aif:read", async client => {
+  app.get("/api/aif/jobs", async (request, reply) => requireScope(request, reply, "aif:read", async (client, user) => {
     const { rows } = await client.query(
-      "SELECT id,status,payload->>'objective' AS objective,attempts,last_error_code,result,created_at,updated_at,completed_at FROM aif_execution_jobs ORDER BY created_at DESC LIMIT $1",
-      [boundedLimit(request.query?.limit)]
+      "SELECT id,status,payload->>'objective' AS objective,attempts,last_error_code,result,created_at,updated_at,completed_at FROM aif_execution_jobs WHERE requester_user_id=$1 ORDER BY created_at DESC LIMIT $2",
+      [user.userId, boundedLimit(request.query?.limit)]
     );
     return { data: rows };
   }));
