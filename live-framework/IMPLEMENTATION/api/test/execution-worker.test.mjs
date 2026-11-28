@@ -97,3 +97,28 @@ test("worker persists a policy block instead of reporting a blocked task as comp
   assert.equal(updates.length, 1);
   assert.match(updates[0], /status='blocked'/);
 });
+
+
+test("worker finalizes a concurrent requester cancellation instead of reporting success", async () => {
+  const updates = [];
+  const result = await runExecutionWorkerOnce({
+    organisationId: "org-1",
+    workerId: "worker-1",
+    withTenantClient: async (org, fn) => fn({ query: async sql => {
+      if (sql.includes("WITH candidate")) return { rows: [{
+        id: "job-cancel-race", organisation_id: org, requester_user_id: "user-1",
+        payload: { objective: "Read repo", capabilities: [], risk: "read_only" }, attempts: 1
+      }] };
+      updates.push(sql);
+      if (sql.includes("status='succeeded'")) return { rows: [] };
+      if (sql.includes("cancel_requested_at IS NOT NULL")) return { rows: [{ id: "job-cancel-race", status: "cancelled" }] };
+      return { rows: [] };
+    }}),
+    execute: async () => ({ status: "completed", summary: "work finished" })
+  });
+  assert.equal(result.status, "cancelled");
+  assert.equal(result.jobId, "job-cancel-race");
+  assert.equal(updates.length, 2);
+  assert.match(updates[0], /cancel_requested_at IS NULL/);
+  assert.match(updates[1], /cancel_requested_at IS NOT NULL/);
+});
