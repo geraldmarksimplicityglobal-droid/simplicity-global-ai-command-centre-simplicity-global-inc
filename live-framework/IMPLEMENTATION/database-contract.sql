@@ -140,7 +140,7 @@ BEGIN
       IF SQLERRM <> 'workflow_task_events are append-only' THEN RAISE; END IF;
   END;
 
-END $;
+END $$;
 
 RESET ROLE;
 DO $$
