@@ -46,6 +46,9 @@ test("workflow transitions are constrained and high-risk approval separates requ
   assert.equal(assertWorkflowTransition("awaiting_approval", "approved", {
     requesterId: "user-1", actorId: "reviewer-2", riskLevel: "critical"
   }), true);
+  assert.throws(() => assertWorkflowTransition("approved", "simulated", {
+    requesterId: "user-1", actorId: "executor-3", riskLevel: "low", environment: "sandbox", simulationOnly: true
+  }), /invalid workflow transition/);
   assert.throws(() => assertWorkflowTransition("approved", "executing", {
     requesterId: "user-1", actorId: "executor-3", riskLevel: "low"
   }), /invalid workflow transition/);
