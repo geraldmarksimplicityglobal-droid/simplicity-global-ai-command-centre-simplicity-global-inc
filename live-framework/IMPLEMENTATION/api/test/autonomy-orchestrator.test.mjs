@@ -46,7 +46,7 @@ test("defaults to foreground when duration is unknown rather than inventing pers
 
 test("keeps financial, production and destructive actions behind explicit approval", () => {
   for (const risk of ["financial", "production", "destructive"]) {
-    const result = authorizeOperation({ risk, explicitApproval: false });
+    const result = authorizeOperation({ risk, operationId: "op-1", requesterId: "user-a" });
     assert.equal(result.allowed, false);
     assert.equal(result.status, "approval_required");
   }
@@ -71,4 +71,34 @@ test("never elevates connector permissions during capability resolution", () => 
   });
   assert.equal(result.status, "connector_required");
   assert.equal(result.permissionEscalation, false);
+});
+
+test("does not accept a bare approval boolean for high-impact operations", () => {
+  const result = authorizeOperation({ risk: "financial", operationId: "op-2", requesterId: "user-a", explicitApproval: true });
+  assert.equal(result.allowed, false);
+  assert.equal(result.status, "approval_required");
+});
+
+test("accepts an approval bound to the operation and a different approver", () => {
+  const result = authorizeOperation({
+    risk: "financial",
+    operationId: "op-3",
+    requesterId: "user-a",
+    approval: { operationId: "op-3", approverId: "user-b", approved: true }
+  });
+  assert.equal(result.allowed, true);
+  assert.equal(result.status, "approved");
+});
+
+test("rejects approval for a different operation or the same requester", () => {
+  const wrongOperation = authorizeOperation({
+    risk: "production", operationId: "op-4", requesterId: "user-a",
+    approval: { operationId: "other-op", approverId: "user-b", approved: true }
+  });
+  const selfApproved = authorizeOperation({
+    risk: "production", operationId: "op-4", requesterId: "user-a",
+    approval: { operationId: "op-4", approverId: "user-a", approved: true }
+  });
+  assert.equal(wrongOperation.allowed, false);
+  assert.equal(selfApproved.allowed, false);
 });
