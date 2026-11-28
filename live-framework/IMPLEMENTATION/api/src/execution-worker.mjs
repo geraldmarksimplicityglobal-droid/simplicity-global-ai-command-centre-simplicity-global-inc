@@ -36,13 +36,7 @@ export async function runExecutionWorkerOnce({
   const heartbeatTask = (async () => {
     const intervalMs = Math.max(3000, Math.floor(leaseSeconds * 1000 / 3));
     while (!controller.signal.aborted) {
-      await new Promise(resolve => {
-        const timer = setTimeout(resolve, intervalMs);
-        controller.signal.addEventListener("abort", () => {
-          clearTimeout(timer);
-          resolve();
-        }, { once: true });
-      });
+      await delay(intervalMs, controller.signal);
       if (controller.signal.aborted) break;
       try {
         const renewed = await withTenantClient(org, client =>
