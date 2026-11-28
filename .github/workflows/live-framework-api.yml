@@ -16,6 +16,7 @@ on:
   push:
     branches:
       - "codex/live-enterprise-framework"
+      - "codex/sg-persistent-runtime-001"
     paths:
       - "live-framework/IMPLEMENTATION/api/**"
       - "live-framework/IMPLEMENTATION/web/**"
