@@ -16,7 +16,6 @@ const TRANSITIONS = Object.freeze({
   approved: new Set(["cancelled"]),
   failed: new Set(["planned", "cancelled"]),
   rejected: new Set(),
-  simulated: new Set(),
   cancelled: new Set()
 });
 const SECRET_FIELD = /password|secret|token|api[_-]?key|private[_-]?key|seed[_-]?phrase|mnemonic|bank[_-]?account|card[_-]?number|cvv/i;
@@ -95,12 +94,8 @@ export function assertWorkflowTransition(currentStatus, nextStatus, {
 } = {}) {
   if (!TRANSITIONS[currentStatus]?.has(nextStatus)) throw new Error("invalid workflow transition");
   if (typeof actorId !== "string" || !actorId.trim()) throw new TypeError("actor identity required");
-  if (nextStatus === "approved" && (!requesterId || actorId === requesterId) &&
-      (riskLevel === "high" || riskLevel === "critical")) {
-    throw new Error("high-risk approval requires reviewer/requester separation");
-  }
-  if (nextStatus === "simulated" && (environment !== "sandbox" || simulationOnly !== true)) {
-    throw new Error("simulation is permitted only for explicitly simulation-only sandbox workflows");
+  if (nextStatus === "approved" && (!requesterId || actorId === requesterId)) {
+    throw new Error("approval requires reviewer/requester separation");
   }
   return true;
 }
