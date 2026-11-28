@@ -25,6 +25,11 @@ VALUES
  ('10000000-0000-4000-8000-000000000001','contract-org-a',10000,'ZAR','ZA-ZA','[]','{}','blocked','["mandate-not-configured"]',false,'10000000-0000-4000-8000-000000000102'),
  ('20000000-0000-4000-8000-000000000002','contract-org-b',20000,'ZAR','ZA-ZA','[]','{}','blocked','["mandate-not-configured"]',false,'10000000-0000-4000-8000-000000000102');
 
+INSERT INTO aif_config_versions
+ (id,organisation_id,config_key,version,configuration,created_by)
+VALUES
+ ('10000000-0000-4000-8000-000000000401','10000000-0000-4000-8000-000000000001','sg-aif-runtime',1,'{"runtimeMode":"read_only","maxProductionAutonomy":"L3.3","sandboxMaxAutonomy":"L5.4","memoryRetentionDays":30,"maxWorkflowConcurrency":2}', '10000000-0000-4000-8000-000000000102');
+
 SET ROLE sg_live_framework_runtime;
 SELECT set_config('app.user_issuer','https://identity.example.test',false);
 SELECT set_config('app.user_subject','org-user',false);
@@ -39,6 +44,41 @@ BEGIN
   IF n <> 1 THEN RAISE EXCEPTION 'AIF event tenant isolation expected one row, found %', n; END IF;
   SELECT count(*) INTO n FROM financial_route_decisions;
   IF n <> 1 THEN RAISE EXCEPTION 'Financial route tenant isolation expected one row, found %', n; END IF;
+
+  INSERT INTO aif_workflow_events
+   (organisation_id,workflow_id,sequence,event_type,actor_user_id,payload,previous_hash,event_hash)
+  VALUES
+   ('10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000301',2,'workflow.checkpoint_saved','10000000-0000-4000-8000-000000000102','{"checkpoint":true}',repeat('a',64),repeat('c',64));
+
+  BEGIN
+    INSERT INTO aif_workflow_events
+     (organisation_id,workflow_id,sequence,event_type,actor_user_id,payload,previous_hash,event_hash)
+    VALUES
+     ('10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000301',4,'workflow.bad_sequence','10000000-0000-4000-8000-000000000102','{}',repeat('c',64),repeat('d',64));
+    RAISE EXCEPTION 'Non-contiguous workflow event unexpectedly succeeded';
+  EXCEPTION
+    WHEN SQLSTATE '55000' THEN NULL;
+  END;
+
+  BEGIN
+    INSERT INTO aif_config_approvals
+     (organisation_id,config_version_id,approver_user_id,decision)
+    VALUES
+     ('10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000401','10000000-0000-4000-8000-000000000102','approved');
+    RAISE EXCEPTION 'Self-approval unexpectedly succeeded';
+  EXCEPTION
+    WHEN SQLSTATE '55000' THEN NULL;
+  END;
+
+  BEGIN
+    INSERT INTO aif_config_activations
+     (organisation_id,config_version_id,activated_by)
+    VALUES
+     ('10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000401','10000000-0000-4000-8000-000000000102');
+    RAISE EXCEPTION 'Activation without independent approval unexpectedly succeeded';
+  EXCEPTION
+    WHEN SQLSTATE '55000' THEN NULL;
+  END;
 
   INSERT INTO aif_workflows
    (id,organisation_id,title,objective,environment,autonomy_level,risk_level,requester_user_id)
