@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS aif_execution_jobs (
   idempotency_key text,
   payload jsonb NOT NULL CHECK (jsonb_typeof(payload)='object'),
   status text NOT NULL DEFAULT 'queued'
-    CHECK (status IN ('queued','running','succeeded','failed','cancelled')),
+    CHECK (status IN ('queued','running','succeeded','failed','blocked','cancelled')),
   attempts integer NOT NULL DEFAULT 0 CHECK (attempts >= 0 AND attempts <= 20),
   worker_id text,
   lease_until timestamptz,
