@@ -121,3 +121,8 @@ Example environment variable names and values belong in the deployment secret/co
 ### One-command intake and mandatory worker-side classification
 
 The runtime console now accepts only the user's natural-language objective for background submission; it does not ask the user to select a risk class or enumerate connector capabilities. The API stores the request with the queue's least-privilege `read_only` ceiling. This value is a queue restriction, not proof that the natural-language request is safe. Before any tool call, the trusted worker executor must independently interpret the objective, discover the exact required capabilities, verify the requester's current authorization, and classify the actual operation. If the task needs a risk level above `read_only` or `reversible`, the worker must stop without side effects and return an approval/authorization requirement. The worker must not downgrade a task's true risk to fit the queue.
+
+
+### Blocked background task outcomes
+
+The execution queue now has a terminal `blocked` state for worker-side outcomes `approval_required`, `authorization_required`, `connector_required`, and `policy_denied`. A blocked task releases its worker lease, stores only a bounded safe summary and machine-readable reason code, and is not retried as if it were a transient failure. The worker must not mark a policy-blocked command as succeeded. The requester can inspect the status through the existing jobs endpoint and submit again after the required authorization or connector is resolved.
