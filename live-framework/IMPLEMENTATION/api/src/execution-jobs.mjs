@@ -126,7 +126,7 @@ export async function failExecutionJob(client, {
        SET status=CASE WHEN attempts < $5 THEN 'queued' ELSE 'failed' END,
            last_error_code=$4,worker_id=NULL,lease_until=NULL,updated_at=now(),
            completed_at=CASE WHEN attempts < $5 THEN NULL ELSE now() END
-     WHERE organisation_id=$1 AND id=$2 AND worker_id=$3 AND status='running'
+     WHERE organisation_id=$1 AND id=$2 AND worker_id=$3 AND status='running' AND lease_until > now()
      RETURNING id,status`,
     [org, id, worker, code, maxAttempts]
   );
