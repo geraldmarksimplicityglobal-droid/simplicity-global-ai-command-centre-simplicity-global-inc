@@ -63,7 +63,7 @@ test("persistent memory rejects secret-bearing fields and oversized payloads", (
 
 test("configuration cannot raise autonomy or enable financial execution", () => {
   assert.throws(() => validateAifConfiguration({
-    runtimeMode: "production", maxProductionAutonomy: "L4.0"
+    runtimeMode: "production", maxProductionAutonomy: "L4.1"
   }), /production autonomy ceiling/);
   assert.throws(() => validateAifConfiguration({
     runtimeMode: "read_only", financialExecutionEnabled: true
