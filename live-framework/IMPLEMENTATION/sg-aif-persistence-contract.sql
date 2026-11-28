@@ -1,6 +1,9 @@
 -- SG-AIF-001 persistence integration contract. Ephemeral CI database only.
 \set ON_ERROR_STOP on
 
+SELECT set_config('app.user_issuer','https://identity.example.test',false);
+SELECT set_config('app.user_subject','org-user',false);
+
 INSERT INTO role_permissions(role_id,permission_id)
 SELECT '10000000-0000-4000-8000-000000000202',p.id
 FROM permissions p
@@ -58,6 +61,32 @@ BEGIN
     RAISE EXCEPTION 'Non-contiguous workflow event unexpectedly succeeded';
   EXCEPTION
     WHEN SQLSTATE '55000' THEN NULL;
+  END;
+
+  BEGIN
+    INSERT INTO aif_workflow_events
+     (organisation_id,workflow_id,sequence,event_type,actor_user_id,payload,previous_hash,event_hash)
+    VALUES
+     ('10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000301',3,'workflow.spoofed','10000000-0000-4000-8000-000000000101','{}',repeat('c',64),repeat('d',64));
+    RAISE EXCEPTION 'Spoofed workflow actor unexpectedly succeeded';
+  EXCEPTION
+    WHEN SQLSTATE '55000' THEN NULL;
+  END;
+
+  BEGIN
+    UPDATE aif_workflows SET status='approved'
+     WHERE id='10000000-0000-4000-8000-000000000301';
+    RAISE EXCEPTION 'Invalid workflow state transition unexpectedly succeeded';
+  EXCEPTION
+    WHEN SQLSTATE '55000' THEN NULL;
+  END;
+
+  BEGIN
+    UPDATE aif_workflows SET status='simulated'
+     WHERE id='10000000-0000-4000-8000-000000000301';
+    RAISE EXCEPTION 'Unimplemented simulation status unexpectedly succeeded';
+  EXCEPTION
+    WHEN check_violation THEN NULL;
   END;
 
   BEGIN
