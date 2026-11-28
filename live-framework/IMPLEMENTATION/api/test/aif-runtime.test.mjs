@@ -43,6 +43,9 @@ test("workflow transitions are constrained and high-risk approval separates requ
   assert.throws(() => assertWorkflowTransition("awaiting_approval", "approved", {
     requesterId: "user-1", actorId: "user-1", riskLevel: "critical"
   }), /reviewer\\/requester separation/);
+  assert.throws(() => assertWorkflowTransition("awaiting_approval", "approved", {
+    requesterId: "user-1", actorId: "user-1", riskLevel: "low"
+  }), /reviewer\\/requester separation/);
   assert.equal(assertWorkflowTransition("awaiting_approval", "approved", {
     requesterId: "user-1", actorId: "reviewer-2", riskLevel: "critical"
   }), true);
@@ -70,7 +73,7 @@ test("persistent memory rejects secret-bearing fields and oversized payloads", (
 
 test("configuration cannot raise autonomy or enable financial execution", () => {
   assert.throws(() => validateAifConfiguration({
-    runtimeMode: "production", maxProductionAutonomy: "L4.1"
+    runtimeMode: "read_only", maxProductionAutonomy: "L4.1"
   }), /production autonomy ceiling/);
   assert.throws(() => validateAifConfiguration({
     runtimeMode: "read_only", financialExecutionEnabled: true
