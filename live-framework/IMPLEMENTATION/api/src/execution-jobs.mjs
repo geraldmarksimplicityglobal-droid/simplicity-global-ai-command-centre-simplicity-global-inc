@@ -146,3 +146,22 @@ export async function cancelExecutionJob(client, { organisationId, jobId, reques
   );
   return safeJob(updated.rows[0]);
 }
+
+export async function heartbeatExecutionJob(client, {
+  organisationId, jobId, workerId, leaseSeconds = 60
+} = {}) {
+  const org = text(organisationId, "organisationId", 100);
+  const id = text(jobId, "jobId", 100);
+  const worker = text(workerId, "workerId", 200);
+  if (!Number.isInteger(leaseSeconds) || leaseSeconds < 10 || leaseSeconds > 900) {
+    throw new RangeError("leaseSeconds must be an integer from 10 to 900");
+  }
+  const updated = await client.query(
+    `UPDATE aif_execution_jobs
+       SET lease_until=now() + ($4::int * interval '1 second'),updated_at=now()
+     WHERE organisation_id=$1 AND id=$2 AND worker_id=$3 AND status='running' AND lease_until > now()
+     RETURNING id,status,lease_until`,
+    [org, id, worker, leaseSeconds]
+  );
+  return updated.rows[0] ?? null;
+}
