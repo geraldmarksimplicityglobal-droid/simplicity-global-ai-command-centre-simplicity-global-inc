@@ -77,3 +77,36 @@ test("API failures expose a safe code without response payloads", async () => {
     return true;
   });
 });
+
+test("AIF runtime calls use the authenticated organisation-scoped API", async () => {
+  let captured;
+  globalThis.fetch = async (url, options) => {
+    captured = { url: String(url), options };
+    return new Response(JSON.stringify({ data: [] }), {
+      status: 200, headers: { "content-type": "application/json" }
+    });
+  };
+  const api = createFrameworkApi({
+    baseUrl: "https://api.example.test/",
+    getAccessToken: () => "test-access-token-value-123456",
+    getOrganisationId: () => "org-123"
+  });
+  await api.createAifWorkflow({
+    title: "Persistent task", objective: "Inspect only", environment: "development",
+    autonomyLevel: "L2.1", riskLevel: "low"
+  });
+  assert.equal(captured.url, "https://api.example.test/api/aif/workflows");
+  assert.equal(captured.options.method, "POST");
+  assert.equal(captured.options.headers["x-organisation-id"], "org-123");
+  assert.equal(captured.options.credentials, "omit");
+});
+
+test("financial routing client exposes proposal preparation but no execution method", () => {
+  const api = createFrameworkApi({
+    baseUrl: "https://api.example.test/",
+    getAccessToken: () => "test-access-token-value-123456",
+    getOrganisationId: () => "org-123"
+  });
+  assert.equal(typeof api.prepareFinancialRouteDecision, "function");
+  assert.equal("executeApprovedPayment" in api, false);
+});
