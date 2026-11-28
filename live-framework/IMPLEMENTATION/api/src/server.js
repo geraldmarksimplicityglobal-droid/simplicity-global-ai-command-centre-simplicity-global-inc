@@ -5,6 +5,7 @@ import rateLimit from "@fastify/rate-limit";
 import pg from "pg";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { isUuid, selectMembership, hasPermission } from "./scope.js";
+import { registerWorkflowRoutes } from "./workflow-routes.js";
 
 const { Pool } = pg;
 for (const key of ["DATABASE_URL", "OIDC_ISSUER", "OIDC_JWKS_URL", "OIDC_AUDIENCE"]) {
@@ -199,6 +200,8 @@ app.get("/api/audit-events", async (request, reply) => requireScope(request, rep
   );
   return { data: rows };
 }));
+
+registerWorkflowRoutes(app, requireScope);
 
 app.setErrorHandler((error, request, reply) => {
   request.log.error({ err: error }, "request_failed");
