@@ -8,6 +8,7 @@ import {
   failExecutionJob,
   blockExecutionJob,
   cancelExecutionJob,
+  finishCancelledExecutionJob,
   heartbeatExecutionJob
 } from "../src/execution-jobs.mjs";
 
@@ -96,7 +97,8 @@ test("cancellation is tenant-scoped and only cancels queued jobs", async () => {
   assert.equal(result.status, "cancelled");
   assert.match(client.calls[0].sql, /organisation_id/);
   assert.match(client.calls[0].sql, /requester_user_id/);
-  assert.match(client.calls[0].sql, /status='queued'/);
+  assert.match(client.calls[0].sql, /cancel_requested_at/);
+  assert.match(client.calls[0].sql, /status='running'/);
 });
 
 test("claim fails closed on invalid lease parameters", async () => {
@@ -182,4 +184,26 @@ test("blocked task rejects unbounded or secret-bearing error codes", async () =>
     errorCode: "secret-token-value"
   }), /errorCode/);
   assert.equal(client.calls.length, 0);
+});
+
+
+test("running cancellation is recorded without stealing the worker lease", async () => {
+  const client = fakeClient([{ rows: [{ id: "job-running", status: "cancellation_requested" }], rowCount: 1 }]);
+  const result = await cancelExecutionJob(client, {
+    organisationId: "org-1", jobId: "job-running", requesterId: "user-1"
+  });
+  assert.equal(result.status, "cancellation_requested");
+  assert.match(client.calls[0].sql, /cancel_requested_at=now\(\)/);
+  assert.match(client.calls[0].sql, /worker_id/);
+});
+
+test("worker can finalize a requested cancellation only under its live lease", async () => {
+  const client = fakeClient([{ rows: [{ id: "job-running", status: "cancelled" }], rowCount: 1 }]);
+  const result = await finishCancelledExecutionJob(client, {
+    organisationId: "org-1", jobId: "job-running", workerId: "worker-1"
+  });
+  assert.equal(result.status, "cancelled");
+  assert.match(client.calls[0].sql, /cancel_requested_at IS NOT NULL/);
+  assert.match(client.calls[0].sql, /worker_id/);
+  assert.match(client.calls[0].sql, /lease_until > now\(\)/);
 });
