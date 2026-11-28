@@ -145,7 +145,7 @@ test("autonomous background job routes are scoped and never expose a financial e
 
 test("AIF console exposes a one-command background job form with worker-state disclosure", async () => {
   const { readFile } = await import("node:fs/promises");
-  const html = await readFile(new URL("../../aif-runtime.html", import.meta.url), "utf8");
+  const html = await readFile(new URL("../../../aif-runtime.html", import.meta.url), "utf8");
   const client = await readFile(new URL("../../web/api-client.js", import.meta.url), "utf8");
   assert.match(html, /id="job-form"/);
   assert.match(html, /id="job-json"/);
