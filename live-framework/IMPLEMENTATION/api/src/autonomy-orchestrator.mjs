@@ -155,7 +155,7 @@ export async function executeAutonomousTask({
   risk = "read_only",
   operationId,
   requesterId,
-  approval = null,
+  verifyApproval,
   estimatedDurationMinutes,
   requestedMode,
   backgroundWorkerAvailable = false,
