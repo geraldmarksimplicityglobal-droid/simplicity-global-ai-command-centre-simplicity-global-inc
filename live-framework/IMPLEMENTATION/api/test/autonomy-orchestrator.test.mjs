@@ -84,7 +84,7 @@ test("accepts an approval bound to the operation and a different approver", () =
     risk: "financial",
     operationId: "op-3",
     requesterId: "user-a",
-    approval: { operationId: "op-3", approverId: "user-b", approved: true }
+    verifiedApproval: { verified: true, operationId: "op-3", requesterId: "user-a", approverId: "user-b", approved: true }
   });
   assert.equal(result.allowed, true);
   assert.equal(result.status, "approved");
@@ -93,11 +93,11 @@ test("accepts an approval bound to the operation and a different approver", () =
 test("rejects approval for a different operation or the same requester", () => {
   const wrongOperation = authorizeOperation({
     risk: "production", operationId: "op-4", requesterId: "user-a",
-    approval: { operationId: "other-op", approverId: "user-b", approved: true }
+    verifiedApproval: { verified: true, operationId: "other-op", requesterId: "user-a", approverId: "user-b", approved: true }
   });
   const selfApproved = authorizeOperation({
     risk: "production", operationId: "op-4", requesterId: "user-a",
-    approval: { operationId: "op-4", approverId: "user-a", approved: true }
+    verifiedApproval: { verified: true, operationId: "op-4", requesterId: "user-a", approverId: "user-a", approved: true }
   });
   assert.equal(wrongOperation.allowed, false);
   assert.equal(selfApproved.allowed, false);
@@ -205,4 +205,102 @@ test("requires operation-bound independent approval before external writes", asy
   });
   assert.equal(approved.status, "completed");
   assert.equal(ran, true);
+});
+
+
+test("requires a trusted approval verifier for high-impact execution", async () => {
+  const { executeAutonomousTask } = await import("../src/autonomy-orchestrator.mjs");
+  let ran = false;
+  const result = await executeAutonomousTask({
+    objective: "Apply production configuration",
+    capabilities: ["provider.config.write"],
+    risk: "production",
+    operationId: "prod-change-1",
+    requesterId: "requester-1",
+    discoverConnectors: async () => [
+      { id: "provider", provider: "provider", capabilities: ["provider.config.write"], status: "healthy", authorized: true }
+    ],
+    runForeground: async () => { ran = true; },
+    approval: { approved: true, operationId: "prod-change-1", approverId: "reviewer-2" }
+  });
+  assert.equal(result.status, "approval_required");
+  assert.equal(ran, false);
+});
+
+test("fails closed when the trusted approval verifier throws", async () => {
+  const { executeAutonomousTask } = await import("../src/autonomy-orchestrator.mjs");
+  let ran = false;
+  const result = await executeAutonomousTask({
+    objective: "Apply production configuration",
+    capabilities: ["provider.config.write"],
+    risk: "production",
+    operationId: "prod-change-2",
+    requesterId: "requester-1",
+    discoverConnectors: async () => [
+      { id: "provider", provider: "provider", capabilities: ["provider.config.write"], status: "healthy", authorized: true }
+    ],
+    verifyApproval: async () => { throw new Error("verifier unavailable"); },
+    runForeground: async () => { ran = true; }
+  });
+  assert.equal(result.status, "approval_required");
+  assert.equal(ran, false);
+});
+
+test("accepts only a trusted attestation bound to the exact operation and requester", async () => {
+  const { executeAutonomousTask } = await import("../src/autonomy-orchestrator.mjs");
+  let verifiedRequest;
+  let ran = false;
+  const result = await executeAutonomousTask({
+    objective: "Apply production configuration",
+    capabilities: ["provider.config.write"],
+    risk: "production",
+    operationId: "prod-change-3",
+    requesterId: "requester-1",
+    discoverConnectors: async () => [
+      { id: "provider", provider: "provider", capabilities: ["provider.config.write"], status: "healthy", authorized: true }
+    ],
+    verifyApproval: async request => {
+      verifiedRequest = request;
+      return {
+        verified: true,
+        approved: true,
+        operationId: "prod-change-3",
+        requesterId: "requester-1",
+        approverId: "reviewer-2"
+      };
+    },
+    runForeground: async () => { ran = true; return { ok: true }; }
+  });
+  assert.deepEqual(verifiedRequest, {
+    operationId: "prod-change-3",
+    requesterId: "requester-1",
+    risk: "production"
+  });
+  assert.equal(result.status, "completed");
+  assert.equal(ran, true);
+});
+
+test("rejects a trusted attestation bound to another requester or operation", async () => {
+  const { executeAutonomousTask } = await import("../src/autonomy-orchestrator.mjs");
+  let ran = false;
+  const result = await executeAutonomousTask({
+    objective: "Apply production configuration",
+    capabilities: ["provider.config.write"],
+    risk: "production",
+    operationId: "prod-change-4",
+    requesterId: "requester-1",
+    discoverConnectors: async () => [
+      { id: "provider", provider: "provider", capabilities: ["provider.config.write"], status: "healthy", authorized: true }
+    ],
+    verifyApproval: async () => ({
+      verified: true,
+      approved: true,
+      operationId: "other-operation",
+      requesterId: "other-requester",
+      approverId: "reviewer-2"
+    }),
+    runForeground: async () => { ran = true; }
+  });
+  assert.equal(result.status, "approval_required");
+  assert.equal(ran, false);
 });
