@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - "live-framework/FINANCIAL-ROUTING/PART-III-V/**"
+      - "live-framework/FINANCIAL-ROUTING/PART-VI/**"
       - "live-framework/IMPLEMENTATION/README.md"
   workflow_dispatch:
 permissions:
@@ -17,6 +18,8 @@ jobs:
           node-version: "20"
       - name: Run connector contract tests
         run: node --test live-framework/FINANCIAL-ROUTING/PART-III-V/runtime/connector-contract.test.mjs
+      - name: Run self-processing loop tests
+        run: node --test live-framework/FINANCIAL-ROUTING/PART-VI/runtime/self-processing.test.mjs
       - name: Validate example mandate JSON
         run: node -e "JSON.parse(require('node:fs').readFileSync('live-framework/FINANCIAL-ROUTING/PART-III-V/policy/data/mandate.example.json','utf8'))"
       - name: Install OPA
