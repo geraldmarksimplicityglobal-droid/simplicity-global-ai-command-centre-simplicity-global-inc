@@ -84,9 +84,11 @@ export async function registerAifRoutes(app, requireScope) {
       requesterId: user.userId
     });
     if (!job) return reply.code(409).send({ error: "job_not_cancellable" });
+    const auditAction = job.status === "cancellation_requested"
+      ? "aif.job.cancellation_requested" : "aif.job.cancelled";
     await client.query(
-      "INSERT INTO audit_events (organisation_id,actor_user_id,action,target_type,target_id,outcome) VALUES ($1,$2,'aif.job.cancelled','aif_execution_job',$3,'success')",
-      [scope.organisationId,user.userId,job.id]
+      "INSERT INTO audit_events (organisation_id,actor_user_id,action,target_type,target_id,outcome) VALUES ($1,$2,$3,'aif_execution_job',$4,'success')",
+      [scope.organisationId,user.userId,auditAction,job.id]
     );
     return { data: job };
   }));
