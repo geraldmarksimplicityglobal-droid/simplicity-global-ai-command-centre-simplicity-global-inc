@@ -30,21 +30,31 @@ GRANT SELECT ON
   compliance_documents,
   change_requests,
   incidents,
-  audit_events
+  audit_events,
+  workflow_tasks,
+  workflow_task_events
 TO sg_live_framework_runtime;
 
 GRANT INSERT ON
   assets,
   change_requests,
-  audit_events
+  audit_events,
+  workflow_tasks,
+  workflow_task_events
 TO sg_live_framework_runtime;
 
 -- Needed for the GENERATED ALWAYS AS IDENTITY audit event primary key.
 GRANT USAGE, SELECT ON SEQUENCE audit_events_id_seq TO sg_live_framework_runtime;
+GRANT USAGE, SELECT ON SEQUENCE workflow_task_events_id_seq TO sg_live_framework_runtime;
+
+GRANT UPDATE (status, task_data, last_event_sequence, updated_at)
+  ON workflow_tasks TO sg_live_framework_runtime;
 
 -- Explicitly deny mutation of the audit journal to the application role.
 REVOKE UPDATE, DELETE, TRUNCATE ON audit_events FROM sg_live_framework_runtime;
 REVOKE UPDATE, DELETE, TRUNCATE ON audit_events FROM PUBLIC;
+REVOKE UPDATE, DELETE, TRUNCATE ON workflow_task_events FROM sg_live_framework_runtime;
+REVOKE UPDATE, DELETE, TRUNCATE ON workflow_task_events FROM PUBLIC;
 
 -- No membership/login role is created here. After a separate provider-specific
 -- login role has been approved and created, a database administrator must run:
