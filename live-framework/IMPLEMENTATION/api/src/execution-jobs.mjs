@@ -55,8 +55,8 @@ export async function enqueueExecutionJob(client, { organisationId, requesterId,
   if (inserted.rows[0]) return safeJob(inserted.rows[0]);
   if (job.idempotencyKey) {
     const existing = await client.query(
-      "SELECT id,status,created_at FROM aif_execution_jobs WHERE organisation_id=$1 AND idempotency_key=$2",
-      [org, job.idempotencyKey]
+      "SELECT id,status,created_at FROM aif_execution_jobs WHERE organisation_id=$1 AND requester_user_id=$2 AND idempotency_key=$3 AND payload=$4::jsonb",
+      [org, requester, job.idempotencyKey, JSON.stringify(payload)]
     );
     if (existing.rows[0]) return Object.freeze({ ...safeJob(existing.rows[0]), idempotentReplay: true });
   }
