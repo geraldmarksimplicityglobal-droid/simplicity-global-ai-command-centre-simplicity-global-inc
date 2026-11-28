@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#10151d">
+<title>SG-AIF-001 — Persistent Runtime</title>
+<style>
+:root{color-scheme:dark;--bg:#0d1219;--panel:#151d28;--line:#2a3747;--text:#eaf0f6;--muted:#91a0b1;--blue:#70a8ff;--amber:#e8b766;--green:#57c79a;--red:#ed7d7d;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text)}a{color:var(--blue)}button,input,select,textarea{font:inherit}button{cursor:pointer}.shell{max-width:1440px;margin:auto;padding:24px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:18px}.brand{font-size:12px;letter-spacing:.18em;color:var(--muted)}h1{font-size:25px;margin:8px 0 5px}.sub{font-size:12px;color:var(--muted)}.actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.btn{border:1px solid var(--line);background:#1b2735;color:var(--text);padding:9px 13px;border-radius:8px;font-size:12px}.btn.primary{background:#2d5f9d;border-color:#3976bd}.btn:disabled{opacity:.5;cursor:not-allowed}.notice{margin:18px 0;padding:13px 15px;border:1px solid #655234;background:#241f18;border-radius:10px;color:#e7c88f;font-size:12px;line-height:1.6}.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:17px;margin:14px 0}.panel h2{font-size:15px;margin:0 0 12px}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.metric{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}.metric small{color:var(--muted);font-size:11px}.metric strong{display:block;font-size:22px;margin-top:7px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field{display:grid;gap:6px;margin:10px 0}.field label{font-size:11px;color:var(--muted)}input,select,textarea{width:100%;background:#101923;border:1px solid var(--line);border-radius:8px;color:var(--text);padding:9px 10px;font-size:12px}textarea{min-height:80px;resize:vertical}.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.small{font-size:11px;color:var(--muted)}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101923;border:1px solid var(--line);padding:12px;border-radius:9px;font-size:11px;max-height:320px;overflow:auto}.status{font-size:11px;padding:5px 9px;border:1px solid var(--line);border-radius:99px;color:var(--muted)}.ok{color:var(--green);border-color:#315f50}.warn{color:var(--amber);border-color:#655234}.bad{color:var(--red);border-color:#693e43}.table{overflow:auto}table{width:100%;border-collapse:collapse;font-size:11px}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600}.empty{color:var(--muted);font-size:12px;padding:12px 0}.error{color:var(--red);font-size:12px;white-space:pre-wrap}.hidden{display:none!important}@media(max-width:800px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:1fr}.shell{padding:15px}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="top">
+ <div><div class="brand">S I M P L I C I T Y  G L O B A L · GEN SYSTEM</div><h1>Persistent Autonomous Intelligence Runtime</h1><div class="sub">SG-AIF-001 · SG-FIN-ROUTE-001 · PostgreSQL-backed enterprise API</div></div>
+ <div class="actions"><a href="./index.html">← Enterprise framework</a><span id="auth-control"></span></div>
+</header>
+<div class="notice"><b>Controlled runtime:</b> Production autonomy is capped at L3.3. L5.4 is sandbox simulation only. This interface persists workflow state and recommendations; it does not execute commands, install plugins, connect bank accounts, send payments or deploy production services. Financial route proposals remain blocked until independently configured mandates and approvals exist.</div>
+
+<section class="panel">
+ <div class="row">
+  <div class="field"><label for="organisation">Authorised organisation</label><select id="organisation"><option value="">Sign in and load memberships</option></select></div>
+  <div class="field"><label>API / identity configuration</label><div id="connection-state" class="status warn">Not configured / not verified</div></div>
+  <div class="field"><label>Session</label><button class="btn" id="refresh">Refresh session and runtime</button></div>
+ </div>
+ <div id="session-message" class="small">Configure the deployment's public OIDC settings and API origin before connecting this interface.</div>
+</section>
+
+<section class="metrics">
+ <div class="metric"><small>Persistent workflows</small><strong id="count-workflows">—</strong></div>
+ <div class="metric"><small>Memory records</small><strong id="count-memory">—</strong></div>
+ <div class="metric"><small>Plugin records</small><strong id="count-plugins">—</strong></div>
+ <div class="metric"><small>Financial decisions</small><strong id="count-routes">—</strong></div>
+</section>
+
+<div class="grid">
+ <section class="panel">
+  <h2>Runtime configuration</h2>
+  <div id="runtime-state" class="empty">No authenticated runtime data loaded.</div>
+  <pre id="runtime-json" class="hidden"></pre>
+ </section>
+ <section class="panel">
+  <h2>Create persistent workflow</h2>
+  <form id="workflow-form">
+   <div class="field"><label>Title</label><input name="title" required maxlength="200" placeholder="e.g. Inspect approved service registry"></div>
+   <div class="field"><label>Objective</label><textarea name="objective" required maxlength="4000" placeholder="Human-defined objective and expected result"></textarea></div>
+   <div class="row">
+    <div class="field"><label>Environment</label><select name="environment"><option value="development">Development</option><option value="sandbox">Sandbox</option><option value="staging">Staging</option><option value="production">Production</option></select></div>
+    <div class="field"><label>Autonomy</label><select name="autonomyLevel"><option>L2.1</option><option>L2.2</option><option>L2.3</option><option>L3.1</option><option>L3.2</option><option>L3.3</option><option>L5.4</option></select></div>
+    <div class="field"><label>Risk</label><select name="riskLevel"><option>low</option><option>medium</option><option>high</option><option>critical</option></select></div>
+   </div>
+   <label class="small"><input type="checkbox" name="simulationOnly" style="width:auto"> Explicitly simulation-only (sandbox only)</label>
+   <div class="field"><label>Idempotency key (optional)</label><input name="idempotencyKey" maxlength="200" placeholder="Stable client request key"></div>
+   <button class="btn primary" type="submit">Save workflow</button>
+  </form>
+  <div id="workflow-message" class="small"></div>
+ </section>
+</div>
+
+<section class="panel">
+ <div class="row"><h2 style="flex:2">Persistent workflow register</h2><button class="btn" id="reload-workflows">Reload workflows</button></div>
+ <div class="table"><table><thead><tr><th>Workflow</th><th>Environment / autonomy</th><th>Risk</th><th>Status</th><th>Version</th><th>Created</th></tr></thead><tbody id="workflow-rows"><tr><td colspan="6" class="empty">No data loaded.</td></tr></tbody></table></div>
+</section>
+
+<div class="grid">
+ <section class="panel">
+  <h2>Governed persistent memory</h2>
+  <form id="memory-form">
+   <div class="row"><div class="field"><label>Memory type</label><select name="memoryType"><option>episodic</option><option>semantic</option><option>procedural</option><option>working</option></select></div><div class="field"><label>Classification</label><select name="classification"><option>internal</option><option>confidential</option></select></div></div>
+   <div class="field"><label>Memory key</label><input name="memoryKey" required maxlength="200" placeholder="e.g. service-inventory-checkpoint"></div>
+   <div class="field"><label>JSON value (no credentials or bank/card data)</label><textarea name="value" required>{"result":"verified","source":"approved-inventory"}</textarea></div>
+   <div class="row"><div class="field"><label>Retention days (1–365)</label><input name="ttlDays" type="number" min="1" max="365" value="30"></div><div class="field"><label>Source reference (optional)</label><input name="sourceReference" maxlength="500"></div></div>
+   <button class="btn primary" type="submit">Persist memory record</button>
+  </form>
+  <div id="memory-message" class="small"></div>
+  <div class="row"><h2 style="flex:2;margin-top:18px">Memory records</h2><button class="btn" id="reload-memory">Reload</button></div>
+  <pre id="memory-json">No data loaded.</pre>
+ </section>
+
+ <section class="panel">
+  <h2>Versioned runtime configuration</h2>
+  <form id="config-form">
+   <div class="field"><label>Configuration key</label><input name="configKey" required maxlength="100" value="sg-aif-runtime"></div>
+   <div class="row"><div class="field"><label>Runtime mode</label><select name="runtimeMode"><option value="read_only">Read-only</option><option value="simulation">Simulation</option></select></div><div class="field"><label>Production maximum</label><input value="L3.3" disabled></div></div>
+   <div class="row"><div class="field"><label>Sandbox maximum</label><input value="L5.4 (simulation only)" disabled></div><div class="field"><label>Memory retention days</label><input name="memoryRetentionDays" type="number" min="1" max="365" value="30"></div></div>
+   <div class="field"><label>Maximum workflow concurrency</label><input name="maxWorkflowConcurrency" type="number" min="1" max="10" value="2"></div>
+   <button class="btn primary" type="submit">Save configuration draft</button>
+  </form>
+  <div id="config-message" class="small">Drafts are immutable. Approval and activation are separate permission-gated steps.</div>
+  <div class="row"><h2 style="flex:2;margin-top:18px">Configuration history</h2><button class="btn" id="reload-config">Reload</button></div>
+  <pre id="config-json">No data loaded.</pre>
+ </section>
+</div>
+
+<div class="grid">
+ <section class="panel">
+  <h2>Plugin awareness registry</h2>
+  <p class="small">Discovery and inventory only. A record does not mean a plugin is installed, authenticated, connected or running.</p>
+  <button class="btn" id="reload-plugins">Reload plugin inventory</button>
+  <pre id="plugin-json">No data loaded.</pre>
+ </section>
+ <section class="panel">
+  <h2>Financial routing — prepare only</h2>
+  <form id="route-form">
+   <div class="field"><label>Request reference</label><input name="requestReference" required maxlength="200" placeholder="Invoice / request reference"></div>
+   <div class="row"><div class="field"><label>Amount in minor units</label><input name="amountMinor" required inputmode="numeric" pattern="[1-9][0-9]*" placeholder="e.g. 125000"></div><div class="field"><label>Currency</label><input name="currency" required value="ZAR" maxlength="3"></div></div>
+   <div class="field"><label>Corridor</label><input name="corridor" required value="ZA-ZA" maxlength="80"></div>
+   <p class="small">All hard gates default to false. The current system has no approved beneficiary, rail or amount mandate, and its kill switch remains active.</p>
+   <button class="btn primary" type="submit">Persist blocked route proposal</button>
+  </form>
+  <div id="route-message" class="small"></div>
+  <pre id="route-json">No data loaded.</pre>
+ </section>
+</div>
+
+<div id="error" class="error" role="status"></div>
+</div>
+<script type="module">
+import { SG_AUTH_CONFIG } from "./IMPLEMENTATION/web/auth-config.js";
+import { getGitHubEnterpriseAccessToken } from "./IMPLEMENTATION/web/github-enterprise-login.js";
+import { createFrameworkApi } from "./IMPLEMENTATION/web/api-client.js";
+
+const $ = id => document.getElementById(id);
+const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let selectedOrganisation = "";
+let api = null;
+const configured = Boolean(SG_AUTH_CONFIG.apiBaseUrl && SG_AUTH_CONFIG.issuer && SG_AUTH_CONFIG.clientId);
+if (configured) {
+  api = createFrameworkApi({
+    baseUrl: SG_AUTH_CONFIG.apiBaseUrl,
+    getAccessToken: getGitHubEnterpriseAccessToken,
+    getOrganisationId: () => selectedOrganisation
+  });
+} else {
+  $("connection-state").textContent = "Deployment configuration required";
+  $("connection-state").className = "status warn";
+  $("session-message").textContent = "OIDC issuer, client ID, redirect URI and API base URL are blank in auth-config.js. Configure only public client settings after the identity provider and API have been approved.";
+}
+function showError(error) { $("error").textContent = error?.message || String(error); }
+function clearError() { $("error").textContent = ""; }
+function showJson(id, value) { $(id).textContent = JSON.stringify(value, null, 2); }
+async function loadSession() {
+  clearError();
+  if (!api) throw new Error("Enterprise OIDC and API configuration is not complete.");
+  if (!getGitHubEnterpriseAccessToken()) throw new Error("Sign in with the configured enterprise identity provider first.");
+  const me = await api.me();
+  const select = $("organisation");
+  select.replaceChildren();
+  for (const membership of me.memberships || []) {
+    const option = document.createElement("option");
+    option.value = membership.organisation_id;
+    option.textContent = membership.organisation_id + " · " + (membership.role_keys || []).join(", ");
+    select.append(option);
+  }
+  selectedOrganisation = select.value || "";
+  if (!selectedOrganisation) throw new Error("This identity has no provisioned organisation membership.");
+  $("connection-state").textContent = "OIDC session present · API identity verified";
+  $("connection-state").className = "status ok";
+  $("session-message").textContent = "Authenticated as application user " + me.userId + ". Select an authorised organisation scope.";
+  await loadAll();
+}
+async function loadAll() {
+  if (!api || !selectedOrganisation) return;
+  clearError();
+  const results = await Promise.allSettled([
+    api.getAifRuntime(), api.listAifWorkflows(), api.listAifMemory(),
+    api.listAifPlugins(), api.listAifConfigurations(), api.listFinancialRouteDecisions()
+  ]);
+  const [runtime, workflows, memory, plugins, configs, routes] = results;
+  if (runtime.status === "fulfilled") {
+    $("runtime-state").textContent = "Persistent API reachable · " + runtime.value.persistence + " · " + runtime.value.runtimeMode;
+    showJson("runtime-json", runtime.value);
+    $("count-workflows").textContent = runtime.value.counts.workflows;
+    $("count-memory").textContent = runtime.value.counts.memories;
+    $("count-plugins").textContent = runtime.value.counts.plugins;
+    $("count-routes").textContent = runtime.value.counts.route_decisions;
+  } else $("runtime-state").textContent = runtime.reason.message;
+  if (workflows.status === "fulfilled") renderWorkflows(workflows.value.data || []);
+  else $("workflow-rows").innerHTML = '<tr><td colspan="6">' + escapeHtml(workflows.reason.message) + "</td></tr>";
+  if (memory.status === "fulfilled") showJson("memory-json", memory.value.data || []);
+  else $("memory-json").textContent = memory.reason.message;
+  if (plugins.status === "fulfilled") showJson("plugin-json", plugins.value.data || []);
+  else $("plugin-json").textContent = plugins.reason.message;
+  if (configs.status === "fulfilled") showJson("config-json", configs.value.data || []);
+  else $("config-json").textContent = configs.reason.message;
+  if (routes.status === "fulfilled") showJson("route-json", routes.value.data || []);
+  else $("route-json").textContent = routes.reason.message;
+}
+function renderWorkflows(rows) {
+  $("workflow-rows").innerHTML = rows.map(row => '<tr><td><b>' + escapeHtml(row.title) + '</b><br><span class="small">' + escapeHtml(row.id) + '</span></td><td>' + escapeHtml(row.environment) + ' / ' + escapeHtml(row.autonomy_level) + '</td><td>' + escapeHtml(row.risk_level) + '</td><td>' + escapeHtml(row.status) + '</td><td>' + escapeHtml(row.state_version) + '</td><td>' + escapeHtml(row.created_at) + '</td></tr>').join("") || '<tr><td colspan="6" class="empty">No persistent workflows recorded.</td></tr>';
+}
+$("organisation").addEventListener("change", async event => { selectedOrganisation = event.target.value; await loadAll(); });
+$("refresh").addEventListener("click", async () => { try { await loadSession(); } catch (error) { showError(error); } });
+$("reload-workflows").addEventListener("click", loadAll);
+$("reload-memory").addEventListener("click", loadAll);
+$("reload-plugins").addEventListener("click", loadAll);
+$("reload-config").addEventListener("click", loadAll);
+
+$("workflow-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  try {
+    if (!api || !selectedOrganisation) throw new Error("Authenticate and select an organisation first.");
+    const data = Object.fromEntries(new FormData(event.currentTarget));
+    data.simulationOnly = event.currentTarget.elements.simulationOnly.checked;
+    if (!data.idempotencyKey) delete data.idempotencyKey;
+    const result = await api.createAifWorkflow(data);
+    $("workflow-message").textContent = "Workflow persisted: " + result.data.id;
+    event.currentTarget.reset();
+    await loadAll();
+  } catch (error) { $("workflow-message").textContent = error.message; }
+});
+$("memory-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  try {
+    if (!api || !selectedOrganisation) throw new Error("Authenticate and select an organisation first.");
+    const form = Object.fromEntries(new FormData(event.currentTarget));
+    const value = JSON.parse(form.value);
+    const result = await api.createAifMemory({
+      memoryType:form.memoryType,memoryKey:form.memoryKey,value,
+      classification:form.classification,ttlDays:Number(form.ttlDays),
+      sourceReference:form.sourceReference || null
+    });
+    $("memory-message").textContent = "Memory persisted until " + result.data.expires_at;
+    await loadAll();
+  } catch (error) { $("memory-message").textContent = error.message; }
+});
+$("config-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  try {
+    if (!api || !selectedOrganisation) throw new Error("Authenticate and select an organisation first.");
+    const form = Object.fromEntries(new FormData(event.currentTarget));
+    const result = await api.createAifConfiguration({
+      configKey:form.configKey,
+      configuration:{
+        runtimeMode:form.runtimeMode,maxProductionAutonomy:"L3.3",
+        sandboxMaxAutonomy:"L5.4",memoryRetentionDays:Number(form.memoryRetentionDays),
+        maxWorkflowConcurrency:Number(form.maxWorkflowConcurrency),
+        financialExecutionEnabled:false,providerWritesEnabled:false,
+        productionDeploymentEnabled:false,selfEscalationEnabled:false
+      }
+    });
+    $("config-message").textContent = "Draft version " + result.data.version + " saved. Independent approval and activation remain required.";
+    await loadAll();
+  } catch (error) { $("config-message").textContent = error.message; }
+});
+$("route-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  try {
+    if (!api || !selectedOrganisation) throw new Error("Authenticate and select an organisation first.");
+    const form = Object.fromEntries(new FormData(event.currentTarget));
+    const result = await api.prepareFinancialRouteDecision({
+      requestReference:form.requestReference,amountMinor:form.amountMinor,
+      currency:form.currency.toUpperCase(),corridor:form.corridor,
+      candidateRoutes:[],hardGates:{}
+    });
+    $("route-message").textContent = "Proposal persisted with status: " + result.data.decision_status + ". Execution allowed: " + result.data.execution_allowed;
+    await loadAll();
+  } catch (error) { $("route-message").textContent = error.message; }
+});
+</script>
+</body>
+</html>
