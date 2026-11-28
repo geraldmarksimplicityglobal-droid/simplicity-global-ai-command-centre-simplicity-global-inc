@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS aif_workflows (
   risk_level text NOT NULL CHECK (risk_level IN ('low','medium','high','critical')),
   simulation_only boolean NOT NULL DEFAULT false,
   status text NOT NULL DEFAULT 'queued'
-    CHECK (status IN ('queued','inspected','planned','awaiting_approval','approved','rejected','failed','simulated','cancelled')),
+    CHECK (status IN ('queued','inspected','planned','awaiting_approval','approved','rejected','failed','cancelled')),
   current_stage text NOT NULL DEFAULT 'queued',
   requester_user_id uuid NOT NULL REFERENCES app_users(id),
   idempotency_key text,
@@ -210,6 +210,89 @@ CREATE POLICY financial_route_decisions_select ON financial_route_decisions FOR 
   USING (public.sg_has_organisation_membership(organisation_id));
 CREATE POLICY financial_route_decisions_insert ON financial_route_decisions FOR INSERT
   WITH CHECK (public.sg_has_organisation_membership(organisation_id));
+
+-- Bind persisted actor columns to the authenticated API identity context.
+CREATE OR REPLACE FUNCTION public.sg_aif_validate_actor()
+RETURNS trigger LANGUAGE plpgsql AS $
+DECLARE
+  session_user_id uuid;
+  row_actor_id text;
+BEGIN
+  SELECT id INTO session_user_id
+    FROM app_users
+   WHERE identity_issuer=current_setting('app.user_issuer',true)
+     AND identity_subject=current_setting('app.user_subject',true)
+     AND status='active'
+   LIMIT 1;
+  row_actor_id := to_jsonb(NEW)->>TG_ARGV[0];
+  IF session_user_id IS NULL OR row_actor_id IS DISTINCT FROM session_user_id::text THEN
+    RAISE EXCEPTION 'persisted actor does not match authenticated session' USING ERRCODE='55000';
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS aif_workflows_actor ON aif_workflows;
+CREATE TRIGGER aif_workflows_actor BEFORE INSERT ON aif_workflows
+  FOR EACH ROW EXECUTE FUNCTION public.sg_aif_validate_actor('requester_user_id');
+DROP TRIGGER IF EXISTS aif_workflow_events_actor ON aif_workflow_events;
+CREATE TRIGGER aif_workflow_events_actor BEFORE INSERT ON aif_workflow_events
+  FOR EACH ROW EXECUTE FUNCTION public.sg_aif_validate_actor('actor_user_id');
+DROP TRIGGER IF EXISTS aif_memory_records_actor ON aif_memory_records;
+CREATE TRIGGER aif_memory_records_actor BEFORE INSERT ON aif_memory_records
+  FOR EACH ROW EXECUTE FUNCTION public.sg_aif_validate_actor('created_by');
+DROP TRIGGER IF EXISTS aif_plugin_registry_actor ON aif_plugin_registry;
+CREATE TRIGGER aif_plugin_registry_actor BEFORE INSERT ON aif_plugin_registry
+  FOR EACH ROW EXECUTE FUNCTION public.sg_aif_validate_actor('discovered_by');
+DROP TRIGGER IF EXISTS aif_config_versions_actor ON aif_config_versions;
+CREATE TRIGGER aif_config_versions_actor BEFORE INSERT ON aif_config_versions
+  FOR EACH ROW EXECUTE FUNCTION public.sg_aif_validate_actor('created_by');
+DROP TRIGGER IF EXISTS aif_config_approvals_actor ON aif_config_approvals;
+CREATE TRIGGER aif_config_approvals_actor BEFORE INSERT ON aif_config_approvals
+  FOR EACH ROW EXECUTE FUNCTION public.sg_aif_validate_actor('approver_user_id');
+DROP TRIGGER IF EXISTS aif_config_activations_actor ON aif_config_activations;
+CREATE TRIGGER aif_config_activations_actor BEFORE INSERT ON aif_config_activations
+  FOR EACH ROW EXECUTE FUNCTION public.sg_aif_validate_actor('activated_by');
+DROP TRIGGER IF EXISTS financial_route_decisions_actor ON financial_route_decisions;
+CREATE TRIGGER financial_route_decisions_actor BEFORE INSERT ON financial_route_decisions
+  FOR EACH ROW EXECUTE FUNCTION public.sg_aif_validate_actor('created_by');
+
+-- Enforce the workflow state machine at the database boundary as well as the API.
+CREATE OR REPLACE FUNCTION public.sg_aif_guard_workflow_transition()
+RETURNS trigger LANGUAGE plpgsql AS $
+DECLARE
+  last_event_type text;
+  last_event_actor uuid;
+BEGIN
+  IF NEW.status IS NOT DISTINCT FROM OLD.status THEN RETURN NEW; END IF;
+  IF NOT (
+    (OLD.status='queued' AND NEW.status IN ('inspected','cancelled')) OR
+    (OLD.status='inspected' AND NEW.status IN ('planned','cancelled')) OR
+    (OLD.status='planned' AND NEW.status IN ('awaiting_approval','cancelled')) OR
+    (OLD.status='awaiting_approval' AND NEW.status IN ('approved','rejected','cancelled')) OR
+    (OLD.status='approved' AND NEW.status='cancelled') OR
+    (OLD.status='failed' AND NEW.status IN ('planned','cancelled'))
+  ) THEN
+    RAISE EXCEPTION 'invalid SG AIF workflow state transition' USING ERRCODE='55000';
+  END IF;
+  IF NEW.status='approved' THEN
+    SELECT event_type,actor_user_id INTO last_event_type,last_event_actor
+      FROM aif_workflow_events
+     WHERE organisation_id=NEW.organisation_id AND workflow_id=NEW.id
+     ORDER BY sequence DESC LIMIT 1;
+    IF last_event_type IS DISTINCT FROM 'workflow.approved' OR
+       last_event_actor IS NULL OR last_event_actor=NEW.requester_user_id THEN
+      RAISE EXCEPTION 'workflow approval requires a separately recorded reviewer' USING ERRCODE='55000';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS aif_workflows_transition_guard ON aif_workflows;
+CREATE TRIGGER aif_workflows_transition_guard
+  BEFORE UPDATE OF status ON aif_workflows
+  FOR EACH ROW EXECUTE FUNCTION public.sg_aif_guard_workflow_transition();
 
 -- Enforce a contiguous, previous-hash-linked workflow event stream.
 CREATE OR REPLACE FUNCTION public.sg_aif_validate_workflow_event()
