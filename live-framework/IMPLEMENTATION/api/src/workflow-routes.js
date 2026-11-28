@@ -111,15 +111,27 @@ export function registerWorkflowRoutes(app, requireScope) {
   );
 
   app.get("/api/workflow/tasks/:taskId", async (request, reply) =>
-    requireScope(request, reply, "workflow:read", async client => {
+    requireScope(request, reply, "workflow:read", async (client, _user, _membership, scope) => {
       const taskId = request.params?.taskId;
       if (!isUuid(taskId)) return reply.code(400).send({ error: "invalid_workflow_task_id" });
       const { rows } = await client.query(
-        "SELECT task_data FROM workflow_tasks WHERE id=$1 LIMIT 1",
-        [taskId]
+        "SELECT task_data FROM workflow_tasks WHERE organisation_id=$1 AND id=$2 LIMIT 1",
+        [scope.organisationId, taskId]
       );
       if (!rows.length) return reply.code(404).send({ error: "workflow_task_not_found" });
       return { data: rows[0].task_data };
+    })
+  );
+
+  app.get("/api/workflow/tasks/:taskId/events", async (request, reply) =>
+    requireScope(request, reply, "workflow:read", async (client, _user, _membership, scope) => {
+      const taskId = request.params?.taskId;
+      if (!isUuid(taskId)) return reply.code(400).send({ error: "invalid_workflow_task_id" });
+      const { rows } = await client.query(
+        "SELECT sequence,event_type,actor_user_id,details,occurred_at FROM workflow_task_events WHERE organisation_id=$1 AND task_id=$2 ORDER BY sequence ASC",
+        [scope.organisationId, taskId]
+      );
+      return { data: rows };
     })
   );
 
