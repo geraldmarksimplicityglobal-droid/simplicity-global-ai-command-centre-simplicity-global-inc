@@ -205,7 +205,9 @@ export function createWorkerHostAdapter({
     });
   }
 
-  return Object.freeze({ verifyWorkerIdentity, withTenantClient, execute });
+  async function close() { await pool.end(); }
+
+  return Object.freeze({ verifyWorkerIdentity, withTenantClient, execute, close });
 }
 
 let defaultAdapter;
