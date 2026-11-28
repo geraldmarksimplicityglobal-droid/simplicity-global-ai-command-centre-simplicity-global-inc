@@ -127,3 +127,18 @@ test("runtime configuration rejects unknown fields rather than silently ignoring
     runtimeMode: "read_only", bankTransferEnabled: true
   }), /unsupported key/);
 });
+
+test("autonomous background job routes are scoped and never expose a financial execution endpoint", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const routes = await readFile(new URL("../src/aif-routes.js", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../../sg-aif-execution-jobs.sql", import.meta.url), "utf8");
+  const grants = await readFile(new URL("../../runtime-grants.template.sql", import.meta.url), "utf8");
+  assert.match(routes, /requireScope\(request, reply, "aif:write"/);
+  assert.match(routes, /\/api\/aif\/jobs/);
+  assert.match(routes, /cancelExecutionJob/);
+  assert.match(migration, /ENABLE ROW LEVEL SECURITY/);
+  assert.match(migration, /sg_has_organisation_membership/);
+  assert.match(migration, /'read_only','reversible'/);
+  assert.match(grants, /GRANT UPDATE \(status,worker_id,lease_until,attempts,result,last_error_code,updated_at,completed_at\)/);
+  assert.doesNotMatch(routes, /payments\.execute_approved/);
+});
