@@ -102,3 +102,107 @@ test("rejects approval for a different operation or the same requester", () => {
   assert.equal(wrongOperation.allowed, false);
   assert.equal(selfApproved.allowed, false);
 });
+
+test("executes short read-only tasks in foreground using discovered authorized connectors", async () => {
+  const { executeAutonomousTask } = await import("../src/autonomy-orchestrator.mjs");
+  let ran = false;
+  const result = await executeAutonomousTask({
+    objective: "Inspect repository metadata",
+    capabilities: ["repository.read"],
+    risk: "read_only",
+    estimatedDurationMinutes: 2,
+    discoverConnectors: async () => [
+      { id: "github-main", provider: "github", capabilities: ["repository.read"], status: "healthy", authorized: true }
+    ],
+    runForeground: async ({ objective, connectorIds }) => {
+      ran = true;
+      return { objective, connectorIds };
+    }
+  });
+  assert.equal(ran, true);
+  assert.equal(result.status, "completed");
+  assert.equal(result.executionMode, "foreground");
+  assert.deepEqual(result.result.connectorIds, ["github-main"]);
+});
+
+test("does not execute when a required connector needs authorization", async () => {
+  const { executeAutonomousTask } = await import("../src/autonomy-orchestrator.mjs");
+  let ran = false;
+  const result = await executeAutonomousTask({
+    objective: "Send a customer email",
+    capabilities: ["mail.send"],
+    risk: "external_write",
+    operationId: "mail-1",
+    requesterId: "user-a",
+    discoverConnectors: async () => [
+      { id: "mail", provider: "mail", capabilities: ["mail.send"], status: "healthy", authorized: false }
+    ],
+    runForeground: async () => { ran = true; }
+  });
+  assert.equal(ran, false);
+  assert.equal(result.status, "authorization_required");
+  assert.equal(result.requiresUserAction, true);
+});
+
+test("queues long tasks only when a persistent worker and durable queue adapter exist", async () => {
+  const { executeAutonomousTask } = await import("../src/autonomy-orchestrator.mjs");
+  let queued = false;
+  const result = await executeAutonomousTask({
+    objective: "Run extended integration verification",
+    capabilities: ["repository.read"],
+    risk: "read_only",
+    estimatedDurationMinutes: 60,
+    backgroundWorkerAvailable: true,
+    discoverConnectors: async () => [
+      { id: "github-main", provider: "github", capabilities: ["repository.read"], status: "healthy", authorized: true }
+    ],
+    enqueueBackground: async payload => {
+      queued = true;
+      return { jobId: "job-123", acceptedObjective: payload.objective };
+    }
+  });
+  assert.equal(queued, true);
+  assert.equal(result.status, "queued");
+  assert.equal(result.executionMode, "background");
+  assert.equal(result.jobId, "job-123");
+});
+
+test("does not pretend to queue background work when no persistent worker exists", async () => {
+  const { executeAutonomousTask } = await import("../src/autonomy-orchestrator.mjs");
+  let queued = false;
+  const result = await executeAutonomousTask({
+    objective: "Run a long report",
+    capabilities: [],
+    risk: "read_only",
+    estimatedDurationMinutes: 90,
+    discoverConnectors: async () => [],
+    enqueueBackground: async () => { queued = true; }
+  });
+  assert.equal(queued, false);
+  assert.equal(result.status, "background_runtime_required");
+});
+
+test("requires operation-bound independent approval before external writes", async () => {
+  const { executeAutonomousTask } = await import("../src/autonomy-orchestrator.mjs");
+  let ran = false;
+  const input = {
+    objective: "Update provider configuration",
+    capabilities: ["provider.config.write"],
+    risk: "external_write",
+    operationId: "provider-change-7",
+    requesterId: "requester-1",
+    discoverConnectors: async () => [
+      { id: "provider", provider: "provider", capabilities: ["provider.config.write"], status: "healthy", authorized: true }
+    ],
+    runForeground: async () => { ran = true; }
+  };
+  const blocked = await executeAutonomousTask(input);
+  assert.equal(blocked.status, "approval_required");
+  assert.equal(ran, false);
+  const approved = await executeAutonomousTask({
+    ...input,
+    approval: { operationId: "provider-change-7", approverId: "reviewer-2", approved: true }
+  });
+  assert.equal(approved.status, "completed");
+  assert.equal(ran, true);
+});
