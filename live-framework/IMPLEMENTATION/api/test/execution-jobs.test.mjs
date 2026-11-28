@@ -6,7 +6,8 @@ import {
   claimExecutionJob,
   completeExecutionJob,
   failExecutionJob,
-  cancelExecutionJob
+  cancelExecutionJob,
+  heartbeatExecutionJob
 } from "../src/execution-jobs.mjs";
 
 function fakeClient(responses = []) {
@@ -63,8 +64,9 @@ test("claim uses SKIP LOCKED and bounded leases", async () => {
   assert.equal(result.id, "job-2");
   assert.match(client.calls[0].sql, /FOR UPDATE SKIP LOCKED/);
   assert.match(client.calls[0].sql, /lease_until/);
-  assert.equal(client.calls[0].params[0], "worker-1");
-  assert.equal(client.calls[0].params[1], 60);
+  assert.equal(client.calls[0].params[0], "org-1");
+  assert.equal(client.calls[0].params[1], "worker-1");
+  assert.equal(client.calls[0].params[2], 60);
 });
 
 test("completion is fenced to the owning worker lease", async () => {
@@ -95,4 +97,14 @@ test("claim fails closed on invalid lease parameters", async () => {
   const client = fakeClient();
   await assert.rejects(() => claimExecutionJob(client, { workerId: "worker-1", leaseSeconds: 0 }), /leaseSeconds/);
   assert.equal(client.calls.length, 0);
+});
+
+test("heartbeat renews only a live lease owned by the same worker", async () => {
+  const client = fakeClient([{ rows: [{ id: "job-2", status: "running" }], rowCount: 1 }]);
+  const result = await heartbeatExecutionJob(client, {
+    organisationId: "org-1", jobId: "job-2", workerId: "worker-1", leaseSeconds: 90
+  });
+  assert.equal(result.status, "running");
+  assert.match(client.calls[0].sql, /worker_id/);
+  assert.match(client.calls[0].sql, /lease_until > now\(\)/);
 });
