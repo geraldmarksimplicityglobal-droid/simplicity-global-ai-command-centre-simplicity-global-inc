@@ -91,3 +91,6 @@ High-impact execution no longer accepts an approval object supplied in the task 
 The verifier must derive requester and approver identities from authenticated server-side context and durable approval records; it must not trust identity claims supplied by the task payload. The orchestrator validates the returned attestation shape but does not itself authenticate the host verifier. The verifier adapter is therefore a privileged host dependency and must never be exposed as a user-controlled parameter in an HTTP request.
 
 This is a security hardening of the library seam. It does not provision the verifier service, connect the API routes, or enable high-impact execution in the current deployment.
+
+
+The orchestrator also marks verifier-returned attestation objects in a module-private `WeakSet`. The exported policy helper rejects caller-constructed objects that merely imitate the attestation shape; only an object returned by the injected verifier during the trusted execution path is eligible for approval evaluation.
