@@ -16,7 +16,8 @@ import {
   claimExecutionJob,
   heartbeatExecutionJob,
   completeExecutionJob,
-  failExecutionJob
+  failExecutionJob,
+  blockExecutionJob
 } from "./execution-jobs.mjs";
 
 /**
@@ -96,6 +97,37 @@ export async function runExecutionWorkerOnce({
   controller.abort();
   await heartbeatTask;
   if (heartbeatLost) return Object.freeze({ status: "lease_lost", jobId: job.id });
+
+  const blockedStatuses = new Set([
+    "approval_required", "authorization_required", "connector_required", "policy_denied"
+  ]);
+  if (blockedStatuses.has(result?.status)) {
+    const blocked = await withTenantClient(org, client =>
+      blockExecutionJob(client, {
+        organisationId: org,
+        jobId: job.id,
+        workerId: worker,
+        errorCode: result.status,
+        summary: typeof result.summary === "string"
+          ? result.summary.slice(0, 1000)
+          : "Task requires an approval or authorization step"
+      })
+    );
+    return Object.freeze({
+      status: blocked?.status ?? "lease_lost",
+      jobId: job.id,
+      reasonCode: result.status
+    });
+  }
+  if (result?.status != null && result.status !== "completed") {
+    const failed = await withTenantClient(org, client =>
+      failExecutionJob(client, {
+        organisationId: org, jobId: job.id, workerId: worker,
+        errorCode: "invalid_executor_result", maxAttempts
+      })
+    );
+    return Object.freeze({ status: failed?.status ?? "lease_lost", jobId: job.id });
+  }
 
   const completed = await withTenantClient(org, client =>
     completeExecutionJob(client, {
