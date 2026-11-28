@@ -211,6 +211,87 @@ CREATE POLICY financial_route_decisions_select ON financial_route_decisions FOR 
 CREATE POLICY financial_route_decisions_insert ON financial_route_decisions FOR INSERT
   WITH CHECK (public.sg_has_organisation_membership(organisation_id));
 
+-- Enforce a contiguous, previous-hash-linked workflow event stream.
+CREATE OR REPLACE FUNCTION public.sg_aif_validate_workflow_event()
+RETURNS trigger LANGUAGE plpgsql AS $
+DECLARE
+  previous_sequence integer;
+  previous_event_hash char(64);
+BEGIN
+  PERFORM id FROM aif_workflows
+   WHERE organisation_id=NEW.organisation_id AND id=NEW.workflow_id
+   FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'workflow event parent is unavailable' USING ERRCODE='55000';
+  END IF;
+  SELECT sequence,event_hash INTO previous_sequence,previous_event_hash
+    FROM aif_workflow_events
+   WHERE organisation_id=NEW.organisation_id AND workflow_id=NEW.workflow_id
+   ORDER BY sequence DESC LIMIT 1;
+  IF NEW.sequence <> COALESCE(previous_sequence,0)+1 THEN
+    RAISE EXCEPTION 'workflow event sequence is not contiguous' USING ERRCODE='55000';
+  END IF;
+  IF NEW.previous_hash IS DISTINCT FROM previous_event_hash THEN
+    RAISE EXCEPTION 'workflow event previous hash does not match chain head' USING ERRCODE='55000';
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS aif_workflow_events_chain ON aif_workflow_events;
+CREATE TRIGGER aif_workflow_events_chain
+  BEFORE INSERT ON aif_workflow_events
+  FOR EACH ROW EXECUTE FUNCTION public.sg_aif_validate_workflow_event();
+
+-- Configuration approval and activation must remain maker/checker separated.
+CREATE OR REPLACE FUNCTION public.sg_aif_guard_config_approval()
+RETURNS trigger LANGUAGE plpgsql AS $
+DECLARE
+  configuration_creator uuid;
+BEGIN
+  SELECT created_by INTO configuration_creator
+    FROM aif_config_versions
+   WHERE organisation_id=NEW.organisation_id AND id=NEW.config_version_id;
+  IF configuration_creator IS NULL OR configuration_creator=NEW.approver_user_id THEN
+    RAISE EXCEPTION 'configuration approval requires an independent reviewer' USING ERRCODE='55000';
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS aif_config_approval_guard ON aif_config_approvals;
+CREATE TRIGGER aif_config_approval_guard
+  BEFORE INSERT ON aif_config_approvals
+  FOR EACH ROW EXECUTE FUNCTION public.sg_aif_guard_config_approval();
+
+CREATE OR REPLACE FUNCTION public.sg_aif_guard_config_activation()
+RETURNS trigger LANGUAGE plpgsql AS $
+DECLARE
+  configuration_creator uuid;
+  latest_decision text;
+  latest_approver uuid;
+BEGIN
+  SELECT created_by INTO configuration_creator
+    FROM aif_config_versions
+   WHERE organisation_id=NEW.organisation_id AND id=NEW.config_version_id;
+  SELECT decision,approver_user_id INTO latest_decision,latest_approver
+    FROM aif_config_approvals
+   WHERE organisation_id=NEW.organisation_id AND config_version_id=NEW.config_version_id
+   ORDER BY created_at DESC LIMIT 1;
+  IF configuration_creator IS NULL OR latest_decision IS DISTINCT FROM 'approved' OR
+     latest_approver IS NULL OR latest_approver=configuration_creator OR
+     NEW.activated_by=configuration_creator THEN
+    RAISE EXCEPTION 'configuration activation requires independent approval' USING ERRCODE='55000';
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS aif_config_activation_guard ON aif_config_activations;
+CREATE TRIGGER aif_config_activation_guard
+  BEFORE INSERT ON aif_config_activations
+  FOR EACH ROW EXECUTE FUNCTION public.sg_aif_guard_config_activation();
+
 -- Workflow event history, config versions, approvals, activations and route
 -- decisions are append-only. Memory erasure remains an administrator/retention
 -- operation and is not exposed through the application API.
