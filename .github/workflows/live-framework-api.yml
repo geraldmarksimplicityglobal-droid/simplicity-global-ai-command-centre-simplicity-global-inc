@@ -78,6 +78,8 @@ jobs:
       - run: node --check ../web/api-client.js
       - run: node --check ../web/github-enterprise-login.js
       - run: node --check ../web/auth-config.js
+      - name: Build worker container without deployment
+        run: docker build -f Dockerfile.worker -t sg-aif-worker:test .
       - run: npm test
       - name: Apply migrations to ephemeral PostgreSQL
         run: |
