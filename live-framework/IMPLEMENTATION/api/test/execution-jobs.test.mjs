@@ -193,7 +193,7 @@ test("running cancellation is recorded without stealing the worker lease", async
     organisationId: "org-1", jobId: "job-running", requesterId: "user-1"
   });
   assert.equal(result.status, "cancellation_requested");
-  assert.match(client.calls[0].sql, /cancel_requested_at=now\(\)/);
+  assert.match(client.calls[0].sql, /COALESCE\(cancel_requested_at,now\(\)\)/);
   assert.match(client.calls[0].sql, /worker_id/);
 });
 
