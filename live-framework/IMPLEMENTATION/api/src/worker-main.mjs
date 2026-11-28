@@ -88,15 +88,19 @@ export async function startWorkerHost({
     maxAttempts: config.maxAttempts,
     signal: controller.signal
   });
-  worker.done.finally(() => {
+  const done = worker.done.finally(async () => {
     if (installSignalHandlers) {
       process.removeListener("SIGTERM", stop);
       process.removeListener("SIGINT", stop);
     }
     if (signal) signal.removeEventListener("abort", stop);
-  }).catch(() => {});
-  if (controller.signal.aborted) return await worker.done;
-  return Object.freeze({ status: "running", worker });
+    if (typeof adapter.close === "function") await adapter.close();
+  });
+  if (controller.signal.aborted) return await done;
+  return Object.freeze({
+    status: "running",
+    worker: Object.freeze({ stop: worker.stop, done })
+  });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
