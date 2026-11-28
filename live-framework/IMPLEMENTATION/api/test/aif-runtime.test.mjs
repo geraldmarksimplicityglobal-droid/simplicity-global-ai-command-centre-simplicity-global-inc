@@ -136,7 +136,7 @@ test("autonomous background job routes are scoped and never expose a financial e
   assert.match(routes, /requireScope\(request, reply, "aif:write"/);
   assert.match(routes, /\/api\/aif\/jobs/);
   assert.match(routes, /cancelExecutionJob/);
-  assert.match(routes, /WHERE requester_user_id=\\$1/);
+  assert.match(routes, /WHERE requester_user_id=\$1/);
   assert.match(migration, /ENABLE ROW LEVEL SECURITY/);
   assert.match(migration, /sg_has_organisation_membership/);
   assert.match(migration, /'read_only','reversible'/);
