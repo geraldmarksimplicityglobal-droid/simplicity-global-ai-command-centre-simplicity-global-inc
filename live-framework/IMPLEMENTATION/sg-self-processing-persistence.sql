@@ -125,9 +125,15 @@ BEGIN
     EXECUTE format('CREATE POLICY %I ON %I FOR SELECT USING (public.sg_has_organisation_membership(organisation_id))',t || '_org_select',t);
     EXECUTE format('CREATE POLICY %I ON %I FOR INSERT WITH CHECK (public.sg_has_organisation_membership(organisation_id))',t || '_org_insert',t);
   END LOOP;
-END $$;
+  FOREACH t IN ARRAY ARRAY[
+    'aif_loop_runs','aif_loop_leases','aif_memory_proposals',
+    'aif_adaptation_events','aif_loop_incidents'
+  ] LOOP
+    EXECUTE format('CREATE POLICY %I ON %I FOR UPDATE USING (public.sg_has_organisation_membership(organisation_id)) WITH CHECK (public.sg_has_organisation_membership(organisation_id))',t || '_org_update',t);
+  END LOOP;
+END $;
 
-DO $$
+DO $
 DECLARE item record;
 BEGIN
   FOR item IN SELECT * FROM (VALUES
