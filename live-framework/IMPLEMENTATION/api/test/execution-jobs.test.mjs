@@ -113,3 +113,48 @@ test("heartbeat renews only a live lease owned by the same worker", async () => 
   assert.match(client.calls[0].sql, /worker_id/);
   assert.match(client.calls[0].sql, /lease_until > now\(\)/);
 });
+
+
+test("idempotent replay is scoped to the same requester and identical payload", async () => {
+  const client = fakeClient([
+    { rows: [], rowCount: 0 },
+    { rows: [{ id: "job-existing", status: "queued", created_at: "2026-11-28T00:00:00Z" }], rowCount: 1 }
+  ]);
+  const input = { objective: "Generate report", capabilities: ["repository.read"], risk: "read_only", idempotencyKey: "shared-key" };
+  const result = await enqueueExecutionJob(client, {
+    organisationId: "org-1", requesterId: "user-1", input
+  });
+  assert.equal(result.id, "job-existing");
+  assert.equal(result.idempotentReplay, true);
+  assert.match(client.calls[1].sql, /requester_user_id/);
+  assert.match(client.calls[1].sql, /payload=\\$4::jsonb/);
+  assert.equal(client.calls[1].params[1], "user-1");
+  assert.equal(client.calls[1].params[2], "shared-key");
+  assert.equal(client.calls[1].params[3], JSON.stringify({
+    objective: "Generate report", capabilities: ["repository.read"], risk: "read_only"
+  }));
+});
+
+test("idempotency key collision from another requester does not disclose the existing job", async () => {
+  const client = fakeClient([
+    { rows: [], rowCount: 0 },
+    { rows: [], rowCount: 0 }
+  ]);
+  await assert.rejects(() => enqueueExecutionJob(client, {
+    organisationId: "org-1", requesterId: "user-2",
+    input: { objective: "Generate report", capabilities: ["repository.read"], risk: "read_only", idempotencyKey: "shared-key" }
+  }), /execution_job_conflict/);
+  assert.equal(client.calls[1].params[1], "user-2");
+});
+
+test("reusing an idempotency key with a different payload returns conflict", async () => {
+  const client = fakeClient([
+    { rows: [], rowCount: 0 },
+    { rows: [], rowCount: 0 }
+  ]);
+  await assert.rejects(() => enqueueExecutionJob(client, {
+    organisationId: "org-1", requesterId: "user-1",
+    input: { objective: "Different report", capabilities: ["repository.read"], risk: "read_only", idempotencyKey: "same-key" }
+  }), /execution_job_conflict/);
+  assert.equal(client.calls[1].params[1], "user-1");
+});
