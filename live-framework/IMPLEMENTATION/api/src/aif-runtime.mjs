@@ -34,6 +34,12 @@ function autonomyValue(level) {
   if (typeof level !== "string" || !(level in AUTONOMY)) throw new TypeError("invalid autonomy level");
   return AUTONOMY[level];
 }
+export function assertAutonomyWithinCeiling(level, ceiling) {
+  if (autonomyValue(level) > autonomyValue(ceiling)) {
+    throw new Error("requested autonomy exceeds the active configuration ceiling");
+  }
+  return true;
+}
 function scanForSensitiveFields(value, path = "value") {
   if (Array.isArray(value)) {
     value.forEach((item, index) => scanForSensitiveFields(item, path + "[" + index + "]"));
