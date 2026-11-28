@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS aif_workflows (
   updated_at timestamptz NOT NULL DEFAULT now(),
   closed_at timestamptz,
   UNIQUE (organisation_id,id),
-  CHECK (environment <> 'production' OR autonomy_level NOT IN ('L4','L4.1','L4.2','L4.3','L4.4','L5','L5.1','L5.2','L5.3','L5.4')),
+  CHECK (environment = 'sandbox' OR autonomy_level NOT IN ('L4','L4.1','L4.2','L4.3','L4.4','L5','L5.1','L5.2','L5.3','L5.4')),
   CHECK (environment <> 'sandbox' OR autonomy_level NOT IN ('L4','L4.1','L4.2','L4.3','L4.4','L5','L5.1','L5.2','L5.3','L5.4') OR simulation_only = true),
   CHECK (simulation_only = false OR environment = 'sandbox')
 );
