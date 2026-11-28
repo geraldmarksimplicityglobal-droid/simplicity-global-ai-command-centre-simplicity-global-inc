@@ -110,3 +110,27 @@ test("financial routing client exposes proposal preparation but no execution met
   assert.equal(typeof api.prepareFinancialRouteDecision, "function");
   assert.equal("executeApprovedPayment" in api, false);
 });
+
+test("autonomous job client queues, lists and cancels jobs through organisation-scoped API", async () => {
+  const calls = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url: String(url), options });
+    return new Response(JSON.stringify({ data: { id: "job-1", status: "queued" } }), {
+      status: 202, headers: { "content-type": "application/json" }
+    });
+  };
+  const api = createFrameworkApi({
+    baseUrl: "https://api.example.test/",
+    getAccessToken: () => "test-access-token-value-123456",
+    getOrganisationId: () => "org-123"
+  });
+  await api.createAifJob({ objective: "Summarize repository", capabilities: [], risk: "read_only" });
+  await api.listAifJobs(20);
+  await api.cancelAifJob("job-1");
+  assert.equal(calls[0].url, "https://api.example.test/api/aif/jobs");
+  assert.equal(calls[0].options.method, "POST");
+  assert.equal(calls[0].options.headers["x-organisation-id"], "org-123");
+  assert.equal(calls[1].url, "https://api.example.test/api/aif/jobs?limit=20");
+  assert.equal(calls[2].url, "https://api.example.test/api/aif/jobs/job-1/cancel");
+  assert.equal(calls[2].options.method, "POST");
+});
