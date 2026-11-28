@@ -41,7 +41,7 @@ function makeDependencies({ claims, role = { rolsuper: false, rolbypassrls: fals
     sg_worker_id: env.SG_WORKER_ID
   };
   return {
-    statements, client, Pool,
+    statements, client, PoolClass: Pool,
     verifyJwt: async (token, jwks, options) => {
       assert.equal(token, "signed-workload-token");
       assert.equal(options.issuer, env.SG_WORKER_OIDC_ISSUER);
