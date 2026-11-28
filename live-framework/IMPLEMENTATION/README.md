@@ -78,3 +78,10 @@ All writes require authenticated actor identity, server-side permission checks, 
 ## Known gaps
 
 The current `index.html` is a browser-local prototype using localStorage and seeded demo data. It is not multi-user, does not have a server-side identity boundary, and is not a source of verified live telemetry. The API and SQL remain source scaffolding; no live PostgreSQL database or identity provider is connected. The RLS context values are supplied by the trusted API and are not a cryptographic defense against arbitrary SQL execution using the runtime credential. This document does not claim those capabilities are implemented.
+
+
+## SG-FIN-ROUTE-001 Parts III–V — governed policy and certification pack
+
+The separate `live-framework/FINANCIAL-ROUTING/PART-III-V/` package adds multi-agent boundaries, credential architecture requirements, message security, payment state-machine primitives, reconciliation and control guidance, model-risk governance, South African/global provider onboarding profiles, an OPA policy bundle, crypto hard gates, and an offline rail-certification matrix.
+
+The package is proposal-only. It does not add a payment execution adapter or enable bank/exchange/wallet access. The existing database-level financial execution block remains authoritative. See the package README for verification commands, provider-document verification requirements and activation gates.
