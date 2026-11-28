@@ -86,6 +86,62 @@ BEGIN
     WHEN raise_exception THEN
       IF SQLERRM <> 'audit_events are append-only' THEN RAISE; END IF;
   END;
+
+  -- Durable workflow state is tenant-isolated and its event stream is immutable.
+  INSERT INTO workflow_tasks (
+    id,organisation_id,created_by,title,objective,risk_level,status,task_data,last_event_sequence
+  ) VALUES (
+    '10000000-0000-4000-8000-000000000301',
+    '10000000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000102',
+    'Persistent workflow contract',
+    'Verify durable tenant-scoped task state',
+    'low',
+    'submitted',
+    jsonb_build_object('id','10000000-0000-4000-8000-000000000301','status','submitted','events',jsonb_build_array()),
+    1
+  );
+  INSERT INTO workflow_task_events (
+    organisation_id,task_id,sequence,event_type,actor_user_id,details
+  ) VALUES (
+    '10000000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000301',
+    1,
+    'task.submitted',
+    '10000000-0000-4000-8000-000000000102',
+    '{}'::jsonb
+  );
+
+  SELECT count(*) INTO n FROM workflow_tasks;
+  IF n <> 1 THEN RAISE EXCEPTION 'workflow RLS expected one task, found %', n; END IF;
+  SELECT count(*) INTO n FROM workflow_task_events;
+  IF n <> 1 THEN RAISE EXCEPTION 'workflow event RLS expected one event, found %', n; END IF;
+
+  UPDATE workflow_tasks
+    SET status='inspected', task_data=jsonb_set(task_data,'{status}','"inspected"'), updated_at=now()
+    WHERE id='10000000-0000-4000-8000-000000000301';
+  SELECT count(*) INTO n FROM workflow_tasks WHERE status='inspected';
+  IF n <> 1 THEN RAISE EXCEPTION 'workflow task update grant/policy failed'; END IF;
+
+  PERFORM set_config('app.organisation_id','20000000-0000-4000-8000-000000000002',false);
+  SELECT count(*) INTO n FROM assets;
+  IF n <> 0 THEN RAISE EXCEPTION 'cross-organisation asset rows were visible under a different organisation context'; END IF;
+  SELECT count(*) INTO n FROM workflow_tasks;
+  IF n <> 0 THEN RAISE EXCEPTION 'cross-organisation workflow task access was not denied'; END IF;
+  SELECT count(*) INTO n FROM workflow_task_events;
+  IF n <> 0 THEN RAISE EXCEPTION 'cross-organisation workflow event access was not denied'; END IF;
+  PERFORM set_config('app.organisation_id','10000000-0000-4000-8000-000000000001',false);
+
+  BEGIN
+    UPDATE workflow_task_events SET event_type='tampered'
+      WHERE task_id='10000000-0000-4000-8000-000000000301';
+    RAISE EXCEPTION 'workflow event update unexpectedly succeeded';
+  EXCEPTION
+    WHEN insufficient_privilege THEN NULL;
+    WHEN raise_exception THEN
+      IF SQLERRM <> 'workflow_task_events are append-only' THEN RAISE; END IF;
+  END;
+
 END $$;
 
 RESET ROLE;
