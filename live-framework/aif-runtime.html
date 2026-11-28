@@ -33,6 +33,18 @@
  <div class="metric"><small>Financial decisions</small><strong id="count-routes">—</strong></div>
 </section>
 
+<section class="panel">
+ <div class="row"><h2 style="flex:2">One-command background task</h2><button class="btn" id="reload-jobs">Refresh jobs</button></div>
+ <p class="small">Enter the outcome once. GEN SYSTEM handles capability discovery and risk classification in its trusted worker adapter. The queue is restricted to read-only and reversible tasks; if a command requires higher-risk access, the worker must stop and request the appropriate approval instead of executing it. A deployed worker is required before queued work can execute.</p>
+ <form id="job-form">
+  <div class="field"><label>What should GEN SYSTEM complete?</label><textarea name="objective" required maxlength="4000" placeholder="One command — describe the finished outcome you want"></textarea></div>
+  <div class="field"><label>Execution</label><input value="Automatic · foreground or background as available" disabled></div>
+  <button class="btn primary" type="submit">Queue command</button>
+ </form>
+ <div id="job-message" class="small">No task submitted.</div>
+ <pre id="job-json">No jobs loaded.</pre>
+</section>
+
 <div class="grid">
  <section class="panel">
   <h2>Runtime configuration</h2>
@@ -124,6 +136,7 @@ const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let selectedOrganisation = "";
 let api = null;
+let pendingJobIdempotencyKey = null;
 const configured = Boolean(SG_AUTH_CONFIG.apiBaseUrl && SG_AUTH_CONFIG.issuer && SG_AUTH_CONFIG.clientId);
 if (configured) {
   api = createFrameworkApi({
@@ -163,10 +176,10 @@ async function loadAll() {
   if (!api || !selectedOrganisation) return;
   clearError();
   const results = await Promise.allSettled([
-    api.getAifRuntime(), api.listAifWorkflows(), api.listAifMemory(),
+    api.getAifRuntime(), api.listAifWorkflows(), api.listAifJobs(), api.listAifMemory(),
     api.listAifPlugins(), api.listAifConfigurations(), api.listFinancialRouteDecisions()
   ]);
-  const [runtime, workflows, memory, plugins, configs, routes] = results;
+  const [runtime, workflows, jobs, memory, plugins, configs, routes] = results;
   if (runtime.status === "fulfilled") {
     $("runtime-state").textContent = "Persistent API reachable · " + runtime.value.persistence + " · " + runtime.value.runtimeMode;
     showJson("runtime-json", runtime.value);
@@ -177,6 +190,8 @@ async function loadAll() {
   } else $("runtime-state").textContent = runtime.reason.message;
   if (workflows.status === "fulfilled") renderWorkflows(workflows.value.data || []);
   else $("workflow-rows").innerHTML = '<tr><td colspan="6">' + escapeHtml(workflows.reason.message) + "</td></tr>";
+  if (jobs.status === "fulfilled") showJson("job-json", jobs.value.data || []);
+  else $("job-json").textContent = jobs.reason.message;
   if (memory.status === "fulfilled") showJson("memory-json", memory.value.data || []);
   else $("memory-json").textContent = memory.reason.message;
   if (plugins.status === "fulfilled") showJson("plugin-json", plugins.value.data || []);
@@ -192,10 +207,34 @@ function renderWorkflows(rows) {
 $("organisation").addEventListener("change", async event => { selectedOrganisation = event.target.value; await loadAll(); });
 $("refresh").addEventListener("click", async () => { try { await loadSession(); } catch (error) { showError(error); } });
 $("reload-workflows").addEventListener("click", loadAll);
+$("reload-jobs").addEventListener("click", loadAll);
 $("reload-memory").addEventListener("click", loadAll);
 $("reload-plugins").addEventListener("click", loadAll);
 $("reload-config").addEventListener("click", loadAll);
 
+$("job-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const formElement = event.currentTarget;
+  const submitButton = formElement.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  try {
+    if (!api || !selectedOrganisation) throw new Error("Authenticate and select an organisation first.");
+    const form = Object.fromEntries(new FormData(formElement));
+    pendingJobIdempotencyKey ||= crypto.randomUUID();
+    const result = await api.createAifJob({
+      objective: form.objective,
+      capabilities: [],
+      risk: "read_only",
+      idempotencyKey: pendingJobIdempotencyKey
+    });
+    pendingJobIdempotencyKey = null;
+    $("job-message").textContent = "Job persisted: " + result.data.id + " · " + result.data.status + ". Execution requires an authorised background worker.";
+    formElement.reset();
+    await loadAll();
+  } catch (error) {
+    $("job-message").textContent = error.message + (pendingJobIdempotencyKey ? " Retry will reuse the same idempotency key." : "");
+  } finally { submitButton.disabled = false; }
+});
 $("workflow-form").addEventListener("submit", async event => {
   event.preventDefault();
   try {

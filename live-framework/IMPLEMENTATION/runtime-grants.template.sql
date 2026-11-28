@@ -38,7 +38,8 @@ GRANT SELECT ON
   aif_config_versions,
   aif_config_approvals,
   aif_config_activations,
-  financial_route_decisions
+  financial_route_decisions,
+  aif_execution_jobs
 TO sg_live_framework_runtime;
 
 GRANT INSERT ON
@@ -52,7 +53,8 @@ GRANT INSERT ON
   aif_config_versions,
   aif_config_approvals,
   aif_config_activations,
-  financial_route_decisions
+  financial_route_decisions,
+  aif_execution_jobs
 TO sg_live_framework_runtime;
 
 -- Needed for the GENERATED ALWAYS AS IDENTITY audit event primary key.
@@ -81,3 +83,10 @@ REVOKE UPDATE, DELETE, TRUNCATE ON
   aif_workflow_events,aif_config_versions,aif_config_approvals,
   aif_config_activations,financial_route_decisions
 FROM sg_live_framework_runtime;
+
+-- SG-AUTO-001 queue: API may enqueue/read/cancel own queued jobs; worker
+-- updates are fenced by tenant, status, worker identity and an unexpired lease.
+GRANT INSERT ON aif_execution_jobs TO sg_live_framework_runtime;
+GRANT UPDATE (status,worker_id,lease_until,attempts,result,last_error_code,updated_at,completed_at)
+  ON aif_execution_jobs TO sg_live_framework_runtime;
+REVOKE DELETE, TRUNCATE ON aif_execution_jobs FROM sg_live_framework_runtime;

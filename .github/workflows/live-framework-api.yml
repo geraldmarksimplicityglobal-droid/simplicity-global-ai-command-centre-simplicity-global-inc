@@ -16,6 +16,8 @@ on:
       - "live-framework/IMPLEMENTATION/database-contract.sql"
       - "live-framework/IMPLEMENTATION/sg-aif-persistence.sql"
       - "live-framework/IMPLEMENTATION/sg-aif-persistence-contract.sql"
+      - "live-framework/IMPLEMENTATION/sg-aif-execution-jobs.sql"
+      - "live-framework/IMPLEMENTATION/sg-aif-execution-cancellation.sql"
       - ".github/workflows/live-framework-api.yml"
   push:
     branches:
@@ -69,15 +71,24 @@ jobs:
       - run: node --check src/scope.js
       - run: node --check src/aif-runtime.mjs
       - run: node --check src/aif-routes.js
+      - run: node --check src/autonomy-orchestrator.mjs
+      - run: node --check src/execution-jobs.mjs
+      - run: node --check src/execution-worker.mjs
+      - run: node --check src/worker-main.mjs
+      - run: node --check src/worker-host-adapter.mjs
       - run: node --check ../web/api-client.js
       - run: node --check ../web/github-enterprise-login.js
       - run: node --check ../web/auth-config.js
+      - name: Build worker container without deployment
+        run: docker build -f Dockerfile.worker -t sg-aif-worker:test .
       - run: npm test
       - name: Apply migrations to ephemeral PostgreSQL
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../schema.postgresql.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../security-and-rls.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../sg-aif-persistence.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../sg-aif-execution-jobs.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../sg-aif-execution-cancellation.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../runtime-grants.template.sql
       - name: Verify tenant isolation and append-only audit controls
         run: |

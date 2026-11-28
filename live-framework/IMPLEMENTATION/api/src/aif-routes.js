@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { enqueueExecutionJob, validateExecutionJob, cancelExecutionJob } from "./execution-jobs.mjs";
 import { isUuid } from "./scope.js";
 import {
   validateWorkflowInput, assertWorkflowTransition, validateMemoryRecord,
@@ -45,6 +46,53 @@ async function appendWorkflowEvent(client, { organisationId, workflowId, actorId
 }
 
 export async function registerAifRoutes(app, requireScope) {
+  app.get("/api/aif/jobs", async (request, reply) => requireScope(request, reply, "aif:read", async (client, user) => {
+    const { rows } = await client.query(
+      "SELECT id,status,payload->>'objective' AS objective,attempts,last_error_code,result,created_at,updated_at,completed_at FROM aif_execution_jobs WHERE requester_user_id=$1 ORDER BY created_at DESC LIMIT $2",
+      [user.userId, boundedLimit(request.query?.limit)]
+    );
+    return { data: rows };
+  }));
+
+  app.post("/api/aif/jobs", async (request, reply) => requireScope(request, reply, "aif:write", async (client, user, _membership, scope) => {
+    let input;
+    try { input = validateExecutionJob(request.body); }
+    catch (error) { return reply.code(400).send({ error: "invalid_execution_job", message: error.message }); }
+    try {
+      const job = await enqueueExecutionJob(client, {
+        organisationId: scope.organisationId,
+        requesterId: user.userId,
+        input
+      });
+      await client.query(
+        "INSERT INTO audit_events (organisation_id,actor_user_id,action,target_type,target_id,outcome) VALUES ($1,$2,'aif.job.queued','aif_execution_job',$3,'success')",
+        [scope.organisationId,user.userId,job.id]
+      );
+      reply.code(job.idempotentReplay ? 200 : 202);
+      return { data: job };
+    } catch (error) {
+      if (error?.message === "execution_job_conflict") return reply.code(409).send({ error: "execution_job_conflict" });
+      throw error;
+    }
+  }));
+
+  app.post("/api/aif/jobs/:id/cancel", async (request, reply) => requireScope(request, reply, "aif:write", async (client, user, _membership, scope) => {
+    if (!isUuid(request.params.id)) return reply.code(400).send({ error: "invalid_job_id" });
+    const job = await cancelExecutionJob(client, {
+      organisationId: scope.organisationId,
+      jobId: request.params.id,
+      requesterId: user.userId
+    });
+    if (!job) return reply.code(409).send({ error: "job_not_cancellable" });
+    const auditAction = job.status === "cancellation_requested"
+      ? "aif.job.cancellation_requested" : "aif.job.cancelled";
+    await client.query(
+      "INSERT INTO audit_events (organisation_id,actor_user_id,action,target_type,target_id,outcome) VALUES ($1,$2,$3,'aif_execution_job',$4,'success')",
+      [scope.organisationId,user.userId,auditAction,job.id]
+    );
+    return { data: job };
+  }));
+
   app.get("/api/aif/runtime", async (request, reply) => requireScope(request, reply, "aif:read", async (client, _user, _membership, scope) => {
     const { rows } = await client.query(
       "SELECT (SELECT count(*)::int FROM aif_workflows) AS workflows, (SELECT count(*)::int FROM aif_memory_records WHERE expires_at > now()) AS memories, (SELECT count(*)::int FROM aif_plugin_registry) AS plugins, (SELECT count(*)::int FROM financial_route_decisions) AS route_decisions"

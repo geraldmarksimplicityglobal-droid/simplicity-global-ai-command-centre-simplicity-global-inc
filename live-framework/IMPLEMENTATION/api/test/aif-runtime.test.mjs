@@ -127,3 +127,42 @@ test("runtime configuration rejects unknown fields rather than silently ignoring
     runtimeMode: "read_only", bankTransferEnabled: true
   }), /unsupported key/);
 });
+
+test("autonomous background job routes are scoped and never expose a financial execution endpoint", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const routes = await readFile(new URL("../src/aif-routes.js", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../../sg-aif-execution-jobs.sql", import.meta.url), "utf8");
+  const grants = await readFile(new URL("../../runtime-grants.template.sql", import.meta.url), "utf8");
+  assert.match(routes, /requireScope\(request, reply, "aif:write"/);
+  assert.match(routes, /\/api\/aif\/jobs/);
+  assert.match(routes, /cancelExecutionJob/);
+  assert.match(routes, /WHERE requester_user_id=\$1/);
+  assert.match(migration, /ENABLE ROW LEVEL SECURITY/);
+  assert.match(migration, /sg_has_organisation_membership/);
+  assert.match(migration, /'read_only','reversible'/);
+  assert.match(grants, /GRANT UPDATE \(status,worker_id,lease_until,attempts,result,last_error_code,updated_at,completed_at\)/);
+  assert.doesNotMatch(routes, /payments\.execute_approved/);
+});
+
+test("AIF console exposes a one-command background job form with worker-state disclosure", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const html = await readFile(new URL("../../../aif-runtime.html", import.meta.url), "utf8");
+  const client = await readFile(new URL("../../web/api-client.js", import.meta.url), "utf8");
+  assert.match(html, /id="job-form"/);
+  assert.match(html, /id="job-json"/);
+  assert.match(html, /a deployed worker is required before queued work can execute/i);
+  assert.match(html, /api\.createAifJob/);
+  assert.match(client, /createAifJob:/);
+  assert.match(client, /listAifJobs:/);
+  assert.match(client, /cancelAifJob:/);
+});
+
+test("AIF console inline module script parses after the import declarations are removed", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const html = await readFile(new URL("../../../aif-runtime.html", import.meta.url), "utf8");
+  const match = html.match(/<script type="module">([\s\S]*?)<\/script>/);
+  assert.ok(match, "AIF console module script exists");
+  const source = match[1].replace(/^import .*;\s*/gm, "");
+  assert.doesNotThrow(() => new Function(source));
+  assert.match(source, /pendingJobIdempotencyKey/);
+});

@@ -38,6 +38,8 @@ Use test-only values in a local ignored environment file. Do not point this scaf
 - GET /api/incidents
 - GET /api/audit-events
 - GET /api/aif/runtime
+- GET/POST /api/aif/jobs (durable queue; read-only/reversible jobs only)
+- POST /api/aif/jobs/:id/cancel (requester may cancel their own queued job)
 - GET/POST /api/aif/workflows
 - GET /api/aif/workflows/:id
 - POST /api/aif/workflows/:id/events
@@ -80,3 +82,77 @@ The separate `sg-aif-persistence.sql` migration adds organisation-scoped Postgre
 ## Runtime activation prerequisites
 
 The implementation is committed to a feature branch, not deployed. Before any persistent service is activated, select and approve a PostgreSQL provider/region, provision a non-production database, apply reviewed migrations using an administrator role, create a non-owner NOBYPASSRLS runtime login, configure the OIDC issuer/JWKS/audience and secret manager, assign permissions through a separate identity-admin process, and test backup/restore. No production database has been created or modified by this change.
+
+
+## SG-AUTO-001 durable background queue (implementation scaffold)
+
+The `sg-aif-execution-jobs.sql` migration adds a tenant-isolated PostgreSQL queue with idempotency keys, attempt counters, worker leases, lease expiry/reclaim, bounded error codes and cancellation for a requester's own queued jobs.
+
+- `POST /api/aif/jobs` queues a read-only or reversible job under the authenticated user's organisation scope.
+- `GET /api/aif/jobs` lists tenant-scoped job state.
+- `POST /api/aif/jobs/:id/cancel` cancels only the requester's own queued job.
+- The queue rejects high-impact risk classes and unknown fields; caller-supplied approval flags are not accepted.
+- `execution-worker.mjs` provides a tenant-bound worker adapter and graceful polling supervisor. The host must supply a trusted `withTenantClient` adapter that establishes authenticated workload identity and organisation membership, plus an `execute` adapter that revalidates connector scopes and policy.
+- The worker processes one tenant at a time and does not bypass row-level security. It uses `FOR UPDATE SKIP LOCKED`, expiring leases and worker-fenced completion.
+- Only bounded result summaries and machine-readable error codes are persisted. Secrets and raw provider exception details are not stored.
+
+This adds source code and CI coverage only. The migration is applied to ephemeral CI PostgreSQL, not production. No database, worker process, scheduler, OAuth connection, connector or external service is provisioned or activated by this change. Production worker credentials, service-principal membership, deployment supervision, monitoring, alerting, cancellation propagation and operational recovery still require host integration and separate approval.
+
+
+## Worker host entrypoint
+
+The API package now includes `npm run worker`, which starts `src/worker-main.mjs`. The process requires deployment-provided settings:
+
+- `SG_WORKER_ADAPTER_MODULE`: absolute path to a trusted, deployment-managed ES module outside the repository checkout.
+- `SG_WORKER_ORGANISATION_ID`: the single organisation this worker is allowed to service.
+- `SG_WORKER_ID`: stable worker identifier.
+- Optional bounded tuning: `SG_WORKER_POLL_INTERVAL_MS` (250–60000, default 1500), `SG_WORKER_LEASE_SECONDS` (10–900, default 60), and `SG_WORKER_MAX_ATTEMPTS` (1–20, default 5).
+
+The trusted host adapter must export:
+- `verifyWorkerIdentity({ organisationId, workerId })`, returning a verified identity matching both requested values.
+- `withTenantClient(organisationId, callback)`, opening a transaction with authenticated workload identity and tenant membership, without RLS bypass.
+- `execute({ organisationId, jobId, requesterId, payload, attempt, signal })`, revalidating requester permissions, exact connector capabilities, current scopes, task risk and cancellation before tool invocation.
+
+The worker refuses to start if the adapter or exact workload identity cannot be verified. The adapter is a privileged deployment dependency: keep it outside source control, load its credentials from a secret manager or workload identity, and restrict file access to the worker service account. Run one worker deployment per explicitly configured tenant unless a separately reviewed tenant scheduler is implemented. Use an external supervisor (for example, a container orchestrator or system service) for restart policy, health checks, logs, alerts and graceful termination.
+
+Example environment variable names and values belong in the deployment secret/configuration manager, not in committed files. No real secrets, database URLs, OIDC tokens or provider credentials are included in this repository. This entrypoint does not provision a database, identity provider, adapter module, deployment or worker process. Background processing becomes operational only after those host dependencies are deployed and verified.
+
+
+### One-command intake and mandatory worker-side classification
+
+The runtime console now accepts only the user's natural-language objective for background submission; it does not ask the user to select a risk class or enumerate connector capabilities. The API stores the request with the queue's least-privilege `read_only` ceiling. This value is a queue restriction, not proof that the natural-language request is safe. Before any tool call, the trusted worker executor must independently interpret the objective, discover the exact required capabilities, verify the requester's current authorization, and classify the actual operation. If the task needs a risk level above `read_only` or `reversible`, the worker must stop without side effects and return an approval/authorization requirement. The worker must not downgrade a task's true risk to fit the queue.
+
+
+### Blocked background task outcomes
+
+The execution queue now has a terminal `blocked` state for worker-side outcomes `approval_required`, `authorization_required`, `connector_required`, and `policy_denied`. A blocked task releases its worker lease, stores only a bounded safe summary and machine-readable reason code, and is not retried as if it were a transient failure. The worker must not mark a policy-blocked command as succeeded. The requester can inspect the status through the existing jobs endpoint and submit again after the required authorization or connector is resolved.
+
+
+## Cooperative cancellation of running background jobs
+
+The execution queue supports requester-owned cancellation for both queued and running jobs. Queued jobs transition immediately to `cancelled`. Running jobs receive a durable `cancel_requested_at` marker; the worker observes it on lease heartbeat, aborts the executor signal, and finalizes the job as `cancelled` under the same worker lease. The executor adapter must cooperatively honor the supplied `AbortSignal`; cancellation is not a force-kill and cannot guarantee interruption of an adapter that ignores the signal. A completion update is fenced against a concurrent cancellation request so a cancelled job is not reported as successful. The additive `sg-aif-execution-cancellation.sql` migration adds the marker and its partial index. CI applies this migration only to ephemeral PostgreSQL.
+
+
+## Worker container
+
+`Dockerfile.worker` packages the dedicated background worker as a Node.js 22 non-root container. CI builds the image as a build-only check; it does not publish or deploy it. See [WORKER-HOST-DEPLOYMENT.md](./WORKER-HOST-DEPLOYMENT.md) for the required deployment-managed host adapter, workload identity, environment configuration, operational controls and activation checklist.
+
+
+## OIDC-verified worker host adapter
+
+`src/worker-host-adapter.mjs` is a provider-neutral host adapter for the durable worker. It verifies a signed workload JWT against an HTTPS OIDC issuer/JWKS and exact audience, organisation and worker claims. The token is read from a deployment-managed file and is never returned or logged.
+
+Required deployment settings (names only; never commit values):
+- `DATABASE_URL`: PostgreSQL connection string.
+- `SG_WORKER_OIDC_ISSUER`: exact HTTPS token issuer.
+- `SG_WORKER_OIDC_JWKS_URL`: HTTPS JWKS endpoint.
+- `SG_WORKER_OIDC_AUDIENCE`: exact workload-token audience.
+- `SG_WORKER_IDENTITY_TOKEN_FILE`: absolute path to a rotated workload-token file.
+- `SG_WORKER_EXECUTOR_MODULE`: absolute path to a separately reviewed host executor module.
+- `SG_WORKER_ORGANISATION_ID` and `SG_WORKER_ID`: same exact worker assignment passed to the worker entrypoint.
+
+The JWT must contain `sub`, `iss`, `sg_organisation_id`, and `sg_worker_id`; its audience is verified by jose. The `sub` must map to an active `app_users` OIDC identity with membership in the assigned organisation. Each tenant database transaction revalidates the signed token and membership, sets transaction-local identity context for existing RLS policies, and rejects database logins that are superusers, have BYPASSRLS, or own the execution-jobs table. Use a dedicated non-owner runtime login with the reviewed least-privilege grants.
+
+The separately deployed executor module must export `execute(task)`. It is a privileged host dependency and must independently revalidate the original requester's current permissions, connector health/scopes, task intent and risk, and cancellation signal before invoking any tool. It must return one of the explicit governed outcomes: `completed`, `approval_required`, `authorization_required`, `connector_required`, or `policy_denied`. Only `completed` with a bounded non-empty summary is accepted as success. No provider connector or ChatGPT tool bridge is bundled or activated by this adapter.
+
+This adapter is source code only. It does not provision an OIDC provider, service-principal membership, database, secrets, executor module, Render service, or worker. The hosting workspace currently has no services, Postgres databases, Key Value stores or workflows. Provisioning remains blocked until the hosting provider, region, data location and any recurring costs are explicitly approved.
