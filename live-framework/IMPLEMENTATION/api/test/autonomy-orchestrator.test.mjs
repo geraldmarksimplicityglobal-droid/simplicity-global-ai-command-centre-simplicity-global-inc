@@ -79,15 +79,15 @@ test("does not accept a bare approval boolean for high-impact operations", () =>
   assert.equal(result.status, "approval_required");
 });
 
-test("accepts an approval bound to the operation and a different approver", () => {
+test("rejects caller-constructed approval attestations outside the trusted verifier path", () => {
   const result = authorizeOperation({
     risk: "financial",
     operationId: "op-3",
     requesterId: "user-a",
     verifiedApproval: { verified: true, operationId: "op-3", requesterId: "user-a", approverId: "user-b", approved: true }
   });
-  assert.equal(result.allowed, true);
-  assert.equal(result.status, "approved");
+  assert.equal(result.allowed, false);
+  assert.equal(result.status, "approval_required");
 });
 
 test("rejects approval for a different operation or the same requester", () => {
